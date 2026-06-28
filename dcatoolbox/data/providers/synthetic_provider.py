@@ -54,12 +54,12 @@ class SyntheticProvider(MarketDataProvider):
         frequency: Frequency,
     ) -> MarketData:
         """Generate a synthetic OHLCV series for ``ticker``."""
-        index = pd.bdate_range(start=start, end=end, name="date")
+        index, periods_per_year = self._build_index(start, end, frequency)
         n = len(index)
         # Seed deterministically from both the config seed and the ticker so that
         # different tickers get different but reproducible paths.
         rng = np.random.default_rng(self.seed + (abs(hash(ticker)) % 10_000))
-        dt = 1.0 / 252.0
+        dt = 1.0 / periods_per_year
         shocks = rng.normal(
             loc=(self.annual_drift - 0.5 * self.annual_vol**2) * dt,
             scale=self.annual_vol * np.sqrt(dt),
@@ -76,3 +76,18 @@ class SyntheticProvider(MarketDataProvider):
             index=index,
         )
         return MarketData.from_frame(ticker, frequency, frame)
+
+    @staticmethod
+    def _build_index(start: date, end: date, frequency: Frequency) -> tuple[pd.DatetimeIndex, int]:
+        """Build the timestamp index and bars-per-year for a frequency."""
+        days = pd.bdate_range(start=start, end=end)
+        if frequency is Frequency.DAILY:
+            return pd.DatetimeIndex(days, name="date"), 252
+        slots = {Frequency.HOURLY: 7, Frequency.INTRADAY: 26}[frequency]
+        step = 390 // slots  # minutes across a 6.5h (390-min) US trading session
+        stamps = [
+            pd.Timestamp(d) + pd.Timedelta(hours=9, minutes=30) + pd.Timedelta(minutes=step * k)
+            for d in days
+            for k in range(slots)
+        ]
+        return pd.DatetimeIndex(stamps, name="date"), 252 * slots

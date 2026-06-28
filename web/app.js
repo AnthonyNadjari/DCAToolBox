@@ -31,6 +31,9 @@ async function fetchJson(url) {
   return res.json();
 }
 
+const instrument = (t) => manifest.instruments.find((i) => i.ticker === t);
+const currentFreq = () => instrument($("ticker").value).frequencies[$("frequency").value];
+
 async function loadManifest() {
   manifest = await fetchJson("data/manifest.json");
   const sel = $("ticker");
@@ -38,16 +41,29 @@ async function loadManifest() {
   for (const inst of manifest.instruments) {
     const o = document.createElement("option");
     o.value = inst.ticker;
-    o.textContent = inst.label + (inst.source === "synthetic" ? " (demo data)" : "");
+    o.textContent = inst.label;
+    sel.appendChild(o);
+  }
+  populateFrequencies();
+}
+
+function populateFrequencies() {
+  const sel = $("frequency");
+  const freqs = instrument($("ticker").value).frequencies;
+  sel.innerHTML = "";
+  for (const key of Object.keys(freqs)) {
+    const o = document.createElement("option");
+    o.value = key;
+    o.textContent = key + (freqs[key].source === "synthetic" ? " (demo)" : "");
     sel.appendChild(o);
   }
 }
 
-async function loadData(ticker) {
-  if (!dataCache.has(ticker)) {
-    dataCache.set(ticker, await fetchJson(`data/${ticker}.json`));
-  }
-  return dataCache.get(ticker);
+async function loadData() {
+  const f = currentFreq();
+  const key = `${$("ticker").value}|${$("frequency").value}`;
+  if (!dataCache.has(key)) dataCache.set(key, await fetchJson(`data/${f.file}`));
+  return dataCache.get(key);
 }
 
 /* ------------------------------ config build ---------------------------- */
@@ -68,6 +84,7 @@ function readConfig() {
   return {
     start: $("start").value || null,
     end: $("end").value || null,
+    periodsPerYear: currentFreq().periodsPerYear,
     monthlyBudget: parseFloat($("budget").value),
     dayOfMonth: parseInt($("day").value, 10),
     initialCash: 0,
@@ -189,7 +206,7 @@ async function run() {
   syncRangeLabels();
   syncStrategyFields();
   const cfg = readConfig();
-  const data = await loadData($("ticker").value);
+  const data = await loadData();
   const result = runBacktest(data, cfg);
   if (result.bars.dates.length < 2) {
     $("status").textContent = "Not enough trading days in the selected range — widen Start/End.";
@@ -198,16 +215,16 @@ async function run() {
   renderCards(result);
   renderMetrics(result.strategy.name, result.strategy.metrics, result.benchmark.metrics);
   renderCharts(result);
-  const src = manifest.instruments.find((i) => i.ticker === $("ticker").value);
+  const f = currentFreq();
   $("status").innerHTML =
-    `<span class="badge">${src.source}</span> ${cfg.strategy.name} on ${$("ticker").value}, ` +
-    `${cfg.start} → ${cfg.end} · benchmark: monthly_dca`;
+    `<span class="badge">${f.source} · ${$("frequency").value}</span> ${cfg.strategy.name} ` +
+    `on ${$("ticker").value}, ${cfg.start} → ${cfg.end} · benchmark: monthly_dca`;
 }
 
 async function compareAll() {
   await run(); // keep cards, metrics table and the other charts consistent first
   const cfg = readConfig();
-  const data = await loadData($("ticker").value);
+  const data = await loadData();
   const names = ["dip_buying", "rsi", "moving_average", "monthly_dca"];
   const traces = [];
   for (const name of names) {
@@ -221,13 +238,13 @@ async function compareAll() {
 
 /* ------------------------------ bootstrap ------------------------------- */
 function setDateBounds() {
-  const inst = manifest.instruments.find((i) => i.ticker === $("ticker").value);
+  const f = currentFreq();
   for (const id of ["start", "end"]) {
-    $(id).min = inst.start;
-    $(id).max = inst.end;
+    $(id).min = f.start;
+    $(id).max = f.end;
   }
-  $("start").value = inst.start;
-  $("end").value = inst.end;
+  $("start").value = f.start;
+  $("end").value = f.end;
 }
 
 function debounce(fn, ms) {
@@ -240,7 +257,11 @@ async function main() {
   setDateBounds();
   const debounced = debounce(run, 150);
   document.querySelector(".panel").addEventListener("input", (e) => {
-    if (e.target.id === "ticker") setDateBounds();
+    if (e.target.id === "ticker") {
+      populateFrequencies();
+      setDateBounds();
+    }
+    if (e.target.id === "frequency") setDateBounds();
     if (["strategy", "signalMethod"].includes(e.target.id)) syncStrategyFields();
     debounced();
   });

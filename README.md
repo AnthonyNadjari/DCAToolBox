@@ -76,8 +76,11 @@ Core design principles:
 - 🖥️ **Typer CLI** and a **Streamlit web UI** usable with zero programming
   knowledge.
 - 🌐 **In-browser live backtester** (GitHub Pages): a dependency-free JavaScript
-  engine that is **parity-tested against the Python framework** (`web/engine.test.mjs`),
-  so what you tweak in the browser matches the real engine to the last decimal.
+  engine that is **parity-tested against the Python framework** (`web/engine.test.mjs`,
+  daily *and* intraday), so what you tweak in the browser matches the real engine
+  to the last decimal.
+- ⏱️ **Daily & intraday (hourly)** granularity: act when a signal fires *during the
+  day*, not only at the daily open/close (intraday history is vendor-limited to ~2y).
 - 🧪 **Deterministic synthetic provider** so everything runs and tests offline.
 
 ## Architecture

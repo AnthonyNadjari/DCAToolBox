@@ -233,7 +233,9 @@ function std(arr) {
 const mean = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
 function daysBetween(a, b) {
-  return (Date.parse(b) - Date.parse(a)) / 86400000;
+  // Whole days only, matching pandas Timedelta.days (drops any partial intraday
+  // day) so annualisation is identical to the Python engine at every frequency.
+  return Math.floor((Date.parse(b) - Date.parse(a)) / 86400000);
 }
 
 function xirr(amounts, dates) {
@@ -296,11 +298,12 @@ function metrics(run, cfg, benchHistory) {
   const years = Math.max(daysBetween(h.date[0], h.date[n - 1]) / 365.25, EPS);
   out.cagr = wi.length ? Math.pow(wi[wi.length - 1], 1 / years) - 1 : 0;
   out.twr_total_return = wi.length ? wi[wi.length - 1] - 1 : 0;
-  out.annual_return = mean(twr) * PERIODS_PER_YEAR;
-  out.annual_volatility = std(twr) * Math.sqrt(PERIODS_PER_YEAR);
+  const ppy = (cfg && cfg.periodsPerYear) || PERIODS_PER_YEAR;
+  out.annual_return = mean(twr) * ppy;
+  out.annual_volatility = std(twr) * Math.sqrt(ppy);
   const excess = out.annual_return - cfg.riskFreeRate;
   out.sharpe = out.annual_volatility > EPS ? excess / out.annual_volatility : 0;
-  const downVol = std(twr.filter((r) => r < 0)) * Math.sqrt(PERIODS_PER_YEAR);
+  const downVol = std(twr.filter((r) => r < 0)) * Math.sqrt(ppy);
   out.sortino = downVol > EPS ? excess / downVol : 0;
   out.max_drawdown = dd.length ? Math.min(...dd) : 0;
   out.calmar = Math.abs(out.max_drawdown) > EPS ? out.cagr / Math.abs(out.max_drawdown) : 0;
@@ -332,8 +335,8 @@ function metrics(run, cfg, benchHistory) {
       btwr.push(prior > 0 ? benchHistory.total[i] / prior - 1 : 0);
     }
     const active = twr.map((r, i) => r - (btwr[i] ?? 0));
-    out.tracking_error = std(active) * Math.sqrt(PERIODS_PER_YEAR);
-    out.information_ratio = out.tracking_error > EPS ? (mean(active) * PERIODS_PER_YEAR) / out.tracking_error : 0;
+    out.tracking_error = std(active) * Math.sqrt(ppy);
+    out.information_ratio = out.tracking_error > EPS ? (mean(active) * ppy) / out.tracking_error : 0;
     const bInvested = benchHistory.invested[bn - 1];
     const bTotal = benchHistory.total[bn - 1] / bInvested - 1;
     out.excess_total_return = out.total_return - bTotal;

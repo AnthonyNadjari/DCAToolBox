@@ -15,9 +15,10 @@ import { runBacktest } from "./engine.js";
 const here = dirname(fileURLToPath(import.meta.url));
 const load = (f) => JSON.parse(readFileSync(join(here, ".parity", f), "utf-8"));
 
-const data = load("data.json");
 const cases = load("cases.json");
 const golden = load("golden.json");
+const datasets = {};
+const dataFor = (name) => (datasets[name] ??= load(`data_${name}.json`));
 
 // Per-metric absolute tolerances. Solver-based metrics (xirr/irr) are looser.
 const TOL = {
@@ -35,7 +36,7 @@ const SKIP = new Set(["max_time_under_water_days"]);
 
 let failures = 0;
 cases.forEach((cfg, i) => {
-  const { strategy } = runBacktest(data, cfg);
+  const { strategy } = runBacktest(dataFor(cfg.dataset || "daily"), cfg);
   const got = strategy.metrics;
   const want = golden[i];
   const label = `${cfg.strategy.name} ${JSON.stringify(cfg.strategy)}`;
