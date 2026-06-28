@@ -28,10 +28,19 @@ _MIN_NOTIONAL = 1.0
 
 
 def _trailing_return(close, lookback: int) -> float | None:
-    """Return the trailing return over ``lookback`` bars, or ``None`` if short."""
-    if len(close) <= lookback or close.iloc[-lookback - 1] <= 0:
+    """Return the trailing return over ``lookback`` bars, or ``None`` if undefined.
+
+    A ticker without enough (positive) history -- e.g. one that joins the basket
+    after the primary, leaving NaN-padded bars -- is excluded rather than ranked
+    on a NaN, which keeps the result identical to the in-browser JS engine.
+    """
+    if len(close) <= lookback:
         return None
-    return float(close.iloc[-1] / close.iloc[-lookback - 1] - 1.0)
+    current = close.iloc[-1]
+    prior = close.iloc[-lookback - 1]
+    if not (current > 0) or not (prior > 0):  # also rejects NaN
+        return None
+    return float(current / prior - 1.0)
 
 
 @register_strategy

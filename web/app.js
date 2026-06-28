@@ -59,11 +59,15 @@ function populateFrequencies() {
   }
 }
 
+async function fetchData(file) {
+  // Cache by filename (unique per ticker+frequency) so the rotation basket and
+  // single-series paths share one cache and never refetch on every keystroke.
+  if (!dataCache.has(file)) dataCache.set(file, await fetchJson(`data/${file}`));
+  return dataCache.get(file);
+}
+
 async function loadData() {
-  const f = currentFreq();
-  const key = `${$("ticker").value}|${$("frequency").value}`;
-  if (!dataCache.has(key)) dataCache.set(key, await fetchJson(`data/${f.file}`));
-  return dataCache.get(key);
+  return { ...(await fetchData(currentFreq().file)), ticker: $("ticker").value };
 }
 
 const fileFor = (ticker, freq) => {
@@ -95,7 +99,7 @@ async function loadMarket(name) {
   if (!tickers.includes(primary)) tickers = [primary, ...tickers];
   const series = {};
   for (const t of tickers) {
-    series[t] = { ...(await fetchJson(`data/${fileFor(t, freq)}`)), ticker: t };
+    series[t] = { ...(await fetchData(fileFor(t, freq))), ticker: t };
   }
   return { primary, series };
 }
@@ -211,11 +215,17 @@ function renderCharts(result) {
     { x: s.history.date, y: s.history.cash, name: "cash", fill: "tozeroy", line: { color: "#10b981" } },
   ], LAYOUT("Remaining cash"));
 
-  const reasons = [...new Set(s.trades.map((t) => t.reason))];
-  const signalTraces = [{ x: bars.dates, y: bars.close, name: "close", mode: "lines", line: { color: "#94a3b8" } }];
-  for (const r of reasons) {
-    const pts = s.trades.filter((t) => t.reason === r);
-    signalTraces.push({ x: pts.map((t) => t.date), y: pts.map((t) => t.price), name: `buy: ${r}`, mode: "markers", marker: { size: 7 } });
+  // Group buy markers by (ticker, reason) so multi-asset rotation buys are
+  // labelled with the asset that was actually bought, not lumped on the primary.
+  const groups = [...new Set(s.trades.map((t) => `${t.ticker}|${t.reason}`))];
+  const signalTraces = [
+    { x: bars.dates, y: bars.close, name: `${bars.ticker} close`, mode: "lines", line: { color: "#94a3b8" } },
+  ];
+  for (const g of groups) {
+    const [tk, reason] = g.split("|");
+    const pts = s.trades.filter((t) => t.ticker === tk && t.reason === reason);
+    const label = tk === bars.ticker ? `buy: ${reason}` : `buy ${tk}: ${reason}`;
+    signalTraces.push({ x: pts.map((t) => t.date), y: pts.map((t) => t.price), name: label, mode: "markers", marker: { size: 7 } });
   }
   draw("chart-signals", signalTraces, LAYOUT(`${bars.ticker || "Price"} & buy signals`, { yaxis: { title: "Price" } }));
 
@@ -244,6 +254,14 @@ async function run() {
   syncRangeLabels();
   syncStrategyFields();
   const cfg = readConfig();
+  const bad = Object.entries({
+    "monthly budget": cfg.monthlyBudget, "DCA day": cfg.dayOfMonth,
+    "fee": cfg.feeRate, "slippage": cfg.slippageRate,
+  }).find(([, v]) => !Number.isFinite(v));
+  if (bad) {
+    $("status").textContent = `Please enter a valid number for ${bad[0]}.`;
+    return;
+  }
   const input = await loadMarket();
   const result = runBacktest(input, cfg);
   if (result.bars.dates.length < 2) {

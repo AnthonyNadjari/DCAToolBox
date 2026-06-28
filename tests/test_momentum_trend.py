@@ -74,6 +74,15 @@ def test_momentum_rotation_dual_holds_when_all_negative() -> None:
     )
 
 
+def test_momentum_rotation_excludes_insufficient_history() -> None:
+    # QQQ joins late (NaN before its first bar); it must be excluded, not ranked
+    # on a NaN -- matching the in-browser JS engine.
+    spy = _frame(list(np.linspace(100, 130, 60)))
+    qqq = _frame([float("nan")] * 55 + [100.0, 101.0, 102.0, 103.0, 104.0])
+    orders = MomentumRotationStrategy(lookback=20).on_bar(_ctx({"SPY": spy, "QQQ": qqq}))
+    assert orders and orders[0].ticker == "SPY"
+
+
 def test_validation_rejects_bad_params() -> None:
     with pytest.raises(ValueError):
         TrendFilterStrategy(ma_window=1)
