@@ -1,0 +1,28 @@
+data:
+  provider: yahoo
+  tickers:
+  - SPY
+  start: '2010-01-01'
+  end: '2026-01-01'
+  frequency: daily
+  cache_dir: data_cache
+  csv_dir: null
+  use_cache: true
+  auto_download: true
+broker:
+  fee_rate: 0.005
+  slippage_rate: 0.0005
+  min_fee: 0.0
+strategy:
+  name: dip_buying
+  params:
+    threshold: 0.02
+    allocation: 0.25
+    signal_method: open_vs_open
+benchmark:
+  name: monthly_dca
+  params: {}
+monthly_budget: 1000.0
+day_of_month: 26
+initial_cash: 0.0
+risk_free_rate: 0.02
