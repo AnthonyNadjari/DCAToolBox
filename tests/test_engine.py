@@ -24,8 +24,11 @@ def test_intraday_deposits_once_per_month() -> None:
 
     cfg = BacktestConfig(
         data=DataConfig(
-            provider=ProviderType.SYNTHETIC, tickers=["SPY"],
-            start=date(2023, 1, 1), end=date(2023, 12, 31), frequency=Frequency.HOURLY,
+            provider=ProviderType.SYNTHETIC,
+            tickers=["SPY"],
+            start=date(2023, 1, 1),
+            end=date(2023, 12, 31),
+            frequency=Frequency.HOURLY,
         ),
         strategy=StrategyConfig(name="monthly_dca"),
     )
