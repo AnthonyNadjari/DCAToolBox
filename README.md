@@ -14,7 +14,9 @@ maintained for years.
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen.svg)](tests/)
 
-🌐 **Live demo:** https://anthonynadjari.github.io/DCAToolBox/ (auto-deployed from `main` via GitHub Pages)
+🌐 **Live interactive backtester:** https://anthonynadjari.github.io/DCAToolBox/ — change any
+parameter (asset, dates, budget, threshold, allocation, signal, budget policy, fees…) and the
+backtest **recomputes instantly in your browser** on real market data. Auto-deployed from `main`.
 
 ---
 
@@ -73,6 +75,9 @@ Core design principles:
 - 📈 **Interactive Plotly charts** and **Markdown / HTML / PDF reports**.
 - 🖥️ **Typer CLI** and a **Streamlit web UI** usable with zero programming
   knowledge.
+- 🌐 **In-browser live backtester** (GitHub Pages): a dependency-free JavaScript
+  engine that is **parity-tested against the Python framework** (`web/engine.test.mjs`),
+  so what you tweak in the browser matches the real engine to the last decimal.
 - 🧪 **Deterministic synthetic provider** so everything runs and tests offline.
 
 ## Architecture
@@ -220,6 +225,23 @@ save_config(config, "my_run.yaml")
 **Dip-detection signals** (interchangeable via `signal_method`): `open_vs_open`,
 `close_vs_close`, `open_vs_close`, `close_vs_open`, `drawdown_n_days`,
 `cumulative_return`.
+
+**Budget policy** (`budget_policy`, for the deploying strategies):
+
+- `reset` (default) — any cash left on the scheduled day is fully invested, so
+  each month's budget is always deployed (matches the original DCA mandate).
+- `accumulate` — unspent cash carries over to hunt for larger, rarer dips (a true
+  "buy the dip" mandate). This is what makes a dip strategy meaningfully diverge
+  from the benchmark instead of just front-running the monthly purchase.
+
+### Live in-browser backtester
+
+`web/` contains a self-contained JavaScript port of the engine (`web/engine.js`)
+plus an interactive UI (`web/index.html`, `web/app.js`). `scripts/build_site.py`
+bundles real market data to JSON (`scripts/bundle_data.py`) and assembles the
+static site that GitHub Pages serves. Numerical fidelity is enforced by a parity
+test (`scripts/gen_golden.py` → `web/engine.test.mjs`) that runs in CI: the JS
+engine must match the Python engine on every metric across many configurations.
 
 ## Adding a new strategy
 
