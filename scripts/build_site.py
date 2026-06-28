@@ -72,7 +72,8 @@ _INDEX_TEMPLATE = """<!doctype html>
   <p>{conclusion}</p>
   <p>
     <a class="btn" href="report.html">📊 Full interactive report</a>
-    <a class="btn secondary" href="https://github.com/AnthonyNadjari/DCAToolBox">⭐ Source on GitHub</a>
+    <a class="btn secondary"
+       href="https://github.com/AnthonyNadjari/DCAToolBox">⭐ Source on GitHub</a>
   </p>
   <h2>Charts</h2>
   <p>{chart_links}</p>
@@ -87,15 +88,18 @@ def _demo_config() -> BacktestConfig:
     """The configuration used for the public demo backtest."""
     return BacktestConfig(
         data=DataConfig(
-            provider=ProviderType.SYNTHETIC, tickers=["SPY"],
-            start=date(2010, 1, 1), end=date(2024, 1, 1),
+            provider=ProviderType.SYNTHETIC,
+            tickers=["SPY"],
+            start=date(2010, 1, 1),
+            end=date(2024, 1, 1),
         ),
         strategy=StrategyConfig(
             name="dip_buying",
             params={"threshold": 0.02, "allocation": 0.25, "signal_method": "open_vs_open"},
         ),
         benchmark=StrategyConfig(name="monthly_dca"),
-        monthly_budget=1000.0, day_of_month=26,
+        monthly_budget=1000.0,
+        day_of_month=26,
     )
 
 
@@ -115,10 +119,16 @@ def build() -> Path:
     m = result.strategy_metrics
     (SITE_DIR / "index.html").write_text(
         _INDEX_TEMPLATE.format(
-            strategy=result.strategy.name, start=config.data.start, end=config.data.end,
-            cagr=f"{m.cagr:.1%}", total=f"{m.total_return:.1%}", sharpe=f"{m.sharpe:.2f}",
-            mdd=f"{m.max_drawdown:.1%}", orders=m.n_orders,
-            conclusion=auto_conclusion(result).replace("**", ""), chart_links=chart_links,
+            strategy=result.strategy.name,
+            start=config.data.start,
+            end=config.data.end,
+            cagr=f"{m.cagr:.1%}",
+            total=f"{m.total_return:.1%}",
+            sharpe=f"{m.sharpe:.2f}",
+            mdd=f"{m.max_drawdown:.1%}",
+            orders=m.n_orders,
+            conclusion=auto_conclusion(result).replace("**", ""),
+            chart_links=chart_links,
         ),
         encoding="utf-8",
     )
