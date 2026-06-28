@@ -25,7 +25,7 @@ import bundle_data  # noqa: E402
 
 SITE = Path("site")
 WEB = Path("web")
-ASSET_GLOBS = ("*.html", "*.js", "*.css")
+ASSET_GLOBS = ("*.html", "*.js", "*.css", "*.svg")
 
 
 def build() -> Path:
