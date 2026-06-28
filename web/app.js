@@ -99,7 +99,14 @@ function syncStrategyFields() {
 }
 
 /* ------------------------------ rendering ------------------------------- */
-function renderCards(m) {
+function renderCards(result) {
+  const m = result.strategy.metrics;
+  const bm = result.benchmark.metrics;
+  const trades = result.strategy.trades;
+  const dipNotional = trades.filter((t) => t.reason === "dip").reduce((a, t) => a + t.price * t.quantity, 0);
+  const allNotional = trades.reduce((a, t) => a + t.price * t.quantity, 0) || 1;
+  const dipPct = dipNotional / allNotional;
+  const pxDelta = m.avg_buy_price - bm.avg_buy_price; // negative = bought cheaper than DCA
   const cls = (x) => (x >= 0 ? "pos" : "neg");
   $("cards").innerHTML = `
     <div class="card"><div class="v">${pct(m.cagr)}</div><div class="k">CAGR</div></div>
@@ -107,6 +114,8 @@ function renderCards(m) {
     <div class="card"><div class="v">${num(m.sharpe)}</div><div class="k">Sharpe ratio</div></div>
     <div class="card"><div class="v">${pct(m.max_drawdown)}</div><div class="k">Max drawdown</div></div>
     <div class="card"><div class="v">${cur(m.final_value)}</div><div class="k">Final value (invested ${cur(m.invested_capital)})</div></div>
+    <div class="card"><div class="v">${pct(dipPct)}</div><div class="k">Capital deployed on dips (rest swept on DCA day)</div></div>
+    <div class="card"><div class="v">${pxDelta.toFixed(2)}</div><div class="delta ${cls(-pxDelta)}">avg buy price vs benchmark</div></div>
     <div class="card"><div class="v">${m.n_orders}</div><div class="k">Orders · fees ${cur(m.cumulative_fees)}</div></div>`;
 }
 
@@ -186,7 +195,7 @@ async function run() {
     $("status").textContent = "Not enough trading days in the selected range — widen Start/End.";
     return;
   }
-  renderCards(result.strategy.metrics);
+  renderCards(result);
   renderMetrics(result.strategy.name, result.strategy.metrics, result.benchmark.metrics);
   renderCharts(result);
   const src = manifest.instruments.find((i) => i.ticker === $("ticker").value);
@@ -235,7 +244,6 @@ async function main() {
     if (["strategy", "signalMethod"].includes(e.target.id)) syncStrategyFields();
     debounced();
   });
-  $("runBtn").addEventListener("click", run);
   $("compareBtn").addEventListener("click", compareAll);
   await run();
 }

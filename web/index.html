@@ -89,7 +89,7 @@
         <div class="field"><label for="slippage">Slippage % <span class="range-val" id="slippageVal">0.05%</span></label><input type="range" id="slippage" min="0" max="0.01" step="0.0005" value="0.0005" /></div>
       </div>
 
-      <button class="run" id="runBtn">▶ Run backtest</button>
+      <p class="note">↻ Results update <b>live</b> as you change any parameter.</p>
       <button class="ghost" id="compareBtn">⚖️ Compare all strategies</button>
     </aside>
 
@@ -97,6 +97,12 @@
     <main>
       <div class="note" id="status">Loading market data…</div>
       <div class="cards" id="cards"></div>
+      <p class="note" id="explain">
+        ℹ️ With budget policy <b>reset</b>, the whole monthly budget is always invested by the DCA
+        day, so a dip strategy only differs by the slice it front-loads into dips — expect it to be
+        <i>close</i> to the benchmark. Switch to <b>accumulate</b> to hold cash for bigger drawdowns
+        (in strong bull markets this often <i>underperforms</i> due to cash drag — a real result, not a bug).
+      </p>
       <div class="charts" id="charts">
         <div class="chart wide" id="chart-equity"></div>
         <div class="chart" id="chart-drawdown"></div>
