@@ -14,6 +14,8 @@ maintained for years.
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen.svg)](tests/)
 
+🌐 **Live demo:** https://anthonynadjari.github.io/DCAToolBox/ (auto-deployed from `main` via GitHub Pages)
+
 ---
 
 ## Table of contents

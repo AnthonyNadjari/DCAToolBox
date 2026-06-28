@@ -28,6 +28,9 @@ data_cache/*
 reports_output/*
 !reports_output/.gitkeep
 
+# Generated GitHub Pages site (built by CI)
+site/
+
 # OS / editor
 .DS_Store
 .idea/
