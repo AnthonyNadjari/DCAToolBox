@@ -115,36 +115,75 @@ function evaluateSignal(bars, i, s) {
 
 /* -------------------------------- strategies -------------------------------- */
 
-/** Returns a list of orders for bar i: [{notional, field, reason}]. */
-function strategyOrders(name, s, bars, i, ctx) {
+/** Trailing return over `lookback` bars at index i, or null when undefined. */
+function trailingReturn(close, i, lookback) {
+  if (i < lookback) return null;
+  const a = close[i];
+  const b = close[i - lookback];
+  if (!(a > 0) || !(b > 0)) return null;
+  return a / b - 1;
+}
+
+/**
+ * Orders for bar i: a list of {ticker, notional, field, reason}.
+ * `aligned` = {dates, primary, bars:{ticker:{open,high,low,close}}}.
+ */
+function strategyOrders(name, s, aligned, i, ctx) {
   const cash = ctx.cash;
   if (cash <= MIN_NOTIONAL) return [];
-  const sweep = () => [{ notional: cash, field: "open", reason: "scheduled" }];
+  const primary = aligned.primary;
+  const p = aligned.bars[primary];
+  const buy = (ticker, notional, field, reason) => [{ ticker, notional, field, reason }];
 
-  if (name === "monthly_dca") {
+  if (name === "monthly_dca")
+    return ctx.isScheduled ? buy(primary, cash, s.priceField || "open", "scheduled") : [];
+
+  if (name === "trend_filter") {
     if (!ctx.isScheduled) return [];
-    return [{ notional: cash, field: s.priceField || "open", reason: "scheduled" }];
+    const w = s.maWindow || s.ma_window || 200;
+    const above = i + 1 < w || p.close[i] > sma(p.close, i, w);
+    return above ? buy(primary, cash, "open", "trend") : [];
   }
 
-  // Budget-deploying strategies (dip_buying, rsi, moving_average).
-  if (ctx.isScheduled && (s.budgetPolicy || "reset") === "reset") return sweep();
+  if (name === "absolute_momentum") {
+    if (!ctx.isScheduled) return [];
+    const tr = trailingReturn(p.close, i, s.lookback || 126);
+    return tr !== null && tr <= 0 ? [] : buy(primary, cash, "open", "momentum");
+  }
 
+  if (name === "momentum_rotation") {
+    if (!ctx.isScheduled) return [];
+    const lb = s.lookback || 126;
+    const basket = s.basket && s.basket.length ? s.basket : Object.keys(aligned.bars);
+    const ranked = basket
+      .map((t) => [t, aligned.bars[t] ? trailingReturn(aligned.bars[t].close, i, lb) : null])
+      .filter((r) => r[1] !== null);
+    if (!ranked.length) return buy(primary, cash, "open", "momentum");
+    let best = ranked[0];
+    for (const r of ranked) if (r[1] > best[1]) best = r;
+    if (s.absolute !== false && best[1] <= 0) return []; // dual momentum: all falling -> cash
+    return buy(best[0], cash, "open", "momentum");
+  }
+
+  // Budget-deploying signal strategies (dip_buying, rsi, moving_average).
+  if (ctx.isScheduled && (s.budgetPolicy || "reset") === "reset")
+    return buy(primary, cash, "open", "scheduled");
   let fired = false;
   let field = "close";
   if (name === "dip_buying") {
-    const sig = evaluateSignal(bars, i, s);
+    const sig = evaluateSignal(p, i, s);
     fired = sig.move <= -s.threshold;
     field = sig.field;
   } else if (name === "rsi") {
-    const r = rsi(bars.close, i, s.period || 14);
+    const r = rsi(p.close, i, s.period || 14);
     fired = !Number.isNaN(r) && r < (s.oversold || 30);
   } else if (name === "moving_average") {
-    const avg = sma(bars.close, i, s.window || 50);
-    fired = !Number.isNaN(avg) && bars.close[i] < avg * (1 - (s.margin || 0));
+    const avg = sma(p.close, i, s.window || 50);
+    fired = !Number.isNaN(avg) && p.close[i] < avg * (1 - (s.margin || 0));
   }
   if (fired) {
     const notional = Math.min(s.allocation * cash, cash);
-    if (notional >= MIN_NOTIONAL) return [{ notional, field, reason: "dip" }];
+    if (notional >= MIN_NOTIONAL) return buy(primary, notional, field, "dip");
   }
   return [];
 }
@@ -176,19 +215,39 @@ function sliceData(data, start, end) {
   return out;
 }
 
-/** Run one strategy over `bars`; returns the raw run (history + trades). */
-function simulate(name, strategyParams, bars, cfg) {
-  const n = bars.dates.length;
-  const deposits = monthStartFlags(bars.dates);
-  const scheduled = scheduledFlags(bars.dates, cfg.dayOfMonth);
-  const port = {
-    cash: cfg.initialCash || 0,
-    qty: 0,
-    costBasis: 0,
-    fees: 0,
-    invested: cfg.initialCash || 0,
-    trades: [],
-  };
+/** Forward-fill one OHLC series onto a target date axis (two-pointer). */
+function ffillOnto(ds, dates) {
+  const out = { open: [], high: [], low: [], close: [] };
+  let j = -1;
+  let k = 0;
+  for (const d of dates) {
+    while (k < ds.dates.length && ds.dates[k] <= d) j = k++;
+    for (const f of ["open", "high", "low", "close"]) out[f].push(j < 0 ? NaN : ds[f][j]);
+  }
+  return out;
+}
+
+/** Align a {ticker:series} map onto the primary ticker's sliced calendar. */
+function alignSeries(series, primary, start, end) {
+  const p = sliceData(series[primary], start, end);
+  const bars = {};
+  for (const [t, ds] of Object.entries(series)) {
+    bars[t] =
+      t === primary
+        ? { open: p.open, high: p.high, low: p.low, close: p.close }
+        : ffillOnto(ds, p.dates);
+  }
+  return { dates: p.dates, primary, bars };
+}
+
+/** Run one strategy over an aligned multi-asset market; returns history + trades. */
+function simulate(name, params, aligned, cfg) {
+  const dates = aligned.dates;
+  const n = dates.length;
+  const deposits = monthStartFlags(dates);
+  const scheduled = scheduledFlags(dates, cfg.dayOfMonth);
+  const positions = {}; // ticker -> {qty, costBasis}
+  const port = { cash: cfg.initialCash || 0, fees: 0, invested: cfg.initialCash || 0, trades: [] };
   const hist = { date: [], cash: [], positionsValue: [], total: [], invested: [], fees: [], qty: [] };
 
   for (let i = 0; i < n; i++) {
@@ -196,30 +255,35 @@ function simulate(name, strategyParams, bars, cfg) {
       port.cash += cfg.monthlyBudget;
       port.invested += cfg.monthlyBudget;
     }
-    const ctx = { cash: port.cash, isScheduled: scheduled[i] };
-    const orders = strategyOrders(name, strategyParams, bars, i, ctx);
+    const orders = strategyOrders(name, params, aligned, i, { cash: port.cash, isScheduled: scheduled[i] });
     for (const o of orders) {
-      const ref = bars[o.field][i];
-      if (!(ref > 0) || !Number.isFinite(ref)) continue; // guard against bad prices
+      const ref = aligned.bars[o.ticker]?.[o.field]?.[i];
+      if (!(ref > 0) || !Number.isFinite(ref)) continue; // guard against bad/missing prices
       const notional = Math.min(o.notional, port.cash);
       if (notional <= 0) continue;
       const t = executeBuy(notional, ref, cfg);
-      port.qty += t.quantity;
-      port.costBasis += t.quantity * t.price;
+      const pos = (positions[o.ticker] ??= { qty: 0, costBasis: 0 });
+      pos.qty += t.quantity;
+      pos.costBasis += t.quantity * t.price;
       port.cash += t.cashFlow;
       port.fees += t.fee;
-      port.trades.push({ date: bars.dates[i], price: t.price, quantity: t.quantity, reason: o.reason });
+      port.trades.push({ date: dates[i], ticker: o.ticker, price: t.price, quantity: t.quantity, reason: o.reason });
     }
-    const positionsValue = port.qty * bars.close[i];
-    hist.date.push(bars.dates[i]);
+    let positionsValue = 0;
+    let totalQty = 0;
+    for (const [t, pos] of Object.entries(positions)) {
+      positionsValue += pos.qty * aligned.bars[t].close[i];
+      totalQty += pos.qty;
+    }
+    hist.date.push(dates[i]);
     hist.cash.push(port.cash);
     hist.positionsValue.push(positionsValue);
     hist.total.push(port.cash + positionsValue);
     hist.invested.push(port.invested);
     hist.fees.push(port.fees);
-    hist.qty.push(port.qty);
+    hist.qty.push(totalQty);
   }
-  return { name, history: hist, trades: port.trades, costBasis: port.costBasis, qty: port.qty };
+  return { name, history: hist, trades: port.trades };
 }
 
 /* --------------------------------- metrics ---------------------------------- */
@@ -245,6 +309,24 @@ function xirr(amounts, dates) {
   const t0 = dates.reduce((a, b) => (a < b ? a : b));
   const years = dates.map((d) => daysBetween(t0, d) / 365.0);
   const npv = (r) => amounts.reduce((s, a, i) => s + a / Math.pow(1 + r, years[i]), 0);
+  // Prefer a deterministic bracketed solve (matches the Python brentq path).
+  let lo = -0.9999;
+  let hi = 10.0;
+  let flo = npv(lo);
+  if (flo * npv(hi) < 0) {
+    for (let k = 0; k < 200; k++) {
+      const mid = (lo + hi) / 2;
+      const fm = npv(mid);
+      if (Math.abs(fm) < 1e-9) return mid;
+      if (flo * fm < 0) hi = mid;
+      else {
+        lo = mid;
+        flo = fm;
+      }
+    }
+    return (lo + hi) / 2;
+  }
+  // Fallback: Newton from a default guess.
   let r = 0.1;
   for (let k = 0; k < 100; k++) {
     const f = npv(r);
@@ -252,22 +334,8 @@ function xirr(amounts, dates) {
     if (Math.abs(df) < 1e-12) break;
     const next = r - f / df;
     if (!Number.isFinite(next)) break;
-    if (Math.abs(next - r) < 1e-8) return next;
+    if (Math.abs(next - r) < 1e-9) return next;
     r = next;
-  }
-  // Bisection fallback on a sane bracket.
-  let lo = -0.9999;
-  let hi = 10.0;
-  let flo = npv(lo);
-  for (let k = 0; k < 200; k++) {
-    const mid = (lo + hi) / 2;
-    const fm = npv(mid);
-    if (Math.abs(fm) < 1e-7) return mid;
-    if (flo * fm < 0) hi = mid;
-    else {
-      lo = mid;
-      flo = fm;
-    }
   }
   return NaN;
 }
@@ -378,19 +446,23 @@ function emptyMetrics() {
 /* ------------------------------- public API --------------------------------- */
 
 /**
- * Run a strategy and its benchmark over `data`.
- * @param {object} data  OHLCV series {dates, open, high, low, close, volume}.
- * @param {object} cfg   Full configuration (see web/app.js for the shape).
- * @returns {{strategy, benchmark}} runs with `.metrics` attached.
+ * Run a strategy and its benchmark.
+ * @param {object} input  Either a single OHLC series {ticker,dates,open,...} or a
+ *   multi-asset market {primary, series:{ticker: series}}.
+ * @param {object} cfg    Full configuration (see web/app.js for the shape).
+ * @returns {{bars, strategy, benchmark}} runs with `.metrics` attached.
  */
-export function runBacktest(data, cfg) {
-  const bars = sliceData(data, cfg.start, cfg.end);
-  bars.ticker = data.ticker;
-  const stratRun = simulate(cfg.strategy.name, cfg.strategy, bars, cfg);
-  const benchRun = simulate(cfg.benchmark.name, cfg.benchmark, bars, cfg);
+export function runBacktest(input, cfg) {
+  const market = input.dates
+    ? { primary: input.ticker || "asset", series: { [input.ticker || "asset"]: input } }
+    : input;
+  const aligned = alignSeries(market.series, market.primary, cfg.start, cfg.end);
+  const stratRun = simulate(cfg.strategy.name, cfg.strategy, aligned, cfg);
+  const benchRun = simulate(cfg.benchmark.name, cfg.benchmark, aligned, cfg);
   stratRun.metrics = metrics(stratRun, cfg, benchRun.history);
   benchRun.metrics = metrics(benchRun, cfg, null);
-  return { bars, strategy: stratRun, benchmark: benchRun };
+  const pbars = { ...aligned.bars[aligned.primary], dates: aligned.dates, ticker: aligned.primary };
+  return { bars: pbars, aligned, strategy: stratRun, benchmark: benchRun };
 }
 
 export const _internals = { monthStartFlags, scheduledFlags, evaluateSignal, executeBuy, xirr, simulate, metrics };

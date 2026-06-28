@@ -17,8 +17,17 @@ const load = (f) => JSON.parse(readFileSync(join(here, ".parity", f), "utf-8"));
 
 const cases = load("cases.json");
 const golden = load("golden.json");
-const datasets = {};
-const dataFor = (name) => (datasets[name] ??= load(`data_${name}.json`));
+const fileCache = {};
+const loadFile = (f) => (fileCache[f] ??= load(f));
+
+/** Build a {primary, series} market for a case from its seriesFiles map. */
+function marketFor(cfg) {
+  const series = {};
+  for (const [ticker, file] of Object.entries(cfg.seriesFiles)) {
+    series[ticker] = { ...loadFile(file), ticker };
+  }
+  return { primary: cfg.primary, series };
+}
 
 // Per-metric absolute tolerances. Solver-based metrics (xirr/irr) are looser.
 const TOL = {
@@ -36,7 +45,7 @@ const SKIP = new Set(["max_time_under_water_days"]);
 
 let failures = 0;
 cases.forEach((cfg, i) => {
-  const { strategy } = runBacktest(dataFor(cfg.dataset || "daily"), cfg);
+  const { strategy } = runBacktest(marketFor(cfg), cfg);
   const got = strategy.metrics;
   const want = golden[i];
   const label = `${cfg.strategy.name} ${JSON.stringify(cfg.strategy)}`;

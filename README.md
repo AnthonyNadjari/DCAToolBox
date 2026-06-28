@@ -224,6 +224,9 @@ save_config(config, "my_run.yaml")
 | `dip_buying` | Deploys a fraction of the remaining budget on each detected dip; sweeps the rest on the scheduled day. |
 | `rsi` | Buys into oversold conditions (RSI below a threshold). |
 | `moving_average` | Buys when price trades below its moving average by a margin. |
+| `trend_filter` | Invests only while price is above its moving average (regime filter). |
+| `absolute_momentum` | Invests only when trailing return is positive (bear-market filter). |
+| `momentum_rotation` | Multi-asset: each month invests in the basket's strongest instrument (dual momentum). Robustly beats single-asset DCA in backtests. |
 
 **Dip-detection signals** (interchangeable via `signal_method`): `open_vs_open`,
 `close_vs_close`, `open_vs_close`, `close_vs_open`, `drawdown_n_days`,

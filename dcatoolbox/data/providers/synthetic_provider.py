@@ -8,6 +8,7 @@ controlled scenarios.
 
 from __future__ import annotations
 
+import hashlib
 from datetime import date
 
 import numpy as np
@@ -58,7 +59,10 @@ class SyntheticProvider(MarketDataProvider):
         n = len(index)
         # Seed deterministically from both the config seed and the ticker so that
         # different tickers get different but reproducible paths.
-        rng = np.random.default_rng(self.seed + (abs(hash(ticker)) % 10_000))
+        # Stable per-ticker offset (builtin hash() is salted per process and would
+        # make the "deterministic" provider non-reproducible across runs).
+        ticker_offset = int(hashlib.md5(ticker.encode()).hexdigest(), 16) % 10_000
+        rng = np.random.default_rng(self.seed + ticker_offset)
         dt = 1.0 / periods_per_year
         shocks = rng.normal(
             loc=(self.annual_drift - 0.5 * self.annual_vol**2) * dt,

@@ -66,6 +66,40 @@ async function loadData() {
   return dataCache.get(key);
 }
 
+const fileFor = (ticker, freq) => {
+  const freqs = instrument(ticker).frequencies;
+  return (freqs[freq] || freqs.daily).file;
+};
+const basketSelection = () =>
+  [...document.querySelectorAll("#basket input:checked")].map((c) => c.value);
+
+function populateBasket() {
+  const box = $("basket");
+  box.innerHTML = "";
+  for (const inst of manifest.instruments) {
+    const checked = ["SPY", "QQQ"].includes(inst.ticker) ? "checked" : "";
+    box.insertAdjacentHTML(
+      "beforeend",
+      `<label style="display:block;font-size:.85rem"><input type="checkbox" value="${inst.ticker}" ${checked}/> ${inst.ticker}</label>`,
+    );
+  }
+}
+
+/** Return the engine input: a single series, or a {primary, series} market. */
+async function loadMarket(name) {
+  name = name || $("strategy").value;
+  if (name !== "momentum_rotation") return loadData();
+  const freq = $("frequency").value;
+  const primary = $("ticker").value;
+  let tickers = basketSelection();
+  if (!tickers.includes(primary)) tickers = [primary, ...tickers];
+  const series = {};
+  for (const t of tickers) {
+    series[t] = { ...(await fetchJson(`data/${fileFor(t, freq)}`)), ticker: t };
+  }
+  return { primary, series };
+}
+
 /* ------------------------------ config build ---------------------------- */
 function readConfig() {
   const name = $("strategy").value;
@@ -80,6 +114,10 @@ function readConfig() {
     oversold: parseFloat($("oversold").value),
     window: parseInt($("window").value, 10),
     margin: parseFloat($("margin").value),
+    maWindow: parseInt($("maWindow").value, 10),
+    lookback: parseInt($("lookback").value, 10),
+    absolute: $("absolute").value === "true",
+    basket: basketSelection(),
   };
   return {
     start: $("start").value || null,
@@ -206,8 +244,8 @@ async function run() {
   syncRangeLabels();
   syncStrategyFields();
   const cfg = readConfig();
-  const data = await loadData();
-  const result = runBacktest(data, cfg);
+  const input = await loadMarket();
+  const result = runBacktest(input, cfg);
   if (result.bars.dates.length < 2) {
     $("status").textContent = "Not enough trading days in the selected range — widen Start/End.";
     return;
@@ -224,12 +262,14 @@ async function run() {
 async function compareAll() {
   await run(); // keep cards, metrics table and the other charts consistent first
   const cfg = readConfig();
-  const data = await loadData();
-  const names = ["dip_buying", "rsi", "moving_average", "monthly_dca"];
+  const names = [
+    "momentum_rotation", "dip_buying", "trend_filter", "absolute_momentum",
+    "rsi", "moving_average", "monthly_dca",
+  ];
   const traces = [];
   for (const name of names) {
     const c = { ...cfg, strategy: { ...cfg.strategy, name } };
-    const r = runBacktest(data, c);
+    const r = runBacktest(await loadMarket(name), c);
     traces.push({ x: r.strategy.history.date, y: r.strategy.history.total, name, mode: "lines" });
   }
   draw("chart-equity", traces, LAYOUT("All strategies — portfolio value", { yaxis: { title: "Value" } }));
@@ -254,7 +294,9 @@ function debounce(fn, ms) {
 
 async function main() {
   await loadManifest();
+  populateBasket();
   setDateBounds();
+  syncStrategyFields();
   const debounced = debounce(run, 150);
   document.querySelector(".panel").addEventListener("input", (e) => {
     if (e.target.id === "ticker") {
