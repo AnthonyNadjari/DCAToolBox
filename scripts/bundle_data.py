@@ -10,6 +10,7 @@ page is never left without data.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -22,7 +23,13 @@ from dcatoolbox.utils.logging import logger
 
 OUT = Path("site/data")
 START = date(2000, 1, 1)
-END = date(2026, 6, 28)
+# Always fetch up to "today" so every deploy refreshes the data instead of
+# freezing at a hardcoded date. Override with DCA_DATA_END=YYYY-MM-DD if needed.
+END = (
+    date.fromisoformat(os.environ["DCA_DATA_END"])
+    if os.environ.get("DCA_DATA_END")
+    else date.today()
+)
 
 
 @dataclass(frozen=True)

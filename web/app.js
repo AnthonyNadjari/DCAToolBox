@@ -25,8 +25,14 @@ const METRIC_ROWS = [
 ];
 
 /* ------------------------------ data loading ---------------------------- */
+async function fetchJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to load ${url} (HTTP ${res.status})`);
+  return res.json();
+}
+
 async function loadManifest() {
-  manifest = await (await fetch("data/manifest.json")).json();
+  manifest = await fetchJson("data/manifest.json");
   const sel = $("ticker");
   sel.innerHTML = "";
   for (const inst of manifest.instruments) {
@@ -39,7 +45,7 @@ async function loadManifest() {
 
 async function loadData(ticker) {
   if (!dataCache.has(ticker)) {
-    dataCache.set(ticker, await (await fetch(`data/${ticker}.json`)).json());
+    dataCache.set(ticker, await fetchJson(`data/${ticker}.json`));
   }
   return dataCache.get(ticker);
 }
@@ -125,6 +131,7 @@ function renderCharts(result) {
   const b = result.benchmark;
   const bars = result.bars;
   const dd = s.metrics._series;
+  if (!dd || !dd.date.length) return;
   const ddDates = dd.date.slice(1);
 
   draw("chart-equity", [
@@ -175,6 +182,10 @@ async function run() {
   const cfg = readConfig();
   const data = await loadData($("ticker").value);
   const result = runBacktest(data, cfg);
+  if (result.bars.dates.length < 2) {
+    $("status").textContent = "Not enough trading days in the selected range — widen Start/End.";
+    return;
+  }
   renderCards(result.strategy.metrics);
   renderMetrics(result.strategy.name, result.strategy.metrics, result.benchmark.metrics);
   renderCharts(result);
@@ -185,7 +196,7 @@ async function run() {
 }
 
 async function compareAll() {
-  syncRangeLabels();
+  await run(); // keep cards, metrics table and the other charts consistent first
   const cfg = readConfig();
   const data = await loadData($("ticker").value);
   const names = ["dip_buying", "rsi", "moving_average", "monthly_dca"];

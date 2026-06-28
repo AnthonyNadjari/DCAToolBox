@@ -75,6 +75,18 @@ CASES: list[dict] = [
         "feeRate": 0.0,
         "slippageRate": 0.0,
     },
+    # Exposes the cumulative_return boundary: with the accumulate policy the
+    # scheduled-day sweep no longer masks a missed signal at i == window.
+    {
+        "strategy": {
+            "name": "dip_buying",
+            "threshold": 0.02,
+            "allocation": 0.4,
+            "signalMethod": "cumulative_return",
+            "signalWindow": 5,
+            "budgetPolicy": "accumulate",
+        }
+    },
 ]
 
 _BASE = {

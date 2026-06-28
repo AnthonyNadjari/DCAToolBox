@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DCAToolBox — Live Backtester</title>
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"
+          integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7"
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
   <header>
@@ -58,7 +60,7 @@
         <label for="threshold">Dip threshold <span class="range-val" id="thresholdVal">2.0%</span></label>
         <input type="range" id="threshold" min="0.005" max="0.10" step="0.005" value="0.02" />
       </div>
-      <div class="field" data-strat="dip_buying drawdown_n_days cumulative_return" id="windowField">
+      <div class="field" data-strat="dip_buying" id="windowField">
         <label for="signalWindow">Signal window (days)</label>
         <input type="number" id="signalWindow" value="20" min="2" max="252" />
       </div>

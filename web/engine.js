@@ -106,7 +106,8 @@ function evaluateSignal(bars, i, s) {
       return { move: pct(close[i], mx), field: "close" };
     }
     case "cumulative_return":
-      return { move: i > w ? pct(close[i], close[i - w]) : 0, field: "close" };
+      // Mirror Python: fires at i >= window (history length i+1 > window).
+      return { move: i >= w ? pct(close[i], close[i - w]) : 0, field: "close" };
     default:
       return { move: 0, field: "open" };
   }
@@ -121,7 +122,8 @@ function strategyOrders(name, s, bars, i, ctx) {
   const sweep = () => [{ notional: cash, field: "open", reason: "scheduled" }];
 
   if (name === "monthly_dca") {
-    return ctx.isScheduled ? sweep() : [];
+    if (!ctx.isScheduled) return [];
+    return [{ notional: cash, field: s.priceField || "open", reason: "scheduled" }];
   }
 
   // Budget-deploying strategies (dip_buying, rsi, moving_average).
@@ -198,6 +200,7 @@ function simulate(name, strategyParams, bars, cfg) {
     const orders = strategyOrders(name, strategyParams, bars, i, ctx);
     for (const o of orders) {
       const ref = bars[o.field][i];
+      if (!(ref > 0) || !Number.isFinite(ref)) continue; // guard against bad prices
       const notional = Math.min(o.notional, port.cash);
       if (notional <= 0) continue;
       const t = executeBuy(notional, ref, cfg);
@@ -365,6 +368,7 @@ function emptyMetrics() {
     tracking_error: 0, information_ratio: 0, n_orders: 0, avg_order_amount: 0, avg_buy_price: 0,
     avg_cash: 0, cumulative_fees: 0, invested_capital: 0, final_value: 0, excess_total_return: 0,
     excess_cagr: 0,
+    _series: { date: [], wealthIndex: [], drawdown: [], returns: [] },
   };
 }
 
@@ -378,6 +382,7 @@ function emptyMetrics() {
  */
 export function runBacktest(data, cfg) {
   const bars = sliceData(data, cfg.start, cfg.end);
+  bars.ticker = data.ticker;
   const stratRun = simulate(cfg.strategy.name, cfg.strategy, bars, cfg);
   const benchRun = simulate(cfg.benchmark.name, cfg.benchmark, bars, cfg);
   stratRun.metrics = metrics(stratRun, cfg, benchRun.history);

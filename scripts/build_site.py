@@ -16,9 +16,12 @@ Run locally with::
 from __future__ import annotations
 
 import shutil
+import sys
 from pathlib import Path
 
-import bundle_data  # sibling module (scripts/ is on sys.path when run as a script)
+# Ensure the sibling module resolves whether run as a script or as a module.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import bundle_data  # noqa: E402
 
 SITE = Path("site")
 WEB = Path("web")
