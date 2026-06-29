@@ -98,7 +98,7 @@ button.ghost {
 
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 @media (max-width: 1100px) { .charts { grid-template-columns: 1fr; } }
-.chart { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 0.5rem; min-height: 320px; }
+.chart { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 0.5rem; height: 340px; overflow: hidden; }
 .chart.wide { grid-column: 1 / -1; }
 
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 1rem; }
@@ -123,6 +123,6 @@ a { color: var(--blue); }
   .card { padding: 0.75rem 0.85rem; }
   .card .v { font-size: 1.3rem; }
   .charts { gap: 0.7rem; }
-  .chart { min-height: 300px; padding: 0.4rem; }
+  .chart { height: 300px; padding: 0.4rem; }
   button.run, button.ghost { padding: 0.8rem; font-size: 1rem; } /* comfortable tap targets */
 }

@@ -194,8 +194,28 @@ const LAYOUT = (title, extra = {}) => ({
   // instead of the chart capturing the gesture as a pan/zoom.
   dragmode: false, ...extra,
 });
-const draw = (id, traces, layout) =>
-  Plotly.react(id, traces, layout, { displayModeBar: false, responsive: true, scrollZoom: false });
+// Size charts explicitly from their container and disable Plotly's built-in
+// responsive listener. On iOS, scrolling shows/hides the address bar, firing a
+// stream of height-only `resize` events; Plotly's responsive mode would re-lay
+// out all eight charts on each one, causing jank and transient overlaps
+// ("frames slipping under each other"). We instead relayout only on real width
+// changes (see the resize handler in main()).
+const PLOT_CONFIG = { displayModeBar: false, responsive: false, scrollZoom: false };
+const draw = (id, traces, layout) => {
+  const el = $(id);
+  const r = el.getBoundingClientRect();
+  const sized = { ...layout, autosize: false, width: Math.round(r.width), height: Math.round(r.height) || 300 };
+  Plotly.react(el, traces, sized, PLOT_CONFIG);
+};
+
+// Re-fit every already-plotted chart to its container's current box.
+function resizeCharts() {
+  for (const el of document.querySelectorAll(".chart")) {
+    if (!el.data) continue; // not yet plotted
+    const r = el.getBoundingClientRect();
+    Plotly.relayout(el, { width: Math.round(r.width), height: Math.round(r.height) || 300 });
+  }
+}
 
 function renderCharts(result) {
   const s = result.strategy;
@@ -330,6 +350,19 @@ async function main() {
     debounced();
   });
   $("compareBtn").addEventListener("click", compareAll);
+
+  // Only re-fit charts when the viewport WIDTH changes. iOS fires `resize` on
+  // every address-bar show/hide (height-only) while scrolling — ignoring those
+  // keeps scrolling smooth and stops charts from jumping around.
+  let lastWidth = window.innerWidth;
+  const onResize = debounce(() => {
+    if (window.innerWidth === lastWidth) return;
+    lastWidth = window.innerWidth;
+    resizeCharts();
+  }, 200);
+  window.addEventListener("resize", onResize);
+  window.addEventListener("orientationchange", () => setTimeout(resizeCharts, 350));
+
   await run();
 }
 
