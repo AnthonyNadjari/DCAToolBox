@@ -10,17 +10,24 @@
   --red: #ef4444;
 }
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   margin: 0;
   font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text);
   background: var(--bg);
   line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
 }
 header {
   background: linear-gradient(135deg, var(--blue-dark), var(--blue));
   color: #fff;
   padding: 1.4rem 1.5rem;
+  /* Respect the iPhone notch / safe areas. */
+  padding-top: max(1.4rem, env(safe-area-inset-top));
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
 }
 header { position: relative; }
 header h1 { margin: 0; font-size: 1.6rem; }
@@ -33,8 +40,16 @@ header h1 { margin: 0; font-size: 1.6rem; }
 .gaia-link:hover { background: rgba(255, 255, 255, 0.28); }
 @media (max-width: 600px) { .gaia-link { position: static; display: inline-block; margin-bottom: 0.6rem; } }
 header p { margin: 0.2rem 0 0; opacity: 0.9; font-size: 0.95rem; }
-.layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.2rem; padding: 1.2rem; align-items: start; }
-@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+.layout {
+  display: grid; grid-template-columns: 320px 1fr; gap: 1.2rem; align-items: start;
+  padding: 1.2rem;
+  padding-left: max(1.2rem, env(safe-area-inset-left));
+  padding-right: max(1.2rem, env(safe-area-inset-right));
+}
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; gap: 0.9rem; padding: 0.9rem; }
+  .panel { position: static; }       /* don't pin the controls while scrolling on phones */
+}
 
 .panel {
   background: var(--card);
@@ -49,9 +64,14 @@ header p { margin: 0.2rem 0 0; opacity: 0.9; font-size: 0.95rem; }
 .field { margin-bottom: 0.6rem; }
 .field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.15rem; }
 .field input, .field select {
-  width: 100%; padding: 0.45rem 0.5rem; border: 1px solid var(--border);
-  border-radius: 8px; font-size: 0.9rem; background: #fff; color: var(--text);
+  width: 100%; padding: 0.5rem 0.55rem; border: 1px solid var(--border);
+  border-radius: 8px; background: #fff; color: var(--text);
+  /* 16px keeps iOS Safari from auto-zooming when a field is focused. */
+  font-size: 16px;
+  -webkit-appearance: none; appearance: none;
 }
+.field input[type="range"] { padding: 0; }
+.field input[type="checkbox"] { width: auto; min-height: 22px; min-width: 22px; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
 .range-val { float: right; color: var(--blue); font-weight: 600; }
 button.run {
@@ -76,11 +96,28 @@ button.ghost {
 .chart { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 0.5rem; min-height: 320px; }
 .chart.wide { grid-column: 1 / -1; }
 
-table.metrics { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-top: 1rem; }
-table.metrics th, table.metrics td { padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--border); text-align: right; font-size: 0.88rem; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 1rem; }
+table.metrics { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+table.metrics th, table.metrics td { padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--border); text-align: right; font-size: 0.88rem; white-space: nowrap; }
 table.metrics th { background: #f1f5f9; }
 table.metrics td:first-child, table.metrics th:first-child { text-align: left; }
 .note { color: var(--muted); font-size: 0.82rem; margin: 0.6rem 0; }
 .badge { display: inline-block; background: #eff6ff; color: var(--blue); border-radius: 6px; padding: 0.05rem 0.4rem; font-size: 0.75rem; }
-footer { text-align: center; color: var(--muted); font-size: 0.82rem; padding: 1.5rem; }
+footer {
+  text-align: center; color: var(--muted); font-size: 0.82rem;
+  padding: 1.5rem; padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
 a { color: var(--blue); }
+
+/* ------------------------------ phones (iOS) ------------------------------ */
+@media (max-width: 600px) {
+  header { padding-bottom: 1rem; }
+  header h1 { font-size: 1.3rem; }
+  header p { font-size: 0.88rem; }
+  .cards { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 0.6rem; }
+  .card { padding: 0.75rem 0.85rem; }
+  .card .v { font-size: 1.3rem; }
+  .charts { gap: 0.7rem; }
+  .chart { min-height: 300px; padding: 0.4rem; }
+  button.run, button.ghost { padding: 0.8rem; font-size: 1rem; } /* comfortable tap targets */
+}

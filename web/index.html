@@ -2,9 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>DCAToolBox — Live Backtester</title>
+  <meta name="theme-color" content="#1e3a8a" />
+  <meta name="description" content="Interactive DCA / investment-strategy backtester running live in your browser on real market data." />
+  <!-- iOS: allow add-to-home-screen as a standalone web app -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="DCAToolBox" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="apple-touch-icon" href="favicon.svg" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"
           integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7"
@@ -133,7 +141,7 @@
         <div class="chart" id="chart-returns"></div>
         <div class="chart" id="chart-purchases"></div>
       </div>
-      <table class="metrics" id="metrics"></table>
+      <div class="table-scroll"><table class="metrics" id="metrics"></table></div>
       <p class="note">⚠️ Educational research tool, not investment advice. Results use end-of-day data and a simple cost model. Past performance does not guarantee future results.</p>
     </main>
   </div>

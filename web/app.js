@@ -189,10 +189,13 @@ function renderMetrics(name, sm, bm) {
 const LAYOUT = (title, extra = {}) => ({
   title: { text: title, font: { size: 14 } }, template: "plotly_white",
   margin: { t: 40, r: 16, b: 36, l: 56 }, hovermode: "x unified",
-  legend: { orientation: "h", y: 1.12 }, ...extra,
+  legend: { orientation: "h", y: 1.12 },
+  // dragmode:false lets the page scroll over charts on touch devices (iOS)
+  // instead of the chart capturing the gesture as a pan/zoom.
+  dragmode: false, ...extra,
 });
 const draw = (id, traces, layout) =>
-  Plotly.react(id, traces, layout, { displayModeBar: false, responsive: true });
+  Plotly.react(id, traces, layout, { displayModeBar: false, responsive: true, scrollZoom: false });
 
 function renderCharts(result) {
   const s = result.strategy;
