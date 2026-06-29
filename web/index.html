@@ -21,9 +21,15 @@
 <body>
   <header>
     <a class="gaia-link" href="https://anthonynadjari.github.io/Gaia/">🌌 Gaia — Astral Hub ↗</a>
-    <h1>📈 DCAToolBox — Live Backtester</h1>
-    <p>Change any parameter and the backtest recomputes instantly, in your browser, on real market data.</p>
+    <h1>📈 DCAToolBox — Live Signal &amp; Backtester</h1>
+    <p>See what each rule says to do <b>this month</b>, then check how it would have performed — live in your browser, on real market data.</p>
   </header>
+
+  <!-- Actionable "what to do now" signal, derived from the latest bar. Kept at
+       the very top so the page reads as a signal tool first, backtester second. -->
+  <div class="signal-wrap">
+    <section class="signal" id="signal"><div class="sig-action">Loading…</div></section>
+  </div>
 
   <div class="layout">
     <!-- ---------------------------- Controls ---------------------------- -->
@@ -124,6 +130,7 @@
     <!-- ---------------------------- Results ----------------------------- -->
     <main>
       <div class="note" id="status">Loading market data…</div>
+      <h2 class="section-h">Backtest — how this rule would have performed</h2>
       <div class="cards" id="cards"></div>
       <p class="note" id="explain">
         ℹ️ With budget policy <b>reset</b>, the whole monthly budget is always invested by the DCA

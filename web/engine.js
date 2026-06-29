@@ -443,6 +443,114 @@ function emptyMetrics() {
   };
 }
 
+/* ------------------------------ live signal --------------------------------- */
+
+const sgnPct = (x) => (x >= 0 ? "+" : "") + (x * 100).toFixed(2) + "%";
+
+/**
+ * What the selected strategy says to do RIGHT NOW, on the most recent bar.
+ *
+ * Reuses the exact same indicators and rules as the backtest (`strategyOrders`,
+ * `trailingReturn`, `sma`, `rsi`, `evaluateSignal`) so the live signal can never
+ * disagree with what was backtested. Returns a plain-language recommendation
+ * plus the numbers that drive it.
+ *
+ * @returns {{asOf, action, detail, fired, rows}} where `rows` is an optional
+ *   ranking ([{label, value, picked}]) for multi-asset strategies.
+ */
+export function currentSignal(input, cfg) {
+  const market = input.dates
+    ? { primary: input.ticker || "asset", series: { [input.ticker || "asset"]: input } }
+    : input;
+  const aligned = alignSeries(market.series, market.primary, cfg.start, cfg.end);
+  const dates = aligned.dates;
+  const i = dates.length - 1;
+  if (i < 0) return { asOf: null, action: "No data in range", detail: "", fired: false, rows: [] };
+
+  const s = cfg.strategy;
+  const name = s.name;
+  const primary = aligned.primary;
+  const p = aligned.bars[primary];
+  const asOf = dates[i];
+  const px = p.close[i];
+
+  if (name === "momentum_rotation") {
+    const lb = s.lookback || 126;
+    const basket = s.basket && s.basket.length ? s.basket : Object.keys(aligned.bars);
+    const ranked = basket
+      .map((t) => ({ ticker: t, ret: aligned.bars[t] ? trailingReturn(aligned.bars[t].close, i, lb) : null }))
+      .filter((r) => r.ret !== null)
+      .sort((a, b) => b.ret - a.ret);
+    if (!ranked.length)
+      return { asOf, action: `Buy ${primary}`, detail: `Not enough history to rank the basket yet; default to ${primary}.`, fired: true, rows: [] };
+    const best = ranked[0];
+    const cash = s.absolute !== false && best.ret <= 0;
+    return {
+      asOf, fired: !cash,
+      action: cash ? "Hold cash this month" : `Buy ${best.ticker}`,
+      detail: cash
+        ? `Dual-momentum guard: even the strongest asset's ${lb}-day return is ${sgnPct(best.ret)} (≤ 0), so the rule stays in cash this month.`
+        : `${best.ticker} has the strongest trailing ${lb}-day return (${sgnPct(best.ret)}). Invest this month's whole budget in ${best.ticker} on your DCA day (day ${cfg.dayOfMonth}).`,
+      rows: ranked.map((r, idx) => ({ label: r.ticker, value: sgnPct(r.ret), picked: !cash && idx === 0 })),
+    };
+  }
+
+  if (name === "absolute_momentum") {
+    const lb = s.lookback || 126;
+    const tr = trailingReturn(p.close, i, lb);
+    const invest = !(tr !== null && tr <= 0);
+    return {
+      asOf, fired: invest,
+      action: invest ? `Buy ${primary}` : "Hold cash this month",
+      detail: tr === null
+        ? `Not enough history for a ${lb}-day look-back yet.`
+        : `${primary}'s trailing ${lb}-day return is ${sgnPct(tr)} → ${invest ? "positive, so invest the budget on your DCA day." : "negative, so stay in cash this month."}`,
+      rows: [],
+    };
+  }
+
+  if (name === "trend_filter") {
+    const w = s.maWindow || s.ma_window || 200;
+    const ma = sma(p.close, i, w);
+    const above = Number.isNaN(ma) || px > ma;
+    return {
+      asOf, fired: above,
+      action: above ? `Buy ${primary}` : "Skip this month",
+      detail: Number.isNaN(ma)
+        ? `Not enough history for a ${w}-day average yet; invest by default.`
+        : `Price ${px.toFixed(2)} is ${above ? "above" : "below"} the ${w}-day moving average ${ma.toFixed(2)} → ${above ? "invest the budget on your DCA day." : "stay out until the trend turns up."}`,
+      rows: [],
+    };
+  }
+
+  // Per-day signal strategies: dip_buying / rsi / moving_average.
+  let fired = false;
+  let detail = "";
+  if (name === "dip_buying") {
+    const sig = evaluateSignal(p, i, s);
+    fired = sig.move <= -s.threshold;
+    detail = `Signal "${s.signalMethod}" today is ${sgnPct(sig.move)} vs a trigger of −${(s.threshold * 100).toFixed(2)}%. ${fired ? `Dip triggered → buy ${(s.allocation * 100).toFixed(0)}% of the remaining monthly budget now.` : `No dip → the leftover budget auto-invests on day ${cfg.dayOfMonth}.`}`;
+  } else if (name === "rsi") {
+    const r = rsi(p.close, i, s.period || 14);
+    fired = !Number.isNaN(r) && r < (s.oversold || 30);
+    detail = `RSI(${s.period || 14}) is ${Number.isNaN(r) ? "n/a" : r.toFixed(1)} vs an oversold level of ${s.oversold || 30}. ${fired ? `Oversold → buy ${(s.allocation * 100).toFixed(0)}% of the remaining budget now.` : `Not oversold → leftover budget auto-invests on day ${cfg.dayOfMonth}.`}`;
+  } else if (name === "moving_average") {
+    const w = s.window || 50;
+    const ma = sma(p.close, i, w);
+    fired = !Number.isNaN(ma) && px < ma * (1 - (s.margin || 0));
+    detail = `Price ${px.toFixed(2)} vs ${w}-day MA ${Number.isNaN(ma) ? "n/a" : ma.toFixed(2)} (−${((s.margin || 0) * 100).toFixed(1)}% band). ${fired ? `Below the band → buy ${(s.allocation * 100).toFixed(0)}% of the remaining budget now.` : `Not below → leftover budget auto-invests on day ${cfg.dayOfMonth}.`}`;
+  } else {
+    // monthly_dca
+    return { asOf, fired: true, action: `Buy ${primary} on day ${cfg.dayOfMonth}`, detail: `Plain DCA: invest the full monthly budget in ${primary} on your DCA day, regardless of price.`, rows: [] };
+  }
+  return {
+    asOf, fired,
+    action: fired ? "Buy now" : `Wait — no signal today`,
+    detail,
+    rows: [],
+  };
+}
+
 /* ------------------------------- public API --------------------------------- */
 
 /**

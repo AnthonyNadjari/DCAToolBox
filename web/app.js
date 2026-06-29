@@ -1,5 +1,5 @@
 /** DCAToolBox interactive backtester UI (browser). */
-import { runBacktest } from "./engine.js";
+import { runBacktest, currentSignal } from "./engine.js";
 
 const $ = (id) => document.getElementById(id);
 const dataCache = new Map();
@@ -158,6 +158,39 @@ function syncStrategyFields() {
 }
 
 /* ------------------------------ rendering ------------------------------- */
+const niceDate = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+};
+
+// The actionable "what do I do now" panel, derived from the latest bar.
+function renderSignal(input, cfg) {
+  const sig = currentSignal(input, cfg);
+  const el = $("signal");
+  if (!sig.asOf) {
+    el.innerHTML = `<div class="sig-action">No data in the selected range</div>`;
+    return;
+  }
+  const cls = sig.fired ? "go" : "wait";
+  const ranking = sig.rows.length
+    ? `<div class="sig-rank">${sig.rows
+        .map((r) => `<span class="sig-chip ${r.picked ? "picked" : ""}">${r.label}: ${r.value}</span>`)
+        .join("")}</div>`
+    : "";
+  el.innerHTML = `
+    <div class="sig-head">
+      <span class="sig-dot ${cls}"></span>
+      <div>
+        <div class="sig-label">Signal for ${$("strategy").options[$("strategy").selectedIndex].text} · as of ${niceDate(sig.asOf)}</div>
+        <div class="sig-action ${cls}">${sig.action}</div>
+      </div>
+    </div>
+    <p class="sig-detail">${sig.detail}</p>
+    ${ranking}
+    <p class="sig-foot">Based on the latest available end-of-day data. Act on your DCA day (currently day ${cfg.dayOfMonth}); change any parameter on the left and this updates instantly. Educational tool — not investment advice.</p>`;
+}
+
 function renderCards(result) {
   const m = result.strategy.metrics;
   const bm = result.benchmark.metrics;
@@ -292,6 +325,7 @@ async function run() {
     $("status").textContent = "Not enough trading days in the selected range — widen Start/End.";
     return;
   }
+  renderSignal(input, cfg);
   renderCards(result);
   renderMetrics(result.strategy.name, result.strategy.metrics, result.benchmark.metrics);
   renderCharts(result);
