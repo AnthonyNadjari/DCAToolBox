@@ -46,6 +46,10 @@ header p { margin: 0.2rem 0 0; opacity: 0.9; font-size: 0.95rem; }
   padding-left: max(1.2rem, env(safe-area-inset-left));
   padding-right: max(1.2rem, env(safe-area-inset-right));
 }
+/* Grid/flex items default to min-width:auto, so a wide <select>, long option
+   text, or a native date input forces its track wider than the viewport and
+   spills off-screen on phones. Let every track shrink to its column instead. */
+.layout > *, .row2 > *, .cards > *, .charts > * { min-width: 0; }
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; gap: 0.9rem; padding: 0.9rem; }
   .panel { position: static; }       /* don't pin the controls while scrolling on phones */
@@ -64,7 +68,8 @@ header p { margin: 0.2rem 0 0; opacity: 0.9; font-size: 0.95rem; }
 .field { margin-bottom: 0.6rem; }
 .field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.15rem; }
 .field input, .field select {
-  width: 100%; padding: 0.5rem 0.55rem; border: 1px solid var(--border);
+  width: 100%; max-width: 100%; min-width: 0; padding: 0.5rem 0.55rem;
+  border: 1px solid var(--border);
   border-radius: 8px; background: #fff; color: var(--text);
   /* 16px keeps iOS Safari from auto-zooming when a field is focused. */
   font-size: 16px;

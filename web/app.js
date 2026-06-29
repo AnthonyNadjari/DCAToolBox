@@ -245,6 +245,7 @@ function renderCharts(result) {
     { x: dd.returns, type: "histogram", name: "daily returns", marker: { color: "#2563eb" } },
   ], LAYOUT("Distribution of daily returns", { xaxis: { tickformat: ".1%" } }));
 
+  const reasons = [...new Set(s.trades.map((t) => t.reason))];
   const purchaseTraces = reasons.map((r) => ({
     x: s.trades.filter((t) => t.reason === r).map((t) => t.price * t.quantity),
     type: "histogram", name: r, opacity: 0.7,
