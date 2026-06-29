@@ -18,6 +18,8 @@ maintained for years.
 parameter (asset, dates, budget, threshold, allocation, signal, budget policy, fees…) and the
 backtest **recomputes instantly in your browser** on real market data. Auto-deployed from `main`.
 
+🌌 Part of [**Gaia — Astral Hub**](https://anthonynadjari.github.io/Gaia/).
+
 ---
 
 ## Table of contents

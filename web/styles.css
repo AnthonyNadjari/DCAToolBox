@@ -22,7 +22,16 @@ header {
   color: #fff;
   padding: 1.4rem 1.5rem;
 }
+header { position: relative; }
 header h1 { margin: 0; font-size: 1.6rem; }
+.gaia-link {
+  position: absolute; top: 1rem; right: 1.5rem;
+  color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 600;
+  background: rgba(255, 255, 255, 0.15); padding: 0.35rem 0.7rem; border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+.gaia-link:hover { background: rgba(255, 255, 255, 0.28); }
+@media (max-width: 600px) { .gaia-link { position: static; display: inline-block; margin-bottom: 0.6rem; } }
 header p { margin: 0.2rem 0 0; opacity: 0.9; font-size: 0.95rem; }
 .layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.2rem; padding: 1.2rem; align-items: start; }
 @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
