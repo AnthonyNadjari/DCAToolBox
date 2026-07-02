@@ -6,11 +6,11 @@ const dataCache = new Map();
 let manifest = null;
 
 // Categorical series palette (validated: worst adjacent CVD ΔE 25, all slots in
-// the lightness band; the two sub-3:1 slots get relief from the legend, the
-// unified hover and the exact-value ranking chips). Colors are assigned to
-// instruments in manifest order and follow the ticker, never its rank, so a
-// basket change never repaints the survivors.
-const PALETTE = ["#2563eb", "#1baf7a", "#eb6834", "#4a3aa7", "#eda100"];
+// the lightness band; the sub-3:1 slots get relief from the legend, the unified
+// hover and the exact-value ranking chips). Colors are assigned to instruments
+// in manifest order and follow the ticker, never its rank, so a basket change
+// never repaints the survivors.
+const PALETTE = ["#2563eb", "#1baf7a", "#eb6834", "#4a3aa7", "#eda100", "#e34948", "#e87ba4", "#008300"];
 const tickerColors = {};
 const colorOf = (t) => tickerColors[t] || "#64748b";
 
@@ -131,6 +131,7 @@ function readConfig() {
     maWindow: parseInt($("maWindow").value, 10),
     lookback: parseInt($("lookback").value, 10),
     absolute: $("absolute").value === "true",
+    rotate: $("rotate").value === "true",
     basket: basketSelection(),
   };
   return {
@@ -203,7 +204,7 @@ function renderSignal(sig, cfg) {
 function renderCards(result) {
   const m = result.strategy.metrics;
   const bm = result.benchmark.metrics;
-  const trades = result.strategy.trades;
+  const trades = result.strategy.trades.filter((t) => t.side !== "sell");
   const dipNotional = trades.filter((t) => t.reason === "dip").reduce((a, t) => a + t.price * t.quantity, 0);
   const allNotional = trades.reduce((a, t) => a + t.price * t.quantity, 0) || 1;
   const dipPct = dipNotional / allNotional;
@@ -296,15 +297,23 @@ function renderCharts(result) {
 
   // Group buy markers by (ticker, reason) so multi-asset rotation buys are
   // labelled with the asset that was actually bought, not lumped on the primary.
-  const groups = [...new Set(s.trades.map((t) => `${t.ticker}|${t.reason}`))];
+  const buysOnly = s.trades.filter((t) => t.side !== "sell");
+  const sellsOnly = s.trades.filter((t) => t.side === "sell");
+  const groups = [...new Set(buysOnly.map((t) => `${t.ticker}|${t.reason}`))];
   const signalTraces = [
     { x: bars.dates, y: bars.close, name: `${bars.ticker} close`, mode: "lines", line: { color: "#94a3b8" } },
   ];
   for (const g of groups) {
     const [tk, reason] = g.split("|");
-    const pts = s.trades.filter((t) => t.ticker === tk && t.reason === reason);
+    const pts = buysOnly.filter((t) => t.ticker === tk && t.reason === reason);
     const label = tk === bars.ticker ? `buy: ${reason}` : `buy ${tk}: ${reason}`;
     signalTraces.push({ x: pts.map((t) => t.date), y: pts.map((t) => t.price), name: label, mode: "markers", marker: { size: 7 } });
+  }
+  if (sellsOnly.length) {
+    signalTraces.push({
+      x: sellsOnly.map((t) => t.date), y: sellsOnly.map((t) => t.price), name: "sell (rotation)",
+      mode: "markers", marker: { size: 8, symbol: "triangle-down", color: "#ef4444" },
+    });
   }
   draw("chart-signals", signalTraces, LAYOUT(`${bars.ticker || "Price"} & buy signals`, { yaxis: { title: "Price" } }));
 
@@ -321,9 +330,9 @@ function renderCharts(result) {
     { x: dd.returns, type: "histogram", name: "daily returns", marker: { color: "#2563eb" } },
   ], LAYOUT("Distribution of daily returns", { xaxis: { tickformat: ".1%" } }));
 
-  const reasons = [...new Set(s.trades.map((t) => t.reason))];
+  const reasons = [...new Set(buysOnly.map((t) => t.reason))];
   const purchaseTraces = reasons.map((r) => ({
-    x: s.trades.filter((t) => t.reason === r).map((t) => t.price * t.quantity),
+    x: buysOnly.filter((t) => t.reason === r).map((t) => t.price * t.quantity),
     type: "histogram", name: r, opacity: 0.7,
   }));
   draw("chart-purchases", purchaseTraces, LAYOUT("Purchase amounts", { barmode: "overlay" }));
@@ -393,7 +402,9 @@ function renderPlan(sig, cfg) {
       <li><b>${sig.action}</b> — ${sig.fired ? "the rule gives a green light." : "the rule says to hold off for now."}</li>
       <li><b>Amount:</b> ${perDip
         ? `${Math.round(cfg.strategy.allocation * 100)}% of the month's remaining budget per signal (budget ${budget}/month; anything left auto-invests on day ${day}).`
-        : `this month's full budget, ${budget}.`}</li>
+        : cfg.strategy.name === "momentum_rotation" && cfg.strategy.rotate
+          ? `this month's budget (${budget}) plus the proceeds of anything you rotate out of.`
+          : `this month's full budget, ${budget}.`}</li>
       <li><b>When:</b> ${perDip
         ? "the day the signal fires (check this page after the close)."
         : `on your DCA day — next: <b>${nextTxt}</b> (first trading day on/after day ${day}).`}</li>
@@ -419,15 +430,20 @@ function renderHistory(result, cfg) {
     new Date(m + "-01T00:00:00").toLocaleDateString(undefined, { year: "numeric", month: "short" });
   const rows = months.map((m) => {
     const trades = byMonth.get(m);
-    const amount = trades.reduce((a, t) => a + t.price * t.quantity, 0);
+    const buys = trades.filter((t) => t.side !== "sell");
+    const sells = trades.filter((t) => t.side === "sell");
+    const amount = buys.reduce((a, t) => a + t.price * t.quantity, 0);
     let what;
     if (!trades.length) what = noBuyText;
     else if (["dip_buying", "rsi", "moving_average"].includes(name)) {
-      const dips = trades.filter((t) => t.reason === "dip").length;
+      const dips = buys.filter((t) => t.reason === "dip").length;
       what = dips ? `${dips} signal buy${dips > 1 ? "s" : ""} + sweep on day ${cfg.dayOfMonth}` : `No signal — swept on day ${cfg.dayOfMonth}`;
+    } else if (!buys.length && sells.length) {
+      what = `Sold everything — went to cash`;
     } else {
-      const tk = [...new Set(trades.map((t) => t.ticker))].join(", ");
-      what = `Bought <b style="color:${colorOf(trades[0].ticker)}">${tk}</b>`;
+      const tk = [...new Set(buys.map((t) => t.ticker))].join(", ");
+      const rotated = sells.length ? ` (sold ${[...new Set(sells.map((t) => t.ticker))].join(", ")})` : "";
+      what = `Bought <b style="color:${colorOf(buys[0]?.ticker)}">${tk}</b>${rotated}`;
     }
     return `<tr><td>${label(m)}</td><td style="text-align:left">${what}</td><td>${amount ? cur(amount) : "—"}</td></tr>`;
   }).join("");
@@ -452,6 +468,12 @@ const EXPLAINERS = {
       is falling — skip the purchase and keep the cash (<i>absolute momentum</i>, the
       "dual momentum" switch). This is what kept the strategy out of 2008-style slides.</li>
     </ol>
+    <p><b>Two rotation modes</b> (see the Backtest tab): <i>new contributions only</i>
+    routes each month's budget to the leader and never sells — past holdings ride through
+    crashes; <i>switch entire portfolio</i> also sells whatever is not the leader (and
+    liquidates everything to cash when the guard fires) — stronger crash protection for
+    ALL your capital, at the cost of more trades, fees and (outside tax wrappers) taxable
+    sales. Use ⚖️ Compare to see both curves.</p>
     <p><b>Why it has historically worked:</b> trends persist over 3–12-month horizons
     (the momentum premium), so the recent leader tends to keep leading for a while; and the
     cash guard avoids averaging down through long bear markets.</p>
@@ -529,18 +551,24 @@ async function run() {
 async function compareAll() {
   await run(); // keep cards, metrics table and the other charts consistent first
   const cfg = readConfig();
-  const names = [
-    "momentum_rotation", "dip_buying", "trend_filter", "absolute_momentum",
-    "rsi", "moving_average", "monthly_dca",
+  const entries = [
+    { name: "momentum_rotation", label: "rotation (keep holdings)", extra: { rotate: false } },
+    { name: "momentum_rotation", label: "rotation (switch all)", extra: { rotate: true } },
+    { name: "dip_buying", label: "dip_buying" },
+    { name: "trend_filter", label: "trend_filter" },
+    { name: "absolute_momentum", label: "absolute_momentum" },
+    { name: "rsi", label: "rsi" },
+    { name: "moving_average", label: "moving_average" },
+    { name: "monthly_dca", label: "monthly_dca" },
   ];
   const traces = [];
-  for (const name of names) {
-    const c = { ...cfg, strategy: { ...cfg.strategy, name } };
-    const r = runBacktest(await loadMarket(name), c);
-    traces.push({ x: r.strategy.history.date, y: r.strategy.history.total, name, mode: "lines" });
+  for (const e of entries) {
+    const c = { ...cfg, strategy: { ...cfg.strategy, name: e.name, ...(e.extra || {}) } };
+    const r = runBacktest(await loadMarket(e.name), c);
+    traces.push({ x: r.strategy.history.date, y: r.strategy.history.total, name: e.label, mode: "lines" });
   }
   draw("chart-equity", traces, LAYOUT("All strategies — portfolio value", { yaxis: { title: "Value" } }));
-  $("status").textContent = `Comparing ${names.length} strategies on ${$("ticker").value}.`;
+  $("status").textContent = `Comparing ${entries.length} strategy variants on ${$("ticker").value}.`;
 }
 
 /* ------------------------------ bootstrap ------------------------------- */

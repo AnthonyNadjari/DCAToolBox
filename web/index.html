@@ -120,8 +120,17 @@
         <select id="absolute"><option value="true">Yes</option><option value="false">No</option></select>
       </div>
       <div class="field" data-strat="momentum_rotation">
+        <label for="rotate">Rotation mode</label>
+        <select id="rotate">
+          <option value="false">New contributions only (never sells)</option>
+          <option value="true">Switch entire portfolio (sells losers)</option>
+        </select>
+      </div>
+      <div class="field" data-strat="momentum_rotation">
         <label>Rotation basket (invest in the strongest each month)</label>
         <div id="basket"></div>
+        <p class="note" style="margin:0.3rem 0 0">💶 Keep the basket in ONE currency
+        (.PA tickers are €, US tickers are $) — the engine does not convert FX.</p>
       </div>
 
       <div class="field" data-strat="dip_buying rsi moving_average">

@@ -8,6 +8,7 @@ import pytest
 
 from dcatoolbox.backtesting.context import MarketContext
 from dcatoolbox.portfolio.portfolio import Portfolio
+from dcatoolbox.portfolio.position import Position
 from dcatoolbox.strategies.momentum import (
     AbsoluteMomentumStrategy,
     MomentumRotationStrategy,
@@ -81,6 +82,41 @@ def test_momentum_rotation_excludes_insufficient_history() -> None:
     qqq = _frame([float("nan")] * 55 + [100.0, 101.0, 102.0, 103.0, 104.0])
     orders = MomentumRotationStrategy(lookback=20).on_bar(_ctx({"SPY": spy, "QQQ": qqq}))
     assert orders and orders[0].ticker == "SPY"
+
+
+def test_momentum_rotation_rotate_sells_losers() -> None:
+    # In rotate mode the whole portfolio follows the signal: holdings in
+    # anything but the leader are sold, then one buy deploys cash + proceeds.
+    weak = _frame([100] * 40 + list(np.linspace(100, 105, 20)))
+    strong = _frame([100] * 40 + list(np.linspace(100, 160, 20)))
+    ctx = _ctx({"SPY": weak, "QQQ": strong})
+    ctx.portfolio.positions["SPY"] = Position("SPY", quantity=10.0, cost_basis=1000.0)
+    orders = MomentumRotationStrategy(lookback=20, rotate=True).on_bar(ctx)
+    assert [o.side.value for o in orders] == ["sell", "buy"]
+    assert orders[0].ticker == "SPY" and orders[0].quantity == pytest.approx(10.0)
+    assert orders[1].ticker == "QQQ" and orders[1].notional == float("inf")
+
+
+def test_momentum_rotation_rotate_liquidates_on_guard() -> None:
+    # Dual-momentum guard + rotate: everything falling -> sell it all, no buy.
+    a = _frame(list(np.linspace(200, 100, 60)))
+    b = _frame(list(np.linspace(180, 120, 60)))
+    ctx = _ctx({"SPY": a, "QQQ": b})
+    ctx.portfolio.positions["SPY"] = Position("SPY", quantity=4.0, cost_basis=800.0)
+    ctx.portfolio.positions["QQQ"] = Position("QQQ", quantity=2.0, cost_basis=400.0)
+    orders = MomentumRotationStrategy(lookback=20, absolute=True, rotate=True).on_bar(ctx)
+    assert sorted(o.ticker for o in orders) == ["QQQ", "SPY"]
+    assert all(o.side.value == "sell" for o in orders)
+
+
+def test_momentum_rotation_rotate_keeps_leader_position() -> None:
+    # Already holding the leader: nothing to sell, just deploy the cash.
+    weak = _frame([100] * 40 + list(np.linspace(100, 105, 20)))
+    strong = _frame([100] * 40 + list(np.linspace(100, 160, 20)))
+    ctx = _ctx({"SPY": weak, "QQQ": strong})
+    ctx.portfolio.positions["QQQ"] = Position("QQQ", quantity=5.0, cost_basis=500.0)
+    orders = MomentumRotationStrategy(lookback=20, rotate=True).on_bar(ctx)
+    assert len(orders) == 1 and orders[0].side.value == "buy" and orders[0].ticker == "QQQ"
 
 
 def test_validation_rejects_bad_params() -> None:

@@ -130,10 +130,38 @@ function trailingReturn(close, i, lookback) {
  */
 function strategyOrders(name, s, aligned, i, ctx) {
   const cash = ctx.cash;
-  if (cash <= MIN_NOTIONAL) return [];
   const primary = aligned.primary;
   const p = aligned.bars[primary];
   const buy = (ticker, notional, field, reason) => [{ ticker, notional, field, reason }];
+
+  if (name === "momentum_rotation") {
+    // Handled before the low-cash guard: in `rotate` mode the strategy may need
+    // to SELL holdings even when no cash is waiting to be deployed.
+    if (!ctx.isScheduled) return [];
+    const lb = s.lookback || 126;
+    const basket = s.basket && s.basket.length ? s.basket : Object.keys(aligned.bars);
+    const ranked = basket
+      .map((t) => [t, aligned.bars[t] ? trailingReturn(aligned.bars[t].close, i, lb) : null])
+      .filter((r) => r[1] !== null);
+    const sells = (keep) =>
+      Object.entries(ctx.positions || {})
+        .filter(([t, pos]) => t !== keep && pos.qty > 1e-9)
+        .map(([t, pos]) => ({ ticker: t, side: "sell", quantity: pos.qty, field: "open", reason: "rotate" }));
+    if (!ranked.length)
+      return cash > MIN_NOTIONAL ? buy(primary, cash, "open", "momentum") : [];
+    let best = ranked[0];
+    for (const r of ranked) if (r[1] > best[1]) best = r;
+    if (s.absolute !== false && best[1] <= 0)
+      return s.rotate ? sells(null) : []; // dual momentum: all falling -> cash
+    const orders = s.rotate ? sells(best[0]) : [];
+    // The buy is capped to available cash AT EXECUTION TIME, so after the sells
+    // settle it deploys cash + proceeds in one order (mirrors the Python engine).
+    if (cash > MIN_NOTIONAL || orders.length)
+      orders.push({ ticker: best[0], notional: Infinity, field: "open", reason: "momentum" });
+    return orders;
+  }
+
+  if (cash <= MIN_NOTIONAL) return [];
 
   if (name === "monthly_dca")
     return ctx.isScheduled ? buy(primary, cash, s.priceField || "open", "scheduled") : [];
@@ -149,20 +177,6 @@ function strategyOrders(name, s, aligned, i, ctx) {
     if (!ctx.isScheduled) return [];
     const tr = trailingReturn(p.close, i, s.lookback || 126);
     return tr !== null && tr <= 0 ? [] : buy(primary, cash, "open", "momentum");
-  }
-
-  if (name === "momentum_rotation") {
-    if (!ctx.isScheduled) return [];
-    const lb = s.lookback || 126;
-    const basket = s.basket && s.basket.length ? s.basket : Object.keys(aligned.bars);
-    const ranked = basket
-      .map((t) => [t, aligned.bars[t] ? trailingReturn(aligned.bars[t].close, i, lb) : null])
-      .filter((r) => r[1] !== null);
-    if (!ranked.length) return buy(primary, cash, "open", "momentum");
-    let best = ranked[0];
-    for (const r of ranked) if (r[1] > best[1]) best = r;
-    if (s.absolute !== false && best[1] <= 0) return []; // dual momentum: all falling -> cash
-    return buy(best[0], cash, "open", "momentum");
   }
 
   // Budget-deploying signal strategies (dip_buying, rsi, moving_average).
@@ -196,6 +210,13 @@ function executeBuy(notional, ref, cfg) {
   const investable = Math.max(notional - fee, 0);
   const quantity = investable / price;
   return { quantity, price, fee, cashFlow: -notional };
+}
+
+function executeSell(quantity, ref, cfg) {
+  const price = ref * (1 - cfg.slippageRate);
+  const gross = quantity * price;
+  const fee = Math.max(gross * cfg.feeRate, cfg.minFee || 0);
+  return { quantity, price, fee, cashFlow: gross - fee };
 }
 
 /* ------------------------------- core simulate ------------------------------ */
@@ -255,10 +276,26 @@ function simulate(name, params, aligned, cfg) {
       port.cash += cfg.monthlyBudget;
       port.invested += cfg.monthlyBudget;
     }
-    const orders = strategyOrders(name, params, aligned, i, { cash: port.cash, isScheduled: scheduled[i] });
+    const orders = strategyOrders(name, params, aligned, i, {
+      cash: port.cash, isScheduled: scheduled[i], positions,
+    });
     for (const o of orders) {
       const ref = aligned.bars[o.ticker]?.[o.field]?.[i];
       if (!(ref > 0) || !Number.isFinite(ref)) continue; // guard against bad/missing prices
+      if (o.side === "sell") {
+        const pos = positions[o.ticker];
+        const qty = Math.min(o.quantity, pos ? pos.qty : 0);
+        if (qty <= 1e-9) continue;
+        const t = executeSell(qty, ref, cfg);
+        // Average-cost reduction, mirroring the Python Position._reduce.
+        const avg = pos.qty > 0 ? pos.costBasis / pos.qty : 0;
+        pos.qty -= qty;
+        pos.costBasis -= avg * qty;
+        port.cash += t.cashFlow;
+        port.fees += t.fee;
+        port.trades.push({ date: dates[i], ticker: o.ticker, price: t.price, quantity: qty, reason: o.reason, side: "sell" });
+        continue;
+      }
       const notional = Math.min(o.notional, port.cash);
       if (notional <= 0) continue;
       const t = executeBuy(notional, ref, cfg);
@@ -267,7 +304,7 @@ function simulate(name, params, aligned, cfg) {
       pos.costBasis += t.quantity * t.price;
       port.cash += t.cashFlow;
       port.fees += t.fee;
-      port.trades.push({ date: dates[i], ticker: o.ticker, price: t.price, quantity: t.quantity, reason: o.reason });
+      port.trades.push({ date: dates[i], ticker: o.ticker, price: t.price, quantity: t.quantity, reason: o.reason, side: "buy" });
     }
     let positionsValue = 0;
     let totalQty = 0;
@@ -387,7 +424,7 @@ function metrics(run, cfg, benchHistory) {
   out.avg_cash = mean(h.cash);
   out.cumulative_fees = h.fees[n - 1];
   out.n_orders = run.trades.length;
-  const buys = run.trades;
+  const buys = run.trades.filter((t) => t.side !== "sell");
   if (buys.length) {
     out.avg_order_amount = mean(buys.map((t) => t.price * t.quantity));
     const totalQty = buys.reduce((a, t) => a + t.quantity, 0);
@@ -485,12 +522,24 @@ export function currentSignal(input, cfg) {
       return { asOf, action: `Buy ${primary}`, detail: `Not enough history to rank the basket yet; default to ${primary}.`, fired: true, rows: [] };
     const best = ranked[0];
     const cash = s.absolute !== false && best.ret <= 0;
+    const rotate = !!s.rotate;
+    let action;
+    let detail;
+    if (cash) {
+      action = rotate ? "Go to cash — sell everything" : "Hold cash this month";
+      detail = `Dual-momentum guard: even the strongest asset's ${lb}-day return is ${sgnPct(best.ret)} (≤ 0). ` +
+        (rotate
+          ? "In switch mode the rule liquidates all holdings and waits in cash."
+          : "The rule skips this month's purchase and keeps the cash.");
+    } else {
+      action = rotate ? `Hold 100% ${best.ticker}` : `Buy ${best.ticker}`;
+      detail = `${best.ticker} has the strongest trailing ${lb}-day return (${sgnPct(best.ret)}). ` +
+        (rotate
+          ? `In switch mode: sell anything that is not ${best.ticker} and route all capital plus this month's budget into ${best.ticker} on your DCA day (day ${cfg.dayOfMonth}).`
+          : `Invest this month's whole budget in ${best.ticker} on your DCA day (day ${cfg.dayOfMonth}).`);
+    }
     return {
-      asOf, fired: !cash,
-      action: cash ? "Hold cash this month" : `Buy ${best.ticker}`,
-      detail: cash
-        ? `Dual-momentum guard: even the strongest asset's ${lb}-day return is ${sgnPct(best.ret)} (≤ 0), so the rule stays in cash this month.`
-        : `${best.ticker} has the strongest trailing ${lb}-day return (${sgnPct(best.ret)}). Invest this month's whole budget in ${best.ticker} on your DCA day (day ${cfg.dayOfMonth}).`,
+      asOf, fired: !cash, action, detail,
       rows: ranked.map((r, idx) => ({ label: r.ticker, value: sgnPct(r.ret), picked: !cash && idx === 0 })),
     };
   }

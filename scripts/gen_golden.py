@@ -141,6 +141,20 @@ CASES: list[dict] = [
         "dataset": "rotation",
         "strategy": {"name": "momentum_rotation", "lookback": 63, "absolute": False},
     },
+    # Rotate mode: the whole portfolio follows the signal (sell path).
+    {
+        "dataset": "rotation",
+        "strategy": {
+            "name": "momentum_rotation",
+            "lookback": 126,
+            "absolute": True,
+            "rotate": True,
+        },
+    },
+    {
+        "dataset": "rotation",
+        "strategy": {"name": "momentum_rotation", "lookback": 63, "absolute": True, "rotate": True},
+    },
 ]
 
 _BASE = {
@@ -168,6 +182,7 @@ _KEYMAP = {
     "lookback": "lookback",
     "absolute": "absolute",
     "basket": "basket",
+    "rotate": "rotate",
 }
 
 

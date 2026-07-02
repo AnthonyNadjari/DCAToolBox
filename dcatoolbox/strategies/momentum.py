@@ -87,6 +87,11 @@ class MomentumRotationStrategy(Strategy):
             Default ``True`` (dual momentum).
         basket: Optional explicit list of tickers; defaults to all instruments
             available in the market context.
+        rotate: If ``True``, the WHOLE portfolio follows the signal: holdings in
+            anything but the current leader are sold on the scheduled day (and
+            everything is liquidated to cash when the dual-momentum guard fires),
+            classic Antonacci-style dual momentum. If ``False`` (default), only
+            new contributions are routed to the leader and nothing is ever sold.
     """
 
     name = "momentum_rotation"
@@ -95,23 +100,45 @@ class MomentumRotationStrategy(Strategy):
         self.lookback = int(self.params.get("lookback", 126))
         self.absolute = bool(self.params.get("absolute", True))
         self.basket = self.params.get("basket")
+        self.rotate = bool(self.params.get("rotate", False))
 
     def on_bar(self, context: MarketContext) -> list[Order]:
-        """On the scheduled day, buy the basket's best-momentum instrument."""
-        cash = context.available_cash
-        if not context.is_scheduled_day or cash <= _MIN_NOTIONAL:
+        """On the scheduled day, point the budget (and holdings if rotating) at the leader."""
+        if not context.is_scheduled_day:
             return []
+        cash = context.available_cash
         basket = self.basket or list(context.histories)
         ranked = [
             (t, _trailing_return(context.histories[t]["close"], self.lookback)) for t in basket
         ]
         ranked = [(t, r) for t, r in ranked if r is not None]
-        if not ranked:
-            return [self._buy(context.primary_ticker, cash)]  # warm-up: behave like DCA
+        if not ranked:  # warm-up: behave like DCA
+            return [self._buy(context.primary_ticker, cash)] if cash > _MIN_NOTIONAL else []
         best_ticker, best_return = max(ranked, key=lambda x: x[1])
         if self.absolute and best_return <= 0:
-            return []  # dual-momentum: all assets falling -> stay in cash
-        return [self._buy(best_ticker, cash)]
+            # Dual momentum: everything falling. Liquidate when rotating, else just wait.
+            return self._sells(context, keep=None) if self.rotate else []
+        orders = self._sells(context, keep=best_ticker) if self.rotate else []
+        # The buy is capped to available cash AT EXECUTION TIME by the engine, so
+        # after the sells settle it deploys cash + proceeds in one order.
+        if cash > _MIN_NOTIONAL or orders:
+            orders.append(self._buy(best_ticker, float("inf")))
+        return orders
+
+    @staticmethod
+    def _sells(context: MarketContext, keep: str | None) -> list[Order]:
+        """Sell every open position except ``keep`` (all of them when ``None``)."""
+        return [
+            Order(
+                ticker=ticker,
+                side=OrderSide.SELL,
+                quantity=pos.quantity,
+                price_field="open",
+                reason="rotate",
+            )
+            for ticker, pos in context.portfolio.positions.items()
+            if ticker != keep and pos.quantity > 1e-9
+        ]
 
     @staticmethod
     def _buy(ticker: str, cash: float) -> Order:

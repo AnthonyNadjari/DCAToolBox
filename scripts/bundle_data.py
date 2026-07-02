@@ -42,11 +42,16 @@ class Instrument:
 
 
 INSTRUMENTS: list[Instrument] = [
-    Instrument("SPY", "SPY — S&P 500 ETF (US)"),
-    Instrument("VOO", "VOO — Vanguard S&P 500 (US)"),
-    Instrument("QQQ", "QQQ — Nasdaq 100 ETF (US)"),
-    Instrument("CSPX.L", "CSPX — iShares Core S&P 500 (LSE)"),
-    Instrument("EXW1.DE", "EXW1 — iShares EURO STOXX 50 (XETRA)"),
+    Instrument("SPY", "SPY — S&P 500 ETF (US, $)"),
+    Instrument("VOO", "VOO — Vanguard S&P 500 (US, $)"),
+    Instrument("QQQ", "QQQ — Nasdaq 100 ETF (US, $)"),
+    Instrument("CSPX.L", "CSPX — iShares Core S&P 500 (LSE, $)"),
+    Instrument("EXW1.DE", "EXW1 — iShares EURO STOXX 50 (XETRA, €)"),
+    # French-listed UCITS ETFs (Euronext Paris, €) — PEA-eligible candidates.
+    Instrument("CW8.PA", "CW8 — Amundi MSCI World (Paris, €, PEA)"),
+    Instrument("ESE.PA", "ESE — BNP Easy S&P 500 (Paris, €, PEA)"),
+    Instrument("PUST.PA", "PUST — Amundi PEA Nasdaq-100 (Paris, €, PEA)"),
+    Instrument("C40.PA", "C40 — Amundi CAC 40 (Paris, €, PEA)"),
 ]
 
 
