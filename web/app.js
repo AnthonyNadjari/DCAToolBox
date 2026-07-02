@@ -5,6 +5,15 @@ const $ = (id) => document.getElementById(id);
 const dataCache = new Map();
 let manifest = null;
 
+// Categorical series palette (validated: worst adjacent CVD ΔE 25, all slots in
+// the lightness band; the two sub-3:1 slots get relief from the legend, the
+// unified hover and the exact-value ranking chips). Colors are assigned to
+// instruments in manifest order and follow the ticker, never its rank, so a
+// basket change never repaints the survivors.
+const PALETTE = ["#2563eb", "#1baf7a", "#eb6834", "#4a3aa7", "#eda100"];
+const tickerColors = {};
+const colorOf = (t) => tickerColors[t] || "#64748b";
+
 /* ------------------------------ formatting ------------------------------ */
 const pct = (x) => (x === null || x === undefined || Number.isNaN(x) ? "n/a" : `${(x * 100).toFixed(2)}%`);
 const num = (x) => (Number.isNaN(x) ? "n/a" : x.toFixed(3));
@@ -36,6 +45,7 @@ const currentFreq = () => instrument($("ticker").value).frequencies[$("frequency
 
 async function loadManifest() {
   manifest = await fetchJson("data/manifest.json");
+  manifest.instruments.forEach((inst, i) => (tickerColors[inst.ticker] = PALETTE[i % PALETTE.length]));
   const sel = $("ticker");
   sel.innerHTML = "";
   for (const inst of manifest.instruments) {
@@ -165,8 +175,7 @@ const niceDate = (iso) => {
 };
 
 // The actionable "what do I do now" panel, derived from the latest bar.
-function renderSignal(input, cfg) {
-  const sig = currentSignal(input, cfg);
+function renderSignal(sig, cfg) {
   const el = $("signal");
   if (!sig.asOf) {
     el.innerHTML = `<div class="sig-action">No data in the selected range</div>`;
@@ -237,17 +246,31 @@ const PLOT_CONFIG = { displayModeBar: false, responsive: false, scrollZoom: fals
 const draw = (id, traces, layout) => {
   const el = $(id);
   const r = el.getBoundingClientRect();
-  const sized = { ...layout, autosize: false, width: Math.round(r.width), height: Math.round(r.height) || 300 };
+  // A chart inside a hidden tab measures 0×0; draw at a sane fallback size and
+  // let the tab-switch resizeCharts() refit it once it becomes visible.
+  const width = Math.round(r.width) || Math.min(window.innerWidth - 40, 720);
+  const sized = { ...layout, autosize: false, width, height: Math.round(r.height) || 300 };
   Plotly.react(el, traces, sized, PLOT_CONFIG);
 };
 
-// Re-fit every already-plotted chart to its container's current box.
+// Re-fit every already-plotted VISIBLE chart to its container's current box.
 function resizeCharts() {
   for (const el of document.querySelectorAll(".chart")) {
     if (!el.data) continue; // not yet plotted
     const r = el.getBoundingClientRect();
+    if (r.width < 10) continue; // hidden tab — refit when it becomes visible
     Plotly.relayout(el, { width: Math.round(r.width), height: Math.round(r.height) || 300 });
   }
+}
+
+function showTab(name) {
+  for (const b of document.querySelectorAll(".tab")) {
+    b.classList.toggle("active", b.dataset.tab === name);
+    b.setAttribute("aria-selected", String(b.dataset.tab === name));
+  }
+  $("tab-signal").hidden = name !== "signal";
+  $("tab-backtest").hidden = name !== "backtest";
+  resizeCharts(); // charts drawn while their tab was hidden need a real size
 }
 
 function renderCharts(result) {
@@ -306,6 +329,169 @@ function renderCharts(result) {
   draw("chart-purchases", purchaseTraces, LAYOUT("Purchase amounts", { barmode: "overlay" }));
 }
 
+/* ---------------------------- signal tab -------------------------------- */
+
+/** Tickers the current signal actually looks at. */
+function signalTickers(cfg, aligned) {
+  if (cfg.strategy.name !== "momentum_rotation") return [aligned.primary];
+  const basket = cfg.strategy.basket && cfg.strategy.basket.length ? cfg.strategy.basket : Object.keys(aligned.bars);
+  return basket.filter((t) => aligned.bars[t]);
+}
+
+/** The race the signal ranks: each candidate over the look-back, indexed to 0%. */
+function renderRace(result, cfg, sig) {
+  const aligned = result.aligned;
+  const dates = aligned.dates;
+  const n = dates.length;
+  const momentum = ["momentum_rotation", "absolute_momentum"].includes(cfg.strategy.name);
+  const lb = momentum ? cfg.strategy.lookback || 126 : 126;
+  const i0 = Math.max(0, n - 1 - lb);
+  const tickers = signalTickers(cfg, aligned);
+  const picked = sig.rows.find((r) => r.picked)?.label;
+
+  const traces = [];
+  const annotations = [];
+  for (const t of tickers) {
+    const close = aligned.bars[t].close;
+    const base = close[i0];
+    if (!(base > 0)) continue; // not enough history to race yet
+    const y = [];
+    for (let i = i0; i < n; i++) y.push(close[i] / base - 1);
+    const isPick = t === picked;
+    traces.push({
+      x: dates.slice(i0), y, name: t, mode: "lines",
+      line: { color: colorOf(t), width: isPick ? 3 : 2 },
+    });
+    if (isPick || tickers.length === 1) {
+      annotations.push({
+        x: dates[n - 1], y: y[y.length - 1], xanchor: "left", showarrow: false,
+        text: `<b>${t} ${signed(y[y.length - 1])}</b>`, font: { size: 12, color: "#0f172a" },
+      });
+    }
+  }
+  const title = momentum
+    ? `The ${lb}-day race the signal ranks (indexed to 0%)`
+    : `${aligned.primary} — last ${lb} trading days (indexed to 0%)`;
+  draw("chart-race", traces, LAYOUT(title, {
+    yaxis: { tickformat: ".0%" }, margin: { t: 40, r: 90, b: 56, l: 48 }, annotations,
+  }));
+}
+
+/** Concrete action plan: what, how much, when. */
+function renderPlan(sig, cfg) {
+  const day = cfg.dayOfMonth;
+  const now = new Date();
+  let next = new Date(now.getFullYear(), now.getMonth(), day);
+  if (next <= now) next = new Date(now.getFullYear(), now.getMonth() + 1, day);
+  while ([0, 6].includes(next.getDay())) next.setDate(next.getDate() + 1); // roll to a weekday
+  const nextTxt = next.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
+  const budget = cur(cfg.monthlyBudget);
+  const perDip = ["dip_buying", "rsi", "moving_average"].includes(cfg.strategy.name);
+  $("plan").innerHTML = `
+    <h3>Your action plan</h3>
+    <ol class="plan-steps">
+      <li><b>${sig.action}</b> — ${sig.fired ? "the rule gives a green light." : "the rule says to hold off for now."}</li>
+      <li><b>Amount:</b> ${perDip
+        ? `${Math.round(cfg.strategy.allocation * 100)}% of the month's remaining budget per signal (budget ${budget}/month; anything left auto-invests on day ${day}).`
+        : `this month's full budget, ${budget}.`}</li>
+      <li><b>When:</b> ${perDip
+        ? "the day the signal fires (check this page after the close)."
+        : `on your DCA day — next: <b>${nextTxt}</b> (first trading day on/after day ${day}).`}</li>
+    </ol>
+    <p class="note">Signals use the latest end-of-day close. Re-check this page on the day you plan to invest.</p>`;
+}
+
+/** What the rule decided in each of the last 12 months of the backtest. */
+function renderHistory(result, cfg) {
+  const name = cfg.strategy.name;
+  const months = [...new Set(result.bars.dates.map((d) => d.slice(0, 7)))].slice(-12).reverse();
+  const byMonth = new Map(months.map((m) => [m, []]));
+  for (const t of result.strategy.trades) {
+    const m = t.date.slice(0, 7);
+    if (byMonth.has(m)) byMonth.get(m).push(t);
+  }
+  const noBuyText = {
+    momentum_rotation: "Held cash (dual-momentum guard: everything falling)",
+    absolute_momentum: "Held cash (negative momentum)",
+    trend_filter: "Skipped (price below the trend MA)",
+  }[name] || "No purchase";
+  const label = (m) =>
+    new Date(m + "-01T00:00:00").toLocaleDateString(undefined, { year: "numeric", month: "short" });
+  const rows = months.map((m) => {
+    const trades = byMonth.get(m);
+    const amount = trades.reduce((a, t) => a + t.price * t.quantity, 0);
+    let what;
+    if (!trades.length) what = noBuyText;
+    else if (["dip_buying", "rsi", "moving_average"].includes(name)) {
+      const dips = trades.filter((t) => t.reason === "dip").length;
+      what = dips ? `${dips} signal buy${dips > 1 ? "s" : ""} + sweep on day ${cfg.dayOfMonth}` : `No signal — swept on day ${cfg.dayOfMonth}`;
+    } else {
+      const tk = [...new Set(trades.map((t) => t.ticker))].join(", ");
+      what = `Bought <b style="color:${colorOf(trades[0].ticker)}">${tk}</b>`;
+    }
+    return `<tr><td>${label(m)}</td><td style="text-align:left">${what}</td><td>${amount ? cur(amount) : "—"}</td></tr>`;
+  }).join("");
+  $("history").innerHTML =
+    `<thead><tr><th>Month</th><th style="text-align:left">Decision</th><th>Amount</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+/** Plain-language explanation of the selected strategy. */
+const EXPLAINERS = {
+  momentum_rotation: `
+    <h3>How Momentum Rotation works</h3>
+    <p><b>It is not a blend.</b> The strategy never splits your money across the indices —
+    each month it holds <b>exactly one</b> of them (or cash). The "mix" you see in the
+    portfolio builds up over time from whichever index won each month.</p>
+    <ol>
+      <li><b>Rank.</b> On your DCA day, compute each candidate's trailing return over the
+      look-back (default 126 trading days ≈ 6 months). That is the race in the chart above —
+      the ranking chips are simply where each line ends.</li>
+      <li><b>Pick the leader.</b> Invest the whole month's budget in the index with the
+      highest trailing return (<i>relative momentum</i>).</li>
+      <li><b>Crash guard.</b> If even the leader's trailing return is negative — everything
+      is falling — skip the purchase and keep the cash (<i>absolute momentum</i>, the
+      "dual momentum" switch). This is what kept the strategy out of 2008-style slides.</li>
+    </ol>
+    <p><b>Why it has historically worked:</b> trends persist over 3–12-month horizons
+    (the momentum premium), so the recent leader tends to keep leading for a while; and the
+    cash guard avoids averaging down through long bear markets.</p>
+    <p><b>Honest limits:</b> in choppy, trendless markets the ranking flips often
+    (whipsaw, extra fees); much of the historical edge comes from having QQQ in the basket;
+    and a monthly signal reacts with up to a month of delay to sudden crashes.</p>`,
+  absolute_momentum: `
+    <h3>How Absolute Momentum works</h3>
+    <p>Plain DCA with a bear-market filter: on your DCA day, invest only if the asset's own
+    trailing look-back return is positive; otherwise hold the cash. You give up some
+    upside in recoveries to avoid buying into long slides.</p>`,
+  trend_filter: `
+    <h3>How the Trend Filter works</h3>
+    <p>Invest the monthly budget only when the price is above its long moving average
+    (default 200 days) — the classic "only buy in an uptrend" rule. Below the average, cash
+    accumulates and deploys once the trend turns back up.</p>`,
+  dip_buying: `
+    <h3>How Dip Buying works</h3>
+    <p>Each month's budget is split: whenever the chosen dip signal fires (e.g. price drops
+    2% vs yesterday), a slice of the remaining budget buys immediately; whatever is left
+    auto-invests on your DCA day. With the <i>reset</i> policy the whole budget is always
+    deployed monthly, so results stay close to plain DCA by construction.</p>`,
+  rsi: `
+    <h3>How the RSI strategy works</h3>
+    <p>Buys a slice of the remaining monthly budget whenever the RSI (a 0–100 oscillator
+    of recent gains vs losses) drops below the oversold level — i.e. after sharp selling.
+    The leftover budget auto-invests on your DCA day.</p>`,
+  moving_average: `
+    <h3>How the Moving-Average strategy works</h3>
+    <p>Buys a slice of the remaining budget whenever the price trades below its moving
+    average by the chosen margin ("buy weakness"), sweeping the rest on your DCA day.</p>`,
+  monthly_dca: `
+    <h3>How Monthly DCA works</h3>
+    <p>The benchmark everything is measured against: invest the full budget on the same
+    day every month, no matter the price. Simple, disciplined, and famously hard to beat.</p>`,
+};
+function renderExplainer(cfg) {
+  $("explainer").innerHTML = EXPLAINERS[cfg.strategy.name] || "";
+}
+
 /* -------------------------------- run ----------------------------------- */
 async function run() {
   syncRangeLabels();
@@ -325,7 +511,12 @@ async function run() {
     $("status").textContent = "Not enough trading days in the selected range — widen Start/End.";
     return;
   }
-  renderSignal(input, cfg);
+  const sig = currentSignal(input, cfg);
+  renderSignal(sig, cfg);
+  renderRace(result, cfg, sig);
+  renderPlan(sig, cfg);
+  renderHistory(result, cfg);
+  renderExplainer(cfg);
   renderCards(result);
   renderMetrics(result.strategy.name, result.strategy.metrics, result.benchmark.metrics);
   renderCharts(result);
@@ -384,6 +575,10 @@ async function main() {
     debounced();
   });
   $("compareBtn").addEventListener("click", compareAll);
+  for (const b of document.querySelectorAll(".tab"))
+    b.addEventListener("click", () => showTab(b.dataset.tab));
+  for (const a of document.querySelectorAll(".goto-backtest"))
+    a.addEventListener("click", (e) => { e.preventDefault(); showTab("backtest"); window.scrollTo(0, 0); });
 
   // Only re-fit charts when the viewport WIDTH changes. iOS fires `resize` on
   // every address-bar show/hide (height-only) while scrolling — ignoring those

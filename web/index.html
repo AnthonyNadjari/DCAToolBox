@@ -25,12 +25,31 @@
     <p>See what each rule says to do <b>this month</b>, then check how it would have performed — live in your browser, on real market data.</p>
   </header>
 
-  <!-- Actionable "what to do now" signal, derived from the latest bar. Kept at
-       the very top so the page reads as a signal tool first, backtester second. -->
-  <div class="signal-wrap">
-    <section class="signal" id="signal"><div class="sig-action">Loading…</div></section>
+  <!-- Two views: Signal (home — what to do now) and Backtest (full lab). -->
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="signal" role="tab" aria-selected="true">📡 Signal</button>
+    <button class="tab" data-tab="backtest" role="tab" aria-selected="false">🔬 Backtest</button>
+  </nav>
+
+  <!-- ------------------------------ Signal tab ------------------------------ -->
+  <div id="tab-signal" class="tabpane">
+    <div class="signal-wrap">
+      <section class="signal" id="signal"><div class="sig-action">Loading…</div></section>
+      <!-- The race the signal ranks: recent performance of each candidate. -->
+      <div class="chart" id="chart-race"></div>
+      <section class="side-card" id="plan"></section>
+      <section class="side-card">
+        <h3>Last 12 monthly decisions</h3>
+        <div class="table-scroll"><table class="metrics" id="history"></table></div>
+      </section>
+      <section class="side-card explainer" id="explainer"></section>
+      <p class="note">Want to stress-test this rule or tweak every parameter? Open the
+        <a href="#" class="goto-backtest">🔬 Backtest tab</a>.</p>
+    </div>
   </div>
 
+  <!-- ----------------------------- Backtest tab ----------------------------- -->
+  <div id="tab-backtest" class="tabpane" hidden>
   <div class="layout">
     <!-- ---------------------------- Controls ---------------------------- -->
     <aside class="panel">
@@ -152,6 +171,7 @@
       <p class="note">⚠️ Educational research tool, not investment advice. Results use end-of-day data and a simple cost model. Past performance does not guarantee future results.</p>
     </main>
   </div>
+  </div><!-- /tab-backtest -->
 
   <footer>
     Powered by the <a href="https://github.com/AnthonyNadjari/DCAToolBox">DCAToolBox</a> engine ·

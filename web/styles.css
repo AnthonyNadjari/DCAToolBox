@@ -49,7 +49,7 @@ header p { margin: 0.2rem 0 0; opacity: 0.9; font-size: 0.95rem; }
 /* Grid/flex items default to min-width:auto, so a wide <select>, long option
    text, or a native date input forces its track wider than the viewport and
    spills off-screen on phones. Let every track shrink to its column instead. */
-.layout > *, .row2 > *, .cards > *, .charts > * { min-width: 0; }
+.layout > *, .row2 > *, .cards > *, .charts > *, .signal-wrap > * { min-width: 0; }
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; gap: 0.9rem; padding: 0.9rem; }
   .panel { position: static; }       /* don't pin the controls while scrolling on phones */
@@ -89,12 +89,41 @@ button.ghost {
   border-radius: 8px; background: #fff; color: var(--blue); font-weight: 600; cursor: pointer;
 }
 
+/* --------------------------------- tabs ---------------------------------- */
+.tabs {
+  display: flex; gap: 0.4rem; padding: 0.7rem 1.2rem 0;
+  padding-left: max(1.2rem, env(safe-area-inset-left));
+  padding-right: max(1.2rem, env(safe-area-inset-right));
+  border-bottom: 1px solid var(--border); background: var(--bg);
+  position: sticky; top: 0; z-index: 10;
+}
+.tab {
+  border: 1px solid var(--border); border-bottom: none;
+  border-radius: 10px 10px 0 0; background: #eef2f7; color: var(--muted);
+  padding: 0.55rem 1.1rem; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+}
+.tab.active { background: var(--card); color: var(--blue-dark); border-color: var(--border); box-shadow: 0 -2px 0 var(--blue) inset; }
+.tabpane[hidden] { display: none; }
+
 /* --------------------------- live signal panel --------------------------- */
 .signal-wrap {
-  padding: 1.2rem 1.2rem 0;
+  max-width: 860px; margin: 0 auto; display: grid; gap: 1rem;
+  padding: 1.2rem;
   padding-left: max(1.2rem, env(safe-area-inset-left));
   padding-right: max(1.2rem, env(safe-area-inset-right));
 }
+.side-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1rem 1.2rem;
+}
+.side-card h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--blue-dark); }
+/* Decision text may be long — let it wrap instead of forcing a wide table. */
+#history td:nth-child(2) { white-space: normal; }
+.plan-steps { margin: 0; padding-left: 1.2rem; }
+.plan-steps li { margin-bottom: 0.45rem; }
+.explainer p, .explainer ol { font-size: 0.92rem; color: var(--text); }
+.explainer ol { padding-left: 1.2rem; }
+.explainer li { margin-bottom: 0.4rem; }
 .signal {
   background: linear-gradient(135deg, #0f172a, #1e3a8a);
   color: #fff; border-radius: 14px; padding: 1.1rem 1.2rem;
