@@ -68,6 +68,19 @@ def test_dip_buying_sweeps_remaining_on_scheduled_day(small_frame) -> None:
     assert orders[0].reason == "scheduled"
 
 
+def test_accumulate_policy_does_not_sweep_on_scheduled_day(small_frame) -> None:
+    # With accumulate, cash is NOT force-deployed on the scheduled day.
+    strat = DipBuyingStrategy(budget_policy="accumulate")
+    frame = small_frame.copy()  # last bar is an up move -> no dip signal
+    frame.iloc[-1, frame.columns.get_loc("open")] = frame["open"].iloc[-2] * 1.01
+    assert strat.on_bar(_context(frame, 1000.0, scheduled=True)) == []
+
+
+def test_invalid_budget_policy_raises() -> None:
+    with pytest.raises(ValueError):
+        DipBuyingStrategy(budget_policy="nonsense")
+
+
 def test_dip_buying_no_order_without_signal(small_frame) -> None:
     frame = small_frame.copy()
     frame.iloc[-1, frame.columns.get_loc("open")] = frame["open"].iloc[-2] * 1.01  # up move

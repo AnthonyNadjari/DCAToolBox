@@ -63,7 +63,7 @@ def is_scheduled_day(
         day_of_month: Target day-of-month for the scheduled investment.
     """
     scheduled = _scheduled_days_in_month(calendar, timestamp.year, timestamp.month, day_of_month)
-    return len(scheduled) > 0 and timestamp.normalize() == scheduled[0].normalize()
+    return len(scheduled) > 0 and timestamp == scheduled[0]
 
 
 def next_scheduled_day(
@@ -92,17 +92,17 @@ def scheduled_days(calendar: pd.DatetimeIndex, day_of_month: int) -> set[pd.Time
             calendar, representative.year, representative.month, day_of_month
         )
         if len(chosen) > 0:
-            result.add(chosen[0].normalize())
+            result.add(chosen[0])  # exact bar (handles intraday: one bar per month)
     return result
 
 
 def month_start_days(calendar: pd.DatetimeIndex) -> set[pd.Timestamp]:
-    """Return the first trading day of each calendar month, normalised."""
+    """Return the first trading *bar* of each calendar month (intraday-safe)."""
     result: dict[tuple[int, int], pd.Timestamp] = {}
-    for day in calendar:
-        key = month_key(day)
+    for ts in calendar:
+        key = month_key(ts)
         if key not in result:
-            result[key] = day.normalize()
+            result[key] = ts  # exact first bar, so only one deposit per month
     return set(result.values())
 
 

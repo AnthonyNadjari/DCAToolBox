@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>DCAToolBox — Live Backtester</title>
+  <meta name="theme-color" content="#1e3a8a" />
+  <meta name="description" content="Interactive DCA / investment-strategy backtester running live in your browser on real market data." />
+  <!-- iOS: allow add-to-home-screen as a standalone web app -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="DCAToolBox" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="apple-touch-icon" href="favicon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"
+          integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7"
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+  <header>
+    <a class="gaia-link" href="https://anthonynadjari.github.io/Gaia/">🌌 Gaia — Astral Hub ↗</a>
+    <h1>📈 DCAToolBox — Live Signal &amp; Backtester</h1>
+    <p>See what each rule says to do <b>this month</b>, then check how it would have performed — live in your browser, on real market data.</p>
+  </header>
+
+  <!-- Two views: Signal (home — what to do now) and Backtest (full lab). -->
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="signal" role="tab" aria-selected="true">📡 Signal</button>
+    <button class="tab" data-tab="backtest" role="tab" aria-selected="false">🔬 Backtest</button>
+  </nav>
+
+  <!-- ------------------------------ Signal tab ------------------------------ -->
+  <div id="tab-signal" class="tabpane">
+    <div class="signal-wrap">
+      <section class="signal" id="signal"><div class="sig-action">Loading…</div></section>
+      <!-- The race the signal ranks: recent performance of each candidate. -->
+      <div class="chart" id="chart-race"></div>
+      <section class="side-card" id="plan"></section>
+      <section class="side-card">
+        <h3>Last 12 monthly decisions</h3>
+        <div class="table-scroll"><table class="metrics" id="history"></table></div>
+      </section>
+      <section class="side-card explainer" id="explainer"></section>
+      <p class="note">Want to stress-test this rule or tweak every parameter? Open the
+        <a href="#" class="goto-backtest">🔬 Backtest tab</a>.</p>
+    </div>
+  </div>
+
+  <!-- ----------------------------- Backtest tab ----------------------------- -->
+  <div id="tab-backtest" class="tabpane" hidden>
+  <div class="layout">
+    <!-- ---------------------------- Controls ---------------------------- -->
+    <aside class="panel">
+      <h2>Asset &amp; period</h2>
+      <div class="field">
+        <label for="ticker">Instrument</label>
+        <select id="ticker"></select>
+      </div>
+      <div class="field">
+        <label for="frequency">Granularity (intraday = act when the signal fires during the day)</label>
+        <select id="frequency"></select>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="start">Start</label><input type="date" id="start" /></div>
+        <div class="field"><label for="end">End</label><input type="date" id="end" /></div>
+      </div>
+
+      <h2>Investment plan</h2>
+      <div class="row2">
+        <div class="field"><label for="budget">Monthly budget</label><input type="number" id="budget" value="1000" min="1" step="50" /></div>
+        <div class="field"><label for="day">DCA day</label><input type="number" id="day" value="26" min="1" max="31" /></div>
+      </div>
+
+      <h2>Strategy</h2>
+      <div class="field">
+        <label for="strategy">Strategy</label>
+        <select id="strategy">
+          <option value="momentum_rotation">Momentum Rotation (multi-asset) ⭐</option>
+          <option value="dip_buying">Dip Buying</option>
+          <option value="trend_filter">Trend Filter (above MA only)</option>
+          <option value="absolute_momentum">Absolute Momentum (bear filter)</option>
+          <option value="rsi">RSI (oversold)</option>
+          <option value="moving_average">Moving Average</option>
+          <option value="monthly_dca">Monthly DCA (same as benchmark)</option>
+        </select>
+      </div>
+
+      <div class="field" data-strat="dip_buying">
+        <label for="signalMethod">Dip signal</label>
+        <select id="signalMethod">
+          <option value="open_vs_open">Open vs previous Open</option>
+          <option value="close_vs_close">Close vs previous Close</option>
+          <option value="open_vs_close">Open vs previous Close (gap)</option>
+          <option value="close_vs_open">Close vs Open (intraday)</option>
+          <option value="drawdown_n_days">Drawdown over N days</option>
+          <option value="cumulative_return">Cumulative return over N days</option>
+        </select>
+      </div>
+      <div class="field" data-strat="dip_buying">
+        <label for="threshold">Dip threshold <span class="range-val" id="thresholdVal">2.0%</span></label>
+        <input type="range" id="threshold" min="0.005" max="0.10" step="0.005" value="0.02" />
+      </div>
+      <div class="field" data-strat="dip_buying" id="windowField">
+        <label for="signalWindow">Signal window (days)</label>
+        <input type="number" id="signalWindow" value="20" min="2" max="252" />
+      </div>
+
+      <div class="field" data-strat="rsi"><label for="period">RSI period</label><input type="number" id="period" value="14" min="2" max="100" /></div>
+      <div class="field" data-strat="rsi"><label for="oversold">RSI oversold level</label><input type="number" id="oversold" value="30" min="5" max="50" /></div>
+
+      <div class="field" data-strat="moving_average"><label for="window">MA window (days)</label><input type="number" id="window" value="50" min="2" max="300" /></div>
+      <div class="field" data-strat="moving_average"><label for="margin">Below MA by <span class="range-val" id="marginVal">0.0%</span></label><input type="range" id="margin" min="0" max="0.1" step="0.005" value="0" /></div>
+
+      <div class="field" data-strat="trend_filter"><label for="maWindow">Trend MA window (days)</label><input type="number" id="maWindow" value="200" min="2" max="400" /></div>
+      <div class="field" data-strat="absolute_momentum momentum_rotation"><label for="lookback">Momentum look-back (days)</label><input type="number" id="lookback" value="126" min="2" max="500" /></div>
+      <div class="field" data-strat="momentum_rotation">
+        <label for="absolute">Dual momentum (cash if all falling)</label>
+        <select id="absolute"><option value="true">Yes</option><option value="false">No</option></select>
+      </div>
+      <div class="field" data-strat="momentum_rotation">
+        <label for="rotate">Rotation mode</label>
+        <select id="rotate">
+          <option value="false">New contributions only (never sells)</option>
+          <option value="true">Switch entire portfolio (sells losers)</option>
+        </select>
+      </div>
+      <div class="field" data-strat="momentum_rotation">
+        <label>Rotation basket (invest in the strongest each month)</label>
+        <div id="basket"></div>
+        <p class="note" style="margin:0.3rem 0 0">💶 Keep the basket in ONE currency
+        (.PA tickers are €, US tickers are $) — the engine does not convert FX.</p>
+      </div>
+
+      <div class="field" data-strat="dip_buying rsi moving_average">
+        <label for="allocation">Allocation per signal <span class="range-val" id="allocationVal">25%</span></label>
+        <input type="range" id="allocation" min="0.05" max="1" step="0.05" value="0.25" />
+      </div>
+      <div class="field" data-strat="dip_buying rsi moving_average">
+        <label for="budgetPolicy">Budget policy</label>
+        <select id="budgetPolicy">
+          <option value="reset">Reset monthly (deploy budget every month)</option>
+          <option value="accumulate">Accumulate (hold cash for bigger dips)</option>
+        </select>
+      </div>
+
+      <h2>Costs</h2>
+      <div class="row2">
+        <div class="field"><label for="fee">Fee % <span class="range-val" id="feeVal">0.50%</span></label><input type="range" id="fee" min="0" max="0.02" step="0.0005" value="0.005" /></div>
+        <div class="field"><label for="slippage">Slippage % <span class="range-val" id="slippageVal">0.05%</span></label><input type="range" id="slippage" min="0" max="0.01" step="0.0005" value="0.0005" /></div>
+      </div>
+
+      <p class="note">↻ Results update <b>live</b> as you change any parameter.</p>
+      <button class="ghost" id="compareBtn">⚖️ Compare all strategies</button>
+    </aside>
+
+    <!-- ---------------------------- Results ----------------------------- -->
+    <main>
+      <div class="note" id="status">Loading market data…</div>
+      <h2 class="section-h">Backtest — how this rule would have performed</h2>
+      <div class="cards" id="cards"></div>
+      <p class="note" id="explain">
+        ℹ️ With budget policy <b>reset</b>, the whole monthly budget is always invested by the DCA
+        day, so a dip strategy only differs by the slice it front-loads into dips — expect it to be
+        <i>close</i> to the benchmark. Switch to <b>accumulate</b> to hold cash for bigger drawdowns
+        (in strong bull markets this often <i>underperforms</i> due to cash drag — a real result, not a bug).
+      </p>
+      <div class="charts" id="charts">
+        <div class="chart wide" id="chart-equity"></div>
+        <div class="chart" id="chart-drawdown"></div>
+        <div class="chart" id="chart-cash"></div>
+        <div class="chart wide" id="chart-signals"></div>
+        <div class="chart" id="chart-invested"></div>
+        <div class="chart" id="chart-fees"></div>
+        <div class="chart" id="chart-returns"></div>
+        <div class="chart" id="chart-purchases"></div>
+      </div>
+      <div class="table-scroll"><table class="metrics" id="metrics"></table></div>
+      <p class="note">⚠️ Educational research tool, not investment advice. Results use end-of-day data and a simple cost model. Past performance does not guarantee future results.</p>
+    </main>
+  </div>
+  </div><!-- /tab-backtest -->
+
+  <footer>
+    Powered by the <a href="https://github.com/AnthonyNadjari/DCAToolBox">DCAToolBox</a> engine ·
+    the in-browser engine is parity-tested against the Python framework ·
+    part of <a href="https://anthonynadjari.github.io/Gaia/">🌌 Gaia — Astral Hub</a>.
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
