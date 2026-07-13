@@ -40,3 +40,4 @@ web/.parity/
 .vscode/
 *.swp
 data_real/
+results/
