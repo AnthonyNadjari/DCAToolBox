@@ -20,8 +20,10 @@ three demands plain monthly rotation cannot meet:
   still positive — deploys the WHOLE reserve at once ("if the opportunity is
   real, invest more").
 
-The strategy only reads ``context.histories`` (truncated by the engine at the
-current bar), so look-ahead is impossible by construction.
+The strategy reads ``context.histories`` truncated by the engine at the current
+bar and then drops the current bar itself before computing any signal: orders
+fill at the current OPEN, so only information available before that open (the
+previous close and older) may drive them.
 """
 
 from __future__ import annotations
@@ -161,7 +163,13 @@ class AdaptiveMomentumStrategy(Strategy):
         if bar % self.check_every != 0:
             return []
         basket = self.basket or list(context.histories)
-        closes = {t: context.histories[t]["close"] for t in basket if t in context.histories}
+        # Orders fill at the CURRENT bar's open, so every signal below may only
+        # use information available before that open: drop the current bar and
+        # compute everything on data up to the previous close. (Using the
+        # same-bar close would be a look-ahead that inflates the backtest.)
+        closes = {
+            t: context.histories[t]["close"].iloc[:-1] for t in basket if t in context.histories
+        }
         if bar - self._last_fit >= self.recalibrate_every:
             self._refit(closes, bar)
 

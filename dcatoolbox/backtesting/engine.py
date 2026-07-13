@@ -153,6 +153,8 @@ class BacktestEngine:
         """Execute every order for the current bar against current-bar prices."""
         for order in orders:
             reference = float(aligned[order.ticker][order.price_field].iloc[i])
+            if not (reference > 0.0):  # skips NaN and non-positive prices alike
+                continue
             capped = self._cap_to_cash(order, portfolio.cash)
             if capped is None:
                 continue

@@ -115,11 +115,17 @@ function evaluateSignal(bars, i, s) {
 
 /* -------------------------------- strategies -------------------------------- */
 
-/** Trailing return over `lookback` bars at index i, or null when undefined. */
+/**
+ * Trailing return over `lookback` bars ending at the PREVIOUS close (bar i-1).
+ *
+ * Momentum strategies fill at bar i's OPEN, so the signal may only use
+ * information available before that open — the same-bar close would be a
+ * look-ahead that inflates backtests. Mirrors the Python engine exactly.
+ */
 function trailingReturn(close, i, lookback) {
-  if (i < lookback) return null;
-  const a = close[i];
-  const b = close[i - lookback];
+  if (i < lookback + 1) return null;
+  const a = close[i - 1];
+  const b = close[i - 1 - lookback];
   if (!(a > 0) || !(b > 0)) return null;
   return a / b - 1;
 }
@@ -169,7 +175,8 @@ function strategyOrders(name, s, aligned, i, ctx) {
   if (name === "trend_filter") {
     if (!ctx.isScheduled) return [];
     const w = s.maWindow || s.ma_window || 200;
-    const above = i + 1 < w || p.close[i] > sma(p.close, i, w);
+    // Fills at bar i's open -> the trend test only sees the previous close.
+    const above = i < w || p.close[i - 1] > sma(p.close, i - 1, w);
     return above ? buy(primary, cash, "open", "trend") : [];
   }
 

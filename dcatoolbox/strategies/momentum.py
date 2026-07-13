@@ -28,16 +28,22 @@ _MIN_NOTIONAL = 1.0
 
 
 def _trailing_return(close, lookback: int) -> float | None:
-    """Return the trailing return over ``lookback`` bars, or ``None`` if undefined.
+    """Trailing return over ``lookback`` bars ending at the PREVIOUS close.
+
+    Momentum strategies fill at the current bar's OPEN, so the signal may only
+    use information available before that open — i.e. up to the previous
+    session's close. Using the current close would be a same-bar look-ahead
+    (the fill price would predate the signal), which systematically inflates
+    backtests.
 
     A ticker without enough (positive) history -- e.g. one that joins the basket
     after the primary, leaving NaN-padded bars -- is excluded rather than ranked
     on a NaN, which keeps the result identical to the in-browser JS engine.
     """
-    if len(close) <= lookback:
+    if len(close) <= lookback + 1:
         return None
-    current = close.iloc[-1]
-    prior = close.iloc[-lookback - 1]
+    current = close.iloc[-2]
+    prior = close.iloc[-lookback - 2]
     if not (current > 0) or not (prior > 0):  # also rejects NaN
         return None
     return float(current / prior - 1.0)

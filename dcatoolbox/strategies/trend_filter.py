@@ -46,7 +46,9 @@ class TrendFilterStrategy(Strategy):
         cash = context.available_cash
         if not context.is_scheduled_day or cash <= _MIN_NOTIONAL:
             return []
-        close = context.history["close"]
+        # The order fills at the current bar's OPEN, so the trend test may only
+        # use the previous close (same-bar close would be a look-ahead).
+        close = context.history["close"].iloc[:-1]
         above = len(close) < self.ma_window or close.iloc[-1] > sma(close, self.ma_window).iloc[-1]
         if not above:
             return []  # downtrend: hold cash, deploy when the trend resumes
