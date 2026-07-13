@@ -21,30 +21,49 @@
 <body>
   <header>
     <a class="gaia-link" href="https://anthonynadjari.github.io/Gaia/">🌌 Gaia — Astral Hub ↗</a>
-    <h1>📈 DCAToolBox — Live Signal &amp; Backtester</h1>
-    <p>See what each rule says to do <b>this month</b>, then check how it would have performed — live in your browser, on real market data.</p>
+    <h1>📈 DCAToolBox — Signal Momentum</h1>
+    <p>Un signal simple. <b>Une décision par mois, cinq minutes.</b> Le labo complet reste dans l'onglet Backtest.</p>
   </header>
 
-  <!-- Two views: Signal (home — what to do now) and Backtest (full lab). -->
+  <!-- Two views: Signal (simple, French, momentum-only) and Backtest (full lab). -->
   <nav class="tabs" role="tablist">
     <button class="tab active" data-tab="signal" role="tab" aria-selected="true">📡 Signal</button>
-    <button class="tab" data-tab="backtest" role="tab" aria-selected="false">🔬 Backtest</button>
+    <button class="tab" data-tab="backtest" role="tab" aria-selected="false">🔬 Labo (backtest)</button>
   </nav>
 
-  <!-- ------------------------------ Signal tab ------------------------------ -->
+  <!-- ------------------------------ Signal tab ------------------------------
+       Deliberately minimal: ONE strategy (momentum rotation, accumulation
+       mode), ONE choice (market preset), ONE decision a month. -->
   <div id="tab-signal" class="tabpane">
     <div class="signal-wrap">
-      <section class="signal" id="signal"><div class="sig-action">Loading…</div></section>
+      <section class="signal" id="signal"><div class="sig-action">Chargement…</div></section>
+
+      <section class="side-card">
+        <h3>Mon marché</h3>
+        <div class="seg" id="market"></div>
+        <div class="field" style="margin-top:0.6rem">
+          <label for="sbudget">Mon budget mensuel</label>
+          <input type="number" id="sbudget" value="1000" min="1" step="50" />
+        </div>
+      </section>
+
+      <section class="side-card" id="plan"></section>
+
+      <section class="side-card" id="steps"></section>
+
       <!-- The race the signal ranks: recent performance of each candidate. -->
       <div class="chart" id="chart-race"></div>
-      <section class="side-card" id="plan"></section>
+      <p class="note" id="stat"></p>
+
       <section class="side-card">
-        <h3>Last 12 monthly decisions</h3>
+        <h3>Les 12 dernières décisions du signal</h3>
         <div class="table-scroll"><table class="metrics" id="history"></table></div>
       </section>
-      <section class="side-card explainer" id="explainer"></section>
-      <p class="note">Want to stress-test this rule or tweak every parameter? Open the
-        <a href="#" class="goto-backtest">🔬 Backtest tab</a>.</p>
+
+      <section class="side-card" id="start"></section>
+
+      <p class="note">Envie de tester d'autres règles, périodes ou paramètres ? Ouvre le
+        <a href="#" class="goto-backtest">🔬 Labo</a>. Outil éducatif — pas un conseil en investissement.</p>
     </div>
   </div>
 

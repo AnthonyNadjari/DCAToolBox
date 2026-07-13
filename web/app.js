@@ -172,33 +172,47 @@ function syncStrategyFields() {
 const niceDate = (iso) => {
   if (!iso) return "";
   const d = new Date(iso + "T00:00:00");
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return d.toLocaleDateString("fr-FR", { year: "numeric", month: "long", day: "numeric" });
 };
 
-// The actionable "what do I do now" panel, derived from the latest bar.
+// Le panneau « que faire ce mois-ci », composé en français à partir du signal
+// STRUCTURÉ du moteur — les règles restent celles, exactes, du backtest.
 function renderSignal(sig, cfg) {
   const el = $("signal");
   if (!sig.asOf) {
-    el.innerHTML = `<div class="sig-action">No data in the selected range</div>`;
+    el.innerHTML = `<div class="sig-action">Pas de données</div>`;
     return;
+  }
+  const lbMonths = Math.round((cfg.strategy.lookback || 126) / 21);
+  let action;
+  let detail;
+  if (!sig.rows.length) {
+    action = `Achetez ${cfg.strategy.basket[0]}`;
+    detail = "Pas encore assez d'historique pour départager le panier — ce mois-ci on investit comme un DCA classique.";
+  } else if (!sig.fired) {
+    action = "N'achetez rien ce mois-ci";
+    detail = `Tout le panier baisse sur ${lbMonths} mois (le meilleur fait ${sig.rows[0].value}). La règle garde le budget en cash et attend que ça remonte — c'est sa protection anti-krach.`;
+  } else {
+    const leader = sig.rows[0].label;
+    action = `Achetez ${leader}`;
+    detail = `${leader} est le plus fort des ${lbMonths} derniers mois. Tout le budget du mois va sur ${leader}, le jour du signal (le ${cfg.dayOfMonth} du mois).`;
   }
   const cls = sig.fired ? "go" : "wait";
   const ranking = sig.rows.length
     ? `<div class="sig-rank">${sig.rows
-        .map((r) => `<span class="sig-chip ${r.picked ? "picked" : ""}">${r.label}: ${r.value}</span>`)
+        .map((r) => `<span class="sig-chip ${r.picked ? "picked" : ""}">${r.label} : ${r.value}</span>`)
         .join("")}</div>`
     : "";
   el.innerHTML = `
     <div class="sig-head">
       <span class="sig-dot ${cls}"></span>
       <div>
-        <div class="sig-label">Signal for ${$("strategy").options[$("strategy").selectedIndex].text} · as of ${niceDate(sig.asOf)}</div>
-        <div class="sig-action ${cls}">${sig.action}</div>
+        <div class="sig-label">Le signal ce mois-ci · données au ${niceDate(sig.asOf)}</div>
+        <div class="sig-action ${cls}">${action}</div>
       </div>
     </div>
-    <p class="sig-detail">${sig.detail}</p>
-    ${ranking}
-    <p class="sig-foot">Based on the latest available end-of-day data. Act on your DCA day (currently day ${cfg.dayOfMonth}); change any parameter on the left and this updates instantly. Educational tool — not investment advice.</p>`;
+    <p class="sig-detail">${detail}</p>
+    ${ranking}`;
 }
 
 function renderCards(result) {
@@ -379,139 +393,170 @@ function renderRace(result, cfg, sig) {
     }
   }
   const title = momentum
-    ? `The ${lb}-day race the signal ranks (indexed to 0%)`
-    : `${aligned.primary} — last ${lb} trading days (indexed to 0%)`;
+    ? `La course sur ${Math.round(lb / 21)} mois`
+    : `${aligned.primary} — ${lb} derniers jours de bourse (base 0 %)`;
   draw("chart-race", traces, LAYOUT(title, {
     yaxis: { tickformat: ".0%" }, margin: { t: 40, r: 90, b: 56, l: 48 }, annotations,
   }));
 }
 
-/** Concrete action plan: what, how much, when. */
-function renderPlan(sig, cfg) {
+/** Le plan concret du mois : quoi, combien, quand. */
+function renderPlan(sig, cfg, preset) {
   const day = cfg.dayOfMonth;
   const now = new Date();
   let next = new Date(now.getFullYear(), now.getMonth(), day);
   if (next <= now) next = new Date(now.getFullYear(), now.getMonth() + 1, day);
-  while ([0, 6].includes(next.getDay())) next.setDate(next.getDate() + 1); // roll to a weekday
-  const nextTxt = next.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
-  const budget = cur(cfg.monthlyBudget);
-  const perDip = ["dip_buying", "rsi", "moving_average"].includes(cfg.strategy.name);
+  while ([0, 6].includes(next.getDay())) next.setDate(next.getDate() + 1); // décale au jour ouvré
+  const nextTxt = next.toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const leader = sig.rows.length && sig.fired ? sig.rows[0].label : null;
   $("plan").innerHTML = `
-    <h3>Your action plan</h3>
+    <h3>Mon plan ce mois-ci</h3>
     <ol class="plan-steps">
-      <li><b>${sig.action}</b> — ${sig.fired ? "the rule gives a green light." : "the rule says to hold off for now."}</li>
-      <li><b>Amount:</b> ${perDip
-        ? `${Math.round(cfg.strategy.allocation * 100)}% of the month's remaining budget per signal (budget ${budget}/month; anything left auto-invests on day ${day}).`
-        : cfg.strategy.name === "momentum_rotation" && cfg.strategy.rotate
-          ? `this month's budget (${budget}) plus the proceeds of anything you rotate out of.`
-          : `this month's full budget, ${budget}.`}</li>
-      <li><b>When:</b> ${perDip
-        ? "the day the signal fires (check this page after the close)."
-        : `on your DCA day — next: <b>${nextTxt}</b> (first trading day on/after day ${day}).`}</li>
+      <li><b>Quoi :</b> ${leader
+        ? `acheter <b style="color:${colorOf(leader)}">${leader}</b> (${preset.names[leader] || leader}).`
+        : sig.rows.length
+          ? "rien acheter — laisser le budget de côté ce mois-ci."
+          : `acheter ${cfg.strategy.basket[0]}.`}</li>
+      <li><b>Combien :</b> tout le budget du mois, soit <b>${cur(cfg.monthlyBudget)} ${preset.currency}</b>.</li>
+      <li><b>Quand :</b> le <b>${nextTxt}</b> (premier jour de bourse à partir du ${day}).</li>
     </ol>
-    <p class="note">Signals use the latest end-of-day close. Re-check this page on the day you plan to invest.</p>`;
+    <p class="note">Reviens sur cette page ce jour-là : le signal utilise la dernière clôture disponible et peut changer d'ici là.</p>`;
 }
 
-/** What the rule decided in each of the last 12 months of the backtest. */
-function renderHistory(result, cfg) {
-  const name = cfg.strategy.name;
+/** Ce que le signal a décidé chacun des 12 derniers mois. */
+function renderHistory(result, cfg, preset) {
   const months = [...new Set(result.bars.dates.map((d) => d.slice(0, 7)))].slice(-12).reverse();
   const byMonth = new Map(months.map((m) => [m, []]));
   for (const t of result.strategy.trades) {
     const m = t.date.slice(0, 7);
     if (byMonth.has(m)) byMonth.get(m).push(t);
   }
-  const noBuyText = {
-    momentum_rotation: "Held cash (dual-momentum guard: everything falling)",
-    absolute_momentum: "Held cash (negative momentum)",
-    trend_filter: "Skipped (price below the trend MA)",
-  }[name] || "No purchase";
   const label = (m) =>
-    new Date(m + "-01T00:00:00").toLocaleDateString(undefined, { year: "numeric", month: "short" });
+    new Date(m + "-01T00:00:00").toLocaleDateString("fr-FR", { year: "numeric", month: "short" });
   const rows = months.map((m) => {
     const trades = byMonth.get(m);
     const buys = trades.filter((t) => t.side !== "sell");
     const sells = trades.filter((t) => t.side === "sell");
     const amount = buys.reduce((a, t) => a + t.price * t.quantity, 0);
     let what;
-    if (!trades.length) what = noBuyText;
-    else if (["dip_buying", "rsi", "moving_average"].includes(name)) {
-      const dips = buys.filter((t) => t.reason === "dip").length;
-      what = dips ? `${dips} signal buy${dips > 1 ? "s" : ""} + sweep on day ${cfg.dayOfMonth}` : `No signal — swept on day ${cfg.dayOfMonth}`;
-    } else if (!buys.length && sells.length) {
-      what = `Sold everything — went to cash`;
-    } else {
+    if (!trades.length) what = "Rien acheté — tout baissait, resté en cash";
+    else if (!buys.length && sells.length) what = "Tout vendu — passé en cash";
+    else {
       const tk = [...new Set(buys.map((t) => t.ticker))].join(", ");
-      const rotated = sells.length ? ` (sold ${[...new Set(sells.map((t) => t.ticker))].join(", ")})` : "";
-      what = `Bought <b style="color:${colorOf(buys[0]?.ticker)}">${tk}</b>${rotated}`;
+      const rotated = sells.length
+        ? ` (vendu ${[...new Set(sells.map((t) => t.ticker))].join(", ")})`
+        : "";
+      what = `Acheté <b style="color:${colorOf(buys[0]?.ticker)}">${tk}</b>${rotated}`;
     }
-    return `<tr><td>${label(m)}</td><td style="text-align:left">${what}</td><td>${amount ? cur(amount) : "—"}</td></tr>`;
+    const amt = amount ? `${cur(amount)} ${preset.currency}` : "—";
+    return `<tr><td>${label(m)}</td><td style="text-align:left">${what}</td><td>${amt}</td></tr>`;
   }).join("");
   $("history").innerHTML =
-    `<thead><tr><th>Month</th><th style="text-align:left">Decision</th><th>Amount</th></tr></thead><tbody>${rows}</tbody>`;
+    `<thead><tr><th>Mois</th><th style="text-align:left">Décision</th><th>Montant</th></tr></thead><tbody>${rows}</tbody>`;
 }
 
-/** Plain-language explanation of the selected strategy. */
-const EXPLAINERS = {
-  momentum_rotation: `
-    <h3>How Momentum Rotation works</h3>
-    <p><b>It is not a blend.</b> The strategy never splits your money across the indices —
-    each month it holds <b>exactly one</b> of them (or cash). The "mix" you see in the
-    portfolio builds up over time from whichever index won each month.</p>
-    <ol>
-      <li><b>Rank.</b> On your DCA day, compute each candidate's trailing return over the
-      look-back (default 126 trading days ≈ 6 months). That is the race in the chart above —
-      the ranking chips are simply where each line ends.</li>
-      <li><b>Pick the leader.</b> Invest the whole month's budget in the index with the
-      highest trailing return (<i>relative momentum</i>).</li>
-      <li><b>Crash guard.</b> If even the leader's trailing return is negative — everything
-      is falling — skip the purchase and keep the cash (<i>absolute momentum</i>, the
-      "dual momentum" switch). This is what kept the strategy out of 2008-style slides.</li>
-    </ol>
-    <p><b>Two rotation modes</b> (see the Backtest tab): <i>new contributions only</i>
-    routes each month's budget to the leader and never sells — past holdings ride through
-    crashes; <i>switch entire portfolio</i> also sells whatever is not the leader (and
-    liquidates everything to cash when the guard fires) — stronger crash protection for
-    ALL your capital, at the cost of more trades, fees and (outside tax wrappers) taxable
-    sales. Use ⚖️ Compare to see both curves.</p>
-    <p><b>Why it has historically worked:</b> trends persist over 3–12-month horizons
-    (the momentum premium), so the recent leader tends to keep leading for a while; and the
-    cash guard avoids averaging down through long bear markets.</p>
-    <p><b>Honest limits:</b> in choppy, trendless markets the ranking flips often
-    (whipsaw, extra fees); much of the historical edge comes from having QQQ in the basket;
-    and a monthly signal reacts with up to a month of delay to sudden crashes.</p>`,
-  absolute_momentum: `
-    <h3>How Absolute Momentum works</h3>
-    <p>Plain DCA with a bear-market filter: on your DCA day, invest only if the asset's own
-    trailing look-back return is positive; otherwise hold the cash. You give up some
-    upside in recoveries to avoid buying into long slides.</p>`,
-  trend_filter: `
-    <h3>How the Trend Filter works</h3>
-    <p>Invest the monthly budget only when the price is above its long moving average
-    (default 200 days) — the classic "only buy in an uptrend" rule. Below the average, cash
-    accumulates and deploys once the trend turns back up.</p>`,
-  dip_buying: `
-    <h3>How Dip Buying works</h3>
-    <p>Each month's budget is split: whenever the chosen dip signal fires (e.g. price drops
-    2% vs yesterday), a slice of the remaining budget buys immediately; whatever is left
-    auto-invests on your DCA day. With the <i>reset</i> policy the whole budget is always
-    deployed monthly, so results stay close to plain DCA by construction.</p>`,
-  rsi: `
-    <h3>How the RSI strategy works</h3>
-    <p>Buys a slice of the remaining monthly budget whenever the RSI (a 0–100 oscillator
-    of recent gains vs losses) drops below the oversold level — i.e. after sharp selling.
-    The leftover budget auto-invests on your DCA day.</p>`,
-  moving_average: `
-    <h3>How the Moving-Average strategy works</h3>
-    <p>Buys a slice of the remaining budget whenever the price trades below its moving
-    average by the chosen margin ("buy weakness"), sweeping the rest on your DCA day.</p>`,
-  monthly_dca: `
-    <h3>How Monthly DCA works</h3>
-    <p>The benchmark everything is measured against: invest the full budget on the same
-    day every month, no matter the price. Simple, disciplined, and famously hard to beat.</p>`,
+/* --------------------- signal tab: presets & cards ---------------------- */
+
+// The home tab is deliberately a PRODUCT, not a lab: one strategy (momentum
+// rotation, accumulation mode -- never sells), one choice (the market), one
+// decision a month. Everything tweakable lives in the Backtest tab.
+const SIGNAL_PRESETS = {
+  us: {
+    key: "us", label: "\u{1F1FA}\u{1F1F8} USA ($)", currency: "$",
+    primary: "SPY", basket: ["SPY", "QQQ"],
+    names: { SPY: "l'ETF S&P 500", QQQ: "l'ETF Nasdaq-100" },
+    broker: "un compte-titres (ou un courtier type IBKR/Trade Republic)",
+  },
+  fr: {
+    key: "fr", label: "\u{1F1EB}\u{1F1F7} France (\u20AC / PEA)", currency: "\u20AC",
+    primary: "ESE.PA", basket: ["ESE.PA", "PUST.PA"],
+    names: { "ESE.PA": "l'ETF S&P 500 de BNP, \u00e9ligible PEA", "PUST.PA": "l'ETF Nasdaq-100 d'Amundi, \u00e9ligible PEA" },
+    broker: "un PEA (Bourse Direct, Fortuneo, BoursoBank\u2026)",
+  },
 };
-function renderExplainer(cfg) {
-  $("explainer").innerHTML = EXPLAINERS[cfg.strategy.name] || "";
+let signalMarket = "fr";
+
+function signalConfig(preset) {
+  const f = instrument(preset.primary).frequencies.daily;
+  return {
+    start: f.start, end: f.end, periodsPerYear: f.periodsPerYear || 252,
+    monthlyBudget: parseFloat($("sbudget").value) || 1000,
+    dayOfMonth: 26, initialCash: 0, riskFreeRate: 0.02,
+    feeRate: 0.005, slippageRate: 0.0005, minFee: 0,
+    strategy: { name: "momentum_rotation", lookback: 126, absolute: true, rotate: false, basket: preset.basket },
+    benchmark: { name: "monthly_dca" },
+  };
+}
+
+function renderMarketSeg() {
+  $("market").innerHTML = Object.values(SIGNAL_PRESETS)
+    .filter((p) => instrument(p.primary)) // hide a preset whose data is absent
+    .map((p) => `<button class="seg-btn ${p.key === signalMarket ? "active" : ""}" data-mkt="${p.key}">${p.label}</button>`)
+    .join("");
+  for (const b of document.querySelectorAll("#market .seg-btn"))
+    b.addEventListener("click", () => { signalMarket = b.dataset.mkt; runSignal(); });
+}
+
+/** « Comment \u00e7a marche » en 3 \u00e9tapes, avec les vrais noms du panier. */
+function renderSteps(preset) {
+  const [a, b] = preset.basket;
+  $("steps").innerHTML = `
+    <h3>Comment marche ce signal (30 secondes)</h3>
+    <ol class="plan-steps">
+      <li>\u{1F4CA} Chaque mois, on regarde qui a le plus mont\u00e9 sur les 6 derniers mois :
+        <b style="color:${colorOf(a)}">${a}</b> ou <b style="color:${colorOf(b)}">${b}</b>.</li>
+      <li>\u{1F3C6} Tout le budget du mois va sur le gagnant. Pas de partage, pas de dosage.</li>
+      <li>\u{1F6D1} Si les deux baissent, on n'ach\u00e8te rien ce mois-ci \u2014 le cash attend des jours meilleurs.</li>
+    </ol>
+    <p class="note">On ne vend jamais : on ne fait que choisir o\u00f9 va l'argent NEUF chaque mois.
+    Une d\u00e9cision par mois, z\u00e9ro \u00e9cran \u00e0 surveiller.</p>`;
+}
+
+/** Le r\u00e9sultat long terme en une phrase, calcul\u00e9 du backtest complet. */
+function renderStat(result, preset) {
+  const m = result.strategy.metrics;
+  const b = result.benchmark.metrics;
+  const y0 = result.bars.dates[0].slice(0, 4);
+  const y1 = result.bars.dates[result.bars.dates.length - 1].slice(0, 4);
+  const c = preset.currency;
+  $("stat").innerHTML =
+    `\u{1F4C8} Backtest ${y0}\u2192${y1} : en investissant ${cur(m.invested_capital)} ${c} au total, ` +
+    `ce signal aurait donn\u00e9 <b>${cur(m.final_value)} ${c}</b>, contre ` +
+    `${cur(b.final_value)} ${c} pour un DCA classique sur ${preset.primary} ` +
+    `(soit <b>${signed(m.excess_total_return)}</b>). Les performances pass\u00e9es ne pr\u00e9jugent pas du futur.`;
+}
+
+/** La check-list une-fois-pour-toutes pour d\u00e9marrer en vrai. */
+function renderStart(preset) {
+  const [a, b] = preset.basket;
+  $("start").innerHTML = `
+    <h3>Comment d\u00e9marrer en vrai (une seule fois)</h3>
+    <ol class="plan-steps">
+      <li>Ouvre ${preset.broker}.</li>
+      <li>Rep\u00e8re les deux ETFs : <b>${a}</b> (${preset.names[a]}) et <b>${b}</b> (${preset.names[b]}).</li>
+      <li>Mets un rappel r\u00e9current le <b>26 de chaque mois</b> sur ton t\u00e9l\u00e9phone.</li>
+      <li>Chaque mois : ouvre cette page, ach\u00e8te ce que dit le signal (ou rien), ferme. C'est tout.</li>
+    </ol>`;
+}
+
+/** Recompute and render the whole signal tab from the market preset. */
+async function runSignal() {
+  const preset = SIGNAL_PRESETS[signalMarket];
+  if (!instrument(preset.primary)) return; // data missing for this preset
+  renderMarketSeg();
+  const cfg = signalConfig(preset);
+  const series = {};
+  for (const t of preset.basket) series[t] = { ...(await fetchData(fileFor(t, "daily"))), ticker: t };
+  const input = { primary: preset.primary, series };
+  const result = runBacktest(input, cfg);
+  const sig = currentSignal(input, cfg);
+  renderSignal(sig, cfg);
+  renderPlan(sig, cfg, preset);
+  renderSteps(preset);
+  renderRace(result, cfg, sig);
+  renderStat(result, preset);
+  renderHistory(result, cfg, preset);
+  renderStart(preset);
 }
 
 /* -------------------------------- run ----------------------------------- */
@@ -533,12 +578,6 @@ async function run() {
     $("status").textContent = "Not enough trading days in the selected range — widen Start/End.";
     return;
   }
-  const sig = currentSignal(input, cfg);
-  renderSignal(sig, cfg);
-  renderRace(result, cfg, sig);
-  renderPlan(sig, cfg);
-  renderHistory(result, cfg);
-  renderExplainer(cfg);
   renderCards(result);
   renderMetrics(result.strategy.name, result.strategy.metrics, result.benchmark.metrics);
   renderCharts(result);
@@ -592,6 +631,8 @@ async function main() {
   populateBasket();
   setDateBounds();
   syncStrategyFields();
+  // The FR preset needs its data present; fall back to US otherwise.
+  if (!instrument(SIGNAL_PRESETS.fr.primary)) signalMarket = "us";
   const debounced = debounce(run, 150);
   document.querySelector(".panel").addEventListener("input", (e) => {
     if (e.target.id === "ticker") {
@@ -603,6 +644,7 @@ async function main() {
     debounced();
   });
   $("compareBtn").addEventListener("click", compareAll);
+  $("sbudget").addEventListener("input", debounce(runSignal, 200));
   for (const b of document.querySelectorAll(".tab"))
     b.addEventListener("click", () => showTab(b.dataset.tab));
   for (const a of document.querySelectorAll(".goto-backtest"))
@@ -620,10 +662,11 @@ async function main() {
   window.addEventListener("resize", onResize);
   window.addEventListener("orientationchange", () => setTimeout(resizeCharts, 350));
 
+  await runSignal(); // home tab first: it is what the user sees
   await run();
 }
 
 main().catch((e) => {
-  $("status").textContent = `Error: ${e.message}`;
+  $("status").textContent = `Erreur : ${e.message}`;
   console.error(e);
 });

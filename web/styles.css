@@ -117,6 +117,14 @@ button.ghost {
   padding: 1rem 1.2rem;
 }
 .side-card h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--blue-dark); }
+/* Segmented market picker — the ONE control on the signal tab. */
+.seg { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.seg-btn {
+  flex: 1 1 0; min-width: 130px; padding: 0.65rem 0.8rem; cursor: pointer;
+  border: 1.5px solid var(--border); border-radius: 10px; background: #fff;
+  color: var(--text); font-size: 0.95rem; font-weight: 600;
+}
+.seg-btn.active { border-color: var(--blue); background: #eff6ff; color: var(--blue-dark); }
 /* Decision text may be long — let it wrap instead of forcing a wide table. */
 #history td:nth-child(2) { white-space: normal; }
 .plan-steps { margin: 0; padding-left: 1.2rem; }
