@@ -39,3 +39,4 @@ web/.parity/
 .idea/
 .vscode/
 *.swp
+data_real/

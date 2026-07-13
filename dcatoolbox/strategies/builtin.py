@@ -7,6 +7,7 @@ entry point) to become available everywhere.
 
 from __future__ import annotations
 
+from dcatoolbox.strategies.adaptive_momentum import AdaptiveMomentumStrategy
 from dcatoolbox.strategies.dip_buying import DipBuyingStrategy
 from dcatoolbox.strategies.momentum import (
     AbsoluteMomentumStrategy,
@@ -19,6 +20,7 @@ from dcatoolbox.strategies.trend_filter import TrendFilterStrategy
 
 __all__ = [
     "MonthlyDCA",
+    "AdaptiveMomentumStrategy",
     "DipBuyingStrategy",
     "RSIStrategy",
     "MovingAverageStrategy",
