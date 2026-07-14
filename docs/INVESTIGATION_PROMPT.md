@@ -136,12 +136,18 @@ Work through ALL of the following, quantitatively:
    fill prices. Prioritize the design choices that were never varied: (a) all-in reserve-release
    vs proportional/continuous signal-based sizing, (b) the deposit calendar, (c) the 63-bar
    time-stop horizon.
+   **On parameters**: "zero fitted parameters" is the CLAIM under attack, not a rule binding your
+   challengers — proportional sizing rules MAY introduce parameters. But every new parameter must
+   be pre-registrable and pays the multiplicity tax (the deflated-Sharpe hurdle rises with each
+   variant tried); prefer parameter-light monotone mappings (e.g., deploy fraction = signal
+   percentile, no tuned knee) over tuned schedules.
 2. **Hypothesis-space gaps.** List signal families and data NOT covered that have credible
    peer-reviewed evidence at daily-to-monthly horizons for INDEX-level timing, with honest priors:
    credit spreads (HY-Treasury), yield-curve slope, VIX futures term structure (contango/
    backwardation — note spot VIX vs VIX3M was designed away, was that legitimate?), put/call
    ratios, breadth (% above 200dma), cross-asset lead-lag, earnings yield vs bill yield,
-   seasonality interactions, machine learning with combinatorially purged CV. For each: expected
+   seasonality interactions, machine learning with combinatorially purged CV (folds inside the
+   IS window only; OOS still read exactly once, after the model is frozen). For each: expected
    effect size vs the ~55bp/order + 2.8bp/day hurdle, data availability for 20+ years, and whether
    it could plausibly clear a deflated-Sharpe hurdle of ~1.07 given ~1.3 effective validation
    samples.
@@ -150,7 +156,10 @@ Work through ALL of the following, quantitatively:
    clean history; series requiring proxy construction or with partial coverage (e.g., VIX3M from
    2009, breadth reconstructions, CBOE put/call from 1995) are IN scope, but flag them as such
    and discount their statistical weight for the shorter effective sample (count regime blocks,
-   not bars — a 15-year series holds ~8–12 independent blocks).
+   not bars — a 15-year series holds ~8–12 independent blocks). **Credibility floor**: a test
+   needs ≥6–8 independent regime blocks INCLUDING at least two full bear/recovery cycles to count
+   as evidence against the conclusion; anything shorter is exploratory only — it may motivate a
+   pre-registered live forward test, but cannot overturn the conclusion by itself.
 3. **Theory attack.** Under what conditions does waiting have POSITIVE option value (predictable
    negative-drift regimes? vol-managed portfolios literature — Moreira & Muir — and why buy-only
    no-leverage cannot implement it? does the countercyclical-premium argument survive?). Is the
