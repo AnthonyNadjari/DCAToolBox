@@ -51,6 +51,24 @@ MARKETS: dict[str, dict] = {
     },
 }
 
+# Widened, genuinely-dispersed universes (equities + gold + bonds + EM).
+# U5 = long-history US concept validation (GLD/TLT/EEM data untouched by all
+# prior research); P5 = the PEA-implementable mirror (short history: honesty
+# check only, never selection).
+MARKETS5: dict[str, dict] = {
+    "U5": {
+        "tickers": ["SPY", "QQQ", "GLD", "TLT", "EEM"],
+        "is": ("2004-11-18", "2016-12-31"),
+        "oos": ("2017-01-01", "2026-12-31"),
+    },
+    "P5": {
+        "tickers": ["ESE.PA", "PUST.PA", "PAEEM.PA", "PCEU.PA", "OBLI.PA"],
+        "is": ("2019-05-01", "2022-12-31"),
+        "oos": ("2023-01-01", "2026-12-31"),
+    },
+}
+MARKETS.update(MARKETS5)
+
 
 def load_series(ticker: str) -> pd.DataFrame:
     """Load one real series from ``data_real/`` as an OHLCV frame."""
@@ -80,7 +98,8 @@ def build_market(tickers: list[str], start: str, end: str) -> dict[str, MarketDa
 def experiments() -> list[dict]:
     """The full named run grid: baselines + adaptive momentum variants."""
     runs: list[dict] = []
-    for mkt in MARKETS:
+    runs.extend(experiments5())
+    for mkt in ("US", "FR", "FR3"):
         primary = MARKETS[mkt]["tickers"][0]
         # -- baselines ---------------------------------------------------------
         runs.append({"id": f"{mkt}:dca", "market": mkt, "strategy": "monthly_dca", "params": {}})
@@ -158,6 +177,102 @@ def experiments() -> list[dict]:
                 }
             )
         _ = primary
+    return runs
+
+
+def experiments5() -> list[dict]:
+    """PRE-REGISTERED candidates for the widened universes (U5 concept, P5 PEA).
+
+    Fixed BEFORE any result was seen (committee protocol): 16 candidates using
+    only existing, already-audited strategies, plus 4 controls per market. The
+    controls exist to kill attribution errors: `now_spx` isolates deployment
+    timing; `now_mix` isolates static diversification; `dca_<growth>` is the
+    hindsight single-asset bar.
+    """
+    runs: list[dict] = []
+    for mkt, growth in (("U5", "QQQ"), ("P5", "PUST.PA")):
+        primary = MARKETS[mkt]["tickers"][0]
+        basket = MARKETS[mkt]["tickers"]
+        # -- controls ----------------------------------------------------------
+        runs.append({"id": f"{mkt}:dca", "market": mkt, "strategy": "monthly_dca", "params": {}})
+        runs.append(
+            {
+                "id": f"{mkt}:dca_{growth}",
+                "market": mkt,
+                "strategy": "monthly_dca",
+                "params": {},
+                "primary": growth,
+            }
+        )
+        runs.append(
+            {
+                "id": f"{mkt}:now_spx",
+                "market": mkt,
+                "strategy": "smart_deploy",
+                "params": {"scheme": "equal", "guard": False, "basket": [primary]},
+            }
+        )
+        runs.append(
+            {
+                "id": f"{mkt}:now_mix",
+                "market": mkt,
+                "strategy": "smart_deploy",
+                "params": {"scheme": "equal", "guard": False, "basket": basket},
+            }
+        )
+        # -- candidates (16) ---------------------------------------------------
+        for lb in (63, 126, 252):
+            runs.append(
+                {
+                    "id": f"{mkt}:rot_l{lb}",
+                    "market": mkt,
+                    "strategy": "momentum_rotation",
+                    "params": {"lookback": lb, "absolute": True, "rotate": False},
+                }
+            )
+        for lb in (126, 252):  # classic dual momentum WITH selling, on real dispersion
+            runs.append(
+                {
+                    "id": f"{mkt}:rot_l{lb}_switch",
+                    "market": mkt,
+                    "strategy": "momentum_rotation",
+                    "params": {"lookback": lb, "absolute": True, "rotate": True},
+                }
+            )
+        for hi in (0.05, 0.10):
+            runs.append(
+                {
+                    "id": f"{mkt}:ada_h{int(hi * 100)}",
+                    "market": mkt,
+                    "strategy": "adaptive_momentum",
+                    "params": {
+                        "check_every": 21,
+                        "hi_threshold": hi,
+                        "dip_boost": 0.0,
+                        "lo_threshold": 0.0,
+                        "rotate": False,
+                    },
+                }
+            )
+        for scheme in ("winner", "softmax"):
+            for gate in (False, True):
+                for guard in (False, True):  # guard False: the refuge is TLT/GLD, not cash
+                    runs.append(
+                        {
+                            "id": f"{mkt}:sd_{scheme[:4]}_g{int(gate)}_gd{int(guard)}",
+                            "market": mkt,
+                            "strategy": "smart_deploy",
+                            "params": {"scheme": scheme, "trend_gate": gate, "guard": guard},
+                        }
+                    )
+        runs.append(
+            {
+                "id": f"{mkt}:sd_ivol_g1",
+                "market": mkt,
+                "strategy": "smart_deploy",
+                "params": {"scheme": "inv_vol", "trend_gate": True, "guard": False},
+            }
+        )
     return runs
 
 
