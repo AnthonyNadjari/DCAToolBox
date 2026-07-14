@@ -45,11 +45,15 @@
           <label for="sbudget">Mon budget mensuel</label>
           <input type="number" id="sbudget" value="1000" min="1" step="50" />
         </div>
+        <div id="turbo"></div>
       </section>
 
       <section class="side-card" id="plan"></section>
 
       <section class="side-card" id="steps"></section>
+
+      <!-- Answers THE question: when do I actually invest? -->
+      <section class="side-card" id="why"></section>
 
       <!-- The race the signal ranks: recent performance of each candidate. -->
       <div class="chart" id="chart-race"></div>
@@ -96,6 +100,7 @@
       <div class="field">
         <label for="strategy">Strategy</label>
         <select id="strategy">
+          <option value="adaptive_momentum">Adaptive Momentum (champion) 🏆</option>
           <option value="momentum_rotation">Momentum Rotation (multi-asset) ⭐</option>
           <option value="dip_buying">Dip Buying</option>
           <option value="trend_filter">Trend Filter (above MA only)</option>
@@ -138,14 +143,14 @@
         <label for="absolute">Dual momentum (cash if all falling)</label>
         <select id="absolute"><option value="true">Yes</option><option value="false">No</option></select>
       </div>
-      <div class="field" data-strat="momentum_rotation">
+      <div class="field" data-strat="momentum_rotation adaptive_momentum">
         <label for="rotate">Rotation mode</label>
         <select id="rotate">
           <option value="false">New contributions only (never sells)</option>
           <option value="true">Switch entire portfolio (sells losers)</option>
         </select>
       </div>
-      <div class="field" data-strat="momentum_rotation">
+      <div class="field" data-strat="momentum_rotation adaptive_momentum">
         <label>Rotation basket (invest in the strongest each month)</label>
         <div id="basket"></div>
         <p class="note" style="margin:0.3rem 0 0">💶 Keep the basket in ONE currency

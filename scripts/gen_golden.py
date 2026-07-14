@@ -155,6 +155,38 @@ CASES: list[dict] = [
         "dataset": "rotation",
         "strategy": {"name": "momentum_rotation", "lookback": 63, "absolute": True, "rotate": True},
     },
+    # Adaptive momentum (walk-forward refit + conviction sizing), incl. champion params.
+    {
+        "dataset": "rotation",
+        "strategy": {
+            "name": "adaptive_momentum",
+            "checkEvery": 21,
+            "hiThreshold": 0.05,
+            "dipBoost": 0.0,
+            "loThreshold": 0.0,
+            "rotate": False,
+        },
+    },
+    {
+        "dataset": "rotation",
+        "strategy": {
+            "name": "adaptive_momentum",
+            "checkEvery": 5,
+            "hiThreshold": 0.10,
+            "dipBoost": 0.15,
+            "rotate": False,
+        },
+    },
+    {
+        "dataset": "rotation",
+        "strategy": {
+            "name": "adaptive_momentum",
+            "checkEvery": 21,
+            "hiThreshold": 0.10,
+            "dipBoost": 0.10,
+            "rotate": True,
+        },
+    },
 ]
 
 _BASE = {
@@ -183,6 +215,13 @@ _KEYMAP = {
     "absolute": "absolute",
     "basket": "basket",
     "rotate": "rotate",
+    "checkEvery": "check_every",
+    "horizons": "horizons",
+    "recalibrateEvery": "recalibrate_every",
+    "trainWindow": "train_window",
+    "hiThreshold": "hi_threshold",
+    "loThreshold": "lo_threshold",
+    "dipBoost": "dip_boost",
 }
 
 

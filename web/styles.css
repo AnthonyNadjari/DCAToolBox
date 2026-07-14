@@ -125,6 +125,8 @@ button.ghost {
   color: var(--text); font-size: 0.95rem; font-weight: 600;
 }
 .seg-btn.active { border-color: var(--blue); background: #eff6ff; color: var(--blue-dark); }
+.switch { display: flex; gap: 0.55rem; align-items: flex-start; margin-top: 0.7rem; font-size: 0.85rem; color: var(--text); cursor: pointer; }
+.switch input { width: 20px; height: 20px; min-width: 20px; margin-top: 2px; accent-color: var(--blue); }
 /* Decision text may be long — let it wrap instead of forcing a wide table. */
 #history td:nth-child(2) { white-space: normal; }
 .plan-steps { margin: 0; padding-left: 1.2rem; }

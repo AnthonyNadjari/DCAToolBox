@@ -130,6 +130,97 @@ function trailingReturn(close, i, lookback) {
   return a / b - 1;
 }
 
+/* ------------------------- adaptive momentum ------------------------------ */
+
+const ADA_FORWARD = 21; // bars ahead used to measure each horizon's predictive power
+const ADA_DEFAULT_HORIZONS = [21, 63, 126, 252];
+
+function pearson(xs, ys) {
+  const n = xs.length;
+  let mx = 0;
+  let my = 0;
+  for (let k = 0; k < n; k++) { mx += xs[k]; my += ys[k]; }
+  mx /= n; my /= n;
+  let sxy = 0;
+  let sxx = 0;
+  let syy = 0;
+  for (let k = 0; k < n; k++) {
+    const dx = xs[k] - mx;
+    const dy = ys[k] - my;
+    sxy += dx * dy; sxx += dx * dx; syy += dy * dy;
+  }
+  const den = Math.sqrt(sxx * syy);
+  return den > 1e-24 ? sxy / den : NaN;
+}
+
+/**
+ * Walk-forward refit of the horizon weights (mirrors Python _refit exactly):
+ * each horizon's weight is its clipped-positive information coefficient — the
+ * pooled correlation between the horizon's momentum and the NEXT 21-bar
+ * return, computed strictly on bars 0..i-1 (nothing postdates the signal).
+ */
+function adaRefit(s, aligned, basket, i, state) {
+  const H = s.horizons || ADA_DEFAULT_HORIZONS;
+  const tw = s.trainWindow || 756;
+  const ics = new Array(H.length).fill(0);
+  for (let k = 0; k < H.length; k++) {
+    const h = H[k];
+    const xs = [];
+    const ys = [];
+    for (const t of basket) {
+      const close = aligned.bars[t].close;
+      const start = Math.max(0, i - tw);
+      const c = close.slice(start, i); // bars up to the previous close only
+      if (c.length < h + 2 * ADA_FORWARD + 2) continue;
+      for (let j = h; j < c.length - ADA_FORWARD; j++) {
+        const m = c[j] / c[j - h] - 1;
+        const f = c[j + ADA_FORWARD] / c[j] - 1;
+        if (Number.isFinite(m) && Number.isFinite(f)) { xs.push(m); ys.push(f); }
+      }
+    }
+    if (xs.length > 30) {
+      const r = pearson(xs, ys);
+      if (Number.isFinite(r)) ics[k] = r;
+    }
+  }
+  const pos = ics.map((v) => Math.max(v, 0));
+  const total = pos.reduce((a, b) => a + b, 0);
+  state.weights = total > 1e-9 ? pos.map((v) => v / total) : H.map(() => 1 / H.length);
+  state.lastFit = i;
+}
+
+/** Blended multi-horizon momentum at bar i using closes up to i-1 (or null). */
+function adaScore(close, i, horizons, weights) {
+  const parts = horizons.map((h) => {
+    if (i < h + 1) return null;
+    const a = close[i - 1];
+    const b = close[i - 1 - h];
+    return a > 0 && b > 0 ? a / b - 1 : null;
+  });
+  if (parts.every((p) => p === null)) return null;
+  let dot = 0;
+  let wsum = 0;
+  let cnt = 0;
+  for (let k = 0; k < parts.length; k++) if (parts[k] !== null) { wsum += weights[k]; cnt++; }
+  if (wsum <= 1e-12) {
+    for (let k = 0; k < parts.length; k++) if (parts[k] !== null) dot += parts[k] / cnt;
+    return dot;
+  }
+  for (let k = 0; k < parts.length; k++) if (parts[k] !== null) dot += parts[k] * (weights[k] / wsum);
+  return dot;
+}
+
+/** Opportunity check: leader well below its 1-year high, uptrend intact. */
+function adaIsDip(close, i, dipBoost) {
+  if (!(dipBoost > 0) || i < 253) return false;
+  let peak = -Infinity;
+  for (let k = i - 252; k <= i - 1; k++) peak = Math.max(peak, close[k]);
+  if (!(peak > 0)) return false;
+  const drawdown = close[i - 1] / peak - 1;
+  const year = close[i - 1] > 0 && close[i - 253] > 0 ? close[i - 1] / close[i - 253] - 1 : null;
+  return drawdown <= -dipBoost && year !== null && year > 0;
+}
+
 /**
  * Orders for bar i: a list of {ticker, notional, field, reason}.
  * `aligned` = {dates, primary, bars:{ticker:{open,high,low,close}}}.
@@ -139,6 +230,43 @@ function strategyOrders(name, s, aligned, i, ctx) {
   const primary = aligned.primary;
   const p = aligned.bars[primary];
   const buy = (ticker, notional, field, reason) => [{ ticker, notional, field, reason }];
+
+  if (name === "adaptive_momentum") {
+    // Walk-forward multi-horizon momentum with conviction sizing (the research
+    // champion). Handled before the low-cash guard: rotate mode may sell.
+    const checkEvery = s.checkEvery || 21;
+    if (i % checkEvery !== 0) return [];
+    const H = s.horizons || ADA_DEFAULT_HORIZONS;
+    const basket = (s.basket && s.basket.length ? s.basket : Object.keys(aligned.bars))
+      .filter((t) => aligned.bars[t]);
+    const st = ctx.state;
+    if (i - st.lastFit >= (s.recalibrateEvery || 21)) adaRefit(s, aligned, basket, i, st);
+    const ranked = basket
+      .map((t) => [t, adaScore(aligned.bars[t].close, i, H, st.weights)])
+      .filter((r) => r[1] !== null);
+    const sells = (keep) =>
+      Object.entries(ctx.positions || {})
+        .filter(([t, pos]) => t !== keep && pos.qty > 1e-9)
+        .map(([t, pos]) => ({ ticker: t, side: "sell", quantity: pos.qty, field: "open", reason: "rotate" }));
+    if (!ranked.length)
+      return ctx.isScheduled && cash > MIN_NOTIONAL ? buy(primary, cash, "open", "momentum") : [];
+    let best = ranked[0];
+    for (const r of ranked) if (r[1] > best[1]) best = r;
+    const lo = s.loThreshold ?? 0;
+    const hi = s.hiThreshold ?? 0.1;
+    if (best[1] < lo) return s.rotate ? sells(null) : [];
+    const orders = s.rotate ? sells(best[0]) : [];
+    const opportunity = best[1] >= hi || adaIsDip(aligned.bars[best[0]].close, i, s.dipBoost ?? 0.15);
+    const tranche = opportunity ? cash : Math.min(cash, ctx.monthlyBudget);
+    if (tranche > MIN_NOTIONAL || orders.length)
+      orders.push({
+        ticker: best[0],
+        notional: tranche > MIN_NOTIONAL ? tranche : Infinity,
+        field: "open",
+        reason: "momentum",
+      });
+    return orders;
+  }
 
   if (name === "momentum_rotation") {
     // Handled before the low-cash guard: in `rotate` mode the strategy may need
@@ -277,6 +405,8 @@ function simulate(name, params, aligned, cfg) {
   const positions = {}; // ticker -> {qty, costBasis}
   const port = { cash: cfg.initialCash || 0, fees: 0, invested: cfg.initialCash || 0, trades: [] };
   const hist = { date: [], cash: [], positionsValue: [], total: [], invested: [], fees: [], qty: [] };
+  // Per-run strategy state (mirrors the Python strategy instance + reset()).
+  const stratState = { weights: null, lastFit: -Infinity };
 
   for (let i = 0; i < n; i++) {
     if (deposits[i]) {
@@ -285,6 +415,7 @@ function simulate(name, params, aligned, cfg) {
     }
     const orders = strategyOrders(name, params, aligned, i, {
       cash: port.cash, isScheduled: scheduled[i], positions,
+      monthlyBudget: cfg.monthlyBudget, state: stratState,
     });
     for (const o of orders) {
       const ref = aligned.bars[o.ticker]?.[o.field]?.[i];
@@ -518,11 +649,42 @@ export function currentSignal(input, cfg) {
   const asOf = dates[i];
   const px = p.close[i];
 
+  if (name === "adaptive_momentum") {
+    // Live signal: the action happens at the NEXT open, so data through the
+    // latest close is legitimately usable — pass n as the "bars available" end.
+    const n = dates.length;
+    const H = s.horizons || ADA_DEFAULT_HORIZONS;
+    const basket = (s.basket && s.basket.length ? s.basket : Object.keys(aligned.bars))
+      .filter((t) => aligned.bars[t]);
+    const st = { weights: null, lastFit: -Infinity };
+    adaRefit(s, aligned, basket, n, st);
+    const ranked = basket
+      .map((t) => ({ ticker: t, ret: adaScore(aligned.bars[t].close, n, H, st.weights) }))
+      .filter((r) => r.ret !== null)
+      .sort((a, b) => b.ret - a.ret);
+    if (!ranked.length)
+      return { asOf, action: `Buy ${primary}`, detail: "Not enough history yet; invest like plain DCA.", fired: true, tier: "normal", rows: [] };
+    const best = ranked[0];
+    const lo = s.loThreshold ?? 0;
+    const hi = s.hiThreshold ?? 0.1;
+    const tier = best.ret < lo ? "wait" : best.ret >= hi ? "high" : "normal";
+    return {
+      asOf,
+      fired: tier !== "wait",
+      tier,
+      action: tier === "wait" ? "Hold cash" : `Buy ${best.ticker}`,
+      detail: `Blended momentum score of the leader: ${sgnPct(best.ret)} (thresholds: <${sgnPct(lo)} wait, >=${sgnPct(hi)} deploy the whole reserve).`,
+      rows: ranked.map((r, idx) => ({ label: r.ticker, value: sgnPct(r.ret), picked: tier !== "wait" && idx === 0 })),
+    };
+  }
+
   if (name === "momentum_rotation") {
     const lb = s.lookback || 126;
     const basket = s.basket && s.basket.length ? s.basket : Object.keys(aligned.bars);
+    // Live semantics: the buy happens at the NEXT open, so trailingReturn may
+    // end at the latest close — pass dates.length as the bar index.
     const ranked = basket
-      .map((t) => ({ ticker: t, ret: aligned.bars[t] ? trailingReturn(aligned.bars[t].close, i, lb) : null }))
+      .map((t) => ({ ticker: t, ret: aligned.bars[t] ? trailingReturn(aligned.bars[t].close, dates.length, lb) : null }))
       .filter((r) => r.ret !== null)
       .sort((a, b) => b.ret - a.ret);
     if (!ranked.length)
@@ -553,7 +715,7 @@ export function currentSignal(input, cfg) {
 
   if (name === "absolute_momentum") {
     const lb = s.lookback || 126;
-    const tr = trailingReturn(p.close, i, lb);
+    const tr = trailingReturn(p.close, dates.length, lb); // live: ends at latest close
     const invest = !(tr !== null && tr <= 0);
     return {
       asOf, fired: invest,
