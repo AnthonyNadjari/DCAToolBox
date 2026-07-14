@@ -69,6 +69,19 @@ MARKETS5: dict[str, dict] = {
 }
 MARKETS.update(MARKETS5)
 
+# Single-asset "fear-timing" universe: SPY (33y, real volume) + VIX (non-
+# tradable signal series). Tests the hypothesis that VIX / realized vol /
+# volume / drawdown signals can beat DCA on the S&P alone by timing the
+# deployment of a cash reserve.
+MARKETS_VX: dict[str, dict] = {
+    "VX": {
+        "tickers": ["SPY", "^VIX"],
+        "is": ("1993-02-01", "2010-12-31"),
+        "oos": ("2011-01-01", "2026-12-31"),
+    },
+}
+MARKETS.update(MARKETS_VX)
+
 
 def load_series(ticker: str) -> pd.DataFrame:
     """Load one real series from ``data_real/`` as an OHLCV frame."""
@@ -80,7 +93,7 @@ def load_series(ticker: str) -> pd.DataFrame:
             "high": raw["high"],
             "low": raw["low"],
             "close": raw["close"],
-            "volume": 1.0,
+            "volume": raw.get("volume") or [1.0] * len(raw["dates"]),
         },
         index=idx,
     )
@@ -99,6 +112,7 @@ def experiments() -> list[dict]:
     """The full named run grid: baselines + adaptive momentum variants."""
     runs: list[dict] = []
     runs.extend(experiments5())
+    runs.extend(experiments_vx())
     for mkt in ("US", "FR", "FR3"):
         primary = MARKETS[mkt]["tickers"][0]
         # -- baselines ---------------------------------------------------------
@@ -273,6 +287,48 @@ def experiments5() -> list[dict]:
                 "params": {"scheme": "inv_vol", "trend_gate": True, "guard": False},
             }
         )
+    return runs
+
+
+def experiments_vx() -> list[dict]:
+    """PRE-REGISTERED fear-timing candidates on the S&P alone (market VX).
+
+    Fixed before any result is seen. Controls: day-26 DCA and immediate
+    deployment (the structural null every timing signal must beat). The
+    candidates hold back cash and release it on the chosen stress signal,
+    with a 63-bar time-stop.
+    """
+    runs: list[dict] = [
+        {"id": "VX:dca", "market": "VX", "strategy": "monthly_dca", "params": {}},
+        {
+            "id": "VX:now",
+            "market": "VX",
+            "strategy": "smart_deploy",
+            "params": {"scheme": "equal", "guard": False, "basket": ["SPY"]},
+        },
+    ]
+
+    def cand(cid: str, **params) -> dict:
+        return {"id": f"VX:{cid}", "market": "VX", "strategy": "signal_deploy", "params": params}
+
+    for thr in (0.7, 0.8, 0.9):
+        for base in (0.0, 0.5):
+            runs.append(
+                cand(
+                    f"vixp{int(thr * 100)}_b{int(base * 100)}",
+                    signal="vix_pctl",
+                    threshold=thr,
+                    base_deploy=base,
+                )
+            )
+    for thr in (25.0, 30.0):
+        runs.append(cand(f"vixa{int(thr)}", signal="vix_abs", threshold=thr))
+    for thr in (0.8, 0.9):
+        runs.append(cand(f"rvol{int(thr * 100)}", signal="rvol_pctl", threshold=thr))
+    for thr in (2.0, 3.0):
+        runs.append(cand(f"vcap{int(thr * 10)}", signal="volume_cap", threshold=thr))
+    for thr in (0.05, 0.10):
+        runs.append(cand(f"dd{int(thr * 100)}", signal="drawdown", threshold=thr))
     return runs
 
 
