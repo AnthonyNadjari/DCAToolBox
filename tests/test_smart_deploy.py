@@ -99,3 +99,16 @@ def test_vol_target_caps_equity_share() -> None:
     orders = strat.on_bar(ctx)
     # Realised vol of this series is far above 10%: only a fraction may deploy.
     assert not orders or orders[0].notional < 10_000.0
+
+
+def test_fixed_weights_buy_most_underweight() -> None:
+    a = _rising(300, 1.002)
+    b = _rising(300, 1.002)
+    ctx = _ctx({"A": a, "B": b}, cash=1000.0)
+    ctx.portfolio.positions["A"] = Position("A", quantity=100.0, cost_basis=10_000.0)
+    strat = SmartDeployStrategy(
+        scheme="fixed", guard=False, weights={"A": 0.7, "B": 0.3}, horizons=[21, 63]
+    )
+    orders = strat.on_bar(ctx)
+    # A is overweight vs its 70% target -> the flow must go to B.
+    assert len(orders) == 1 and orders[0].ticker == "B"

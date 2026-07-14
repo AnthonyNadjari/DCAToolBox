@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 __all__ = ["SmartDeployStrategy"]
 
 _MIN_NOTIONAL = 1.0
-_SCHEMES = ("winner", "softmax", "inv_vol", "equal")
+_SCHEMES = ("winner", "softmax", "inv_vol", "equal", "fixed")
 
 
 def _mom(c: np.ndarray, horizons: list[int]) -> float | None:
@@ -152,6 +152,15 @@ class SmartDeployStrategy(Strategy):
             total = sum(iv.values())
             w = (
                 {t: v / total for t, v in iv.items()}
+                if total > 0
+                else dict.fromkeys(gated, 1.0 / len(gated))
+            )
+        elif self.scheme == "fixed":
+            fw = self.params.get("weights") or {}
+            w = {t: float(fw.get(t, 0.0)) for t in gated}
+            total = sum(w.values())
+            w = (
+                {t: x / total for t, x in w.items()}
                 if total > 0
                 else dict.fromkeys(gated, 1.0 / len(gated))
             )
