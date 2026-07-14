@@ -183,36 +183,45 @@ const niceDate = (iso) => {
   return d.toLocaleDateString("fr-FR", { year: "numeric", month: "long", day: "numeric" });
 };
 
-// Le panneau « que faire ce mois-ci », composé en français à partir du signal
-// STRUCTURÉ du moteur — les règles restent celles, exactes, du backtest.
-function renderSignal(sig, cfg) {
+// Le héros : l'instruction complète du mois (quoi / combien / quand),
+// composée en français depuis le signal STRUCTURÉ du moteur backtesté.
+function renderSignal(sig, cfg, preset) {
   const el = $("signal");
   if (!sig.asOf) {
     el.innerHTML = `<div class="sig-action">Pas de données</div>`;
     return;
   }
-  const adaptive = cfg.strategy.name === "adaptive_momentum";
-  const lbMonths = Math.round((cfg.strategy.lookback || 126) / 21);
+  // Prochain jour d'action : le jour DCA à venir, décalé au jour ouvré.
+  const day = cfg.dayOfMonth;
+  const now = new Date();
+  let next = new Date(now.getFullYear(), now.getMonth(), day);
+  if (next <= now) next = new Date(now.getFullYear(), now.getMonth() + 1, day);
+  while ([0, 6].includes(next.getDay())) next.setDate(next.getDate() + 1);
+  const nextTxt = next.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+
+  const budget = `${cur(cfg.monthlyBudget)} ${preset.currency}`;
+  const leader = sig.rows.length && sig.fired ? sig.rows[0].label : null;
   let action;
+  let amount;
   let detail;
   if (!sig.rows.length) {
     action = `Achetez ${cfg.strategy.basket[0]}`;
-    detail = "Pas encore assez d'historique pour départager le panier — on investit comme un DCA classique.";
+    amount = budget;
+    detail = "Pas encore assez d'historique pour départager — on investit comme un DCA classique.";
   } else if (!sig.fired) {
-    action = "N'achetez rien — gardez le cash";
-    detail = adaptive
-      ? `Le score momentum du leader est négatif (${sig.rows[0].value}) : tout baisse. La règle met le budget de côté — cette réserve sera déployée d'un coup au prochain vrai signal.`
-      : `Tout le panier baisse sur ${lbMonths} mois (le meilleur fait ${sig.rows[0].value}). La règle garde le budget en cash et attend que ça remonte.`;
+    action = "N'achetez rien ce mois-ci";
+    amount = `gardez vos ${budget} de côté`;
+    detail = `Tout baisse en ce moment (le meilleur fait ${sig.rows[0].value}). Le signal préfère attendre : ce cash sera investi d'un coup quand ça repartira.`;
+  } else if (sig.tier === "high") {
+    action = `Achetez ${leader}`;
+    amount = `${budget} + tout le cash mis de côté les mois précédents`;
+    detail = `${leader} (${preset.names[leader] || leader}) est en forte tendance (${sig.rows[0].value}). Signal fort : on investit tout ce qui est disponible.`;
   } else {
-    const leader = sig.rows[0].label;
-    action = sig.tier === "high" ? `Achetez ${leader} — signal fort` : `Achetez ${leader}`;
-    detail = adaptive
-      ? sig.tier === "high"
-        ? `${leader} est en tête avec un score momentum ≥ 5 % (${sig.rows[0].value}) : signal fort. Déployez le budget du mois ET toute la réserve mise de côté les mois « attente ».`
-        : `${leader} est en tête (score ${sig.rows[0].value}, entre 0 et 5 %) : signal normal. Investissez la tranche du mois, gardez la réserve pour un signal fort.`
-      : `${leader} est le plus fort des ${lbMonths} derniers mois. Tout le budget du mois va sur ${leader}.`;
+    action = `Achetez ${leader}`;
+    amount = budget;
+    detail = `${leader} (${preset.names[leader] || leader}) est le plus fort du moment (${sig.rows[0].value}).`;
   }
-  const cls = sig.fired ? "go" : "wait";
+  const cls = sig.fired === false ? "wait" : "go";
   const ranking = sig.rows.length
     ? `<div class="sig-rank">${sig.rows
         .map((r) => `<span class="sig-chip ${r.picked ? "picked" : ""}">${r.label} : ${r.value}</span>`)
@@ -222,10 +231,14 @@ function renderSignal(sig, cfg) {
     <div class="sig-head">
       <span class="sig-dot ${cls}"></span>
       <div>
-        <div class="sig-label">Le signal ce mois-ci · données au ${niceDate(sig.asOf)}</div>
+        <div class="sig-label">Ce mois-ci · données au ${niceDate(sig.asOf)}</div>
         <div class="sig-action ${cls}">${action}</div>
       </div>
     </div>
+    <ul class="sig-plan">
+      <li>💶 <b>Montant :</b> ${amount}</li>
+      <li>📅 <b>Quand :</b> ${sig.fired === false ? "rien à faire ce mois-ci" : `le <b>${nextTxt}</b> — ou n'importe quel jour où tu as du cash (rouvre cette page ce jour-là)`}</li>
+    </ul>
     <p class="sig-detail">${detail}</p>
     ${ranking}`;
 }
@@ -371,7 +384,8 @@ function renderCharts(result) {
 
 /** Tickers the current signal actually looks at. */
 function signalTickers(cfg, aligned) {
-  if (cfg.strategy.name !== "momentum_rotation") return [aligned.primary];
+  if (!["momentum_rotation", "adaptive_momentum"].includes(cfg.strategy.name))
+    return [aligned.primary];
   const basket = cfg.strategy.basket && cfg.strategy.basket.length ? cfg.strategy.basket : Object.keys(aligned.bars);
   return basket.filter((t) => aligned.bars[t]);
 }
@@ -381,7 +395,9 @@ function renderRace(result, cfg, sig) {
   const aligned = result.aligned;
   const dates = aligned.dates;
   const n = dates.length;
-  const momentum = ["momentum_rotation", "absolute_momentum"].includes(cfg.strategy.name);
+  const momentum = ["momentum_rotation", "absolute_momentum", "adaptive_momentum"].includes(
+    cfg.strategy.name,
+  );
   const lb = momentum ? cfg.strategy.lookback || 126 : 126;
   const i0 = Math.max(0, n - 1 - lb);
   const tickers = signalTickers(cfg, aligned);
@@ -413,34 +429,6 @@ function renderRace(result, cfg, sig) {
   draw("chart-race", traces, LAYOUT(title, {
     yaxis: { tickformat: ".0%" }, margin: { t: 40, r: 90, b: 56, l: 48 }, annotations,
   }));
-}
-
-/** Le plan concret du mois : quoi, combien, quand. */
-function renderPlan(sig, cfg, preset) {
-  const day = cfg.dayOfMonth;
-  const now = new Date();
-  let next = new Date(now.getFullYear(), now.getMonth(), day);
-  if (next <= now) next = new Date(now.getFullYear(), now.getMonth() + 1, day);
-  while ([0, 6].includes(next.getDay())) next.setDate(next.getDate() + 1); // décale au jour ouvré
-  const nextTxt = next.toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-  const leader = sig.rows.length && sig.fired ? sig.rows[0].label : null;
-  const combien = !leader
-    ? `rien ce mois-ci — le budget s'ajoute à ta <b>réserve</b>.`
-    : sig.tier === "high"
-      ? `le budget du mois (<b>${cur(cfg.monthlyBudget)} ${preset.currency}</b>) <b>+ toute ta réserve</b> accumulée pendant les mois « attente ».`
-      : `le budget du mois, soit <b>${cur(cfg.monthlyBudget)} ${preset.currency}</b>.`;
-  $("plan").innerHTML = `
-    <h3>Mon plan ce mois-ci</h3>
-    <ol class="plan-steps">
-      <li><b>Quoi :</b> ${leader
-        ? `acheter <b style="color:${colorOf(leader)}">${leader}</b> (${preset.names[leader] || leader}).`
-        : sig.rows.length
-          ? "rien acheter — laisser le budget de côté."
-          : `acheter ${cfg.strategy.basket[0]}.`}</li>
-      <li><b>Combien :</b> ${combien}</li>
-      <li><b>Quand :</b> le <b>${nextTxt}</b> — ou n'importe quel jour où tu as du cash : rouvre cette page ce jour-là et fais ce qu'elle dit.</li>
-    </ol>
-    <p class="note">Le signal est recalculé à chaque clôture. Reviens le jour où tu investis : il peut avoir changé d'ici le ${day}.</p>`;
 }
 
 /** Ce que le signal a décidé chacun des 12 derniers mois. */
@@ -499,7 +487,7 @@ let signalMarket = "fr";
 // conviction sizing, validated out-of-sample with fees). OFF = the simple
 // fixed 6-month rotation. Both accumulate — never sell (selling lost 16-30%
 // vs DCA out-of-sample in every tested market).
-let signalTurbo = true;
+const signalTurbo = true; // the validated champion is the only home strategy
 
 function signalConfig(preset) {
   const f = instrument(preset.primary).frequencies.daily;
@@ -527,61 +515,27 @@ function renderMarketSeg() {
     .join("");
   for (const b of document.querySelectorAll("#market .seg-btn"))
     b.addEventListener("click", () => { signalMarket = b.dataset.mkt; runSignal(); });
-  $("turbo").innerHTML = `
-    <label class="switch">
-      <input type="checkbox" id="turboBox" ${signalTurbo ? "checked" : ""} />
-      <span>⚡ Mode conviction <b>(meilleur rendement testé)</b> — seuils + réserve.
-      Décoché : rotation simple 6 mois.</span>
-    </label>`;
-  $("turboBox").addEventListener("change", (e) => { signalTurbo = e.target.checked; runSignal(); });
+  
 }
 
-/** « Comment ça marche » en 3 étapes, avec les vrais noms du panier. */
+/** « Comment ça marche » + « quand j'investis » — une seule explication. */
 function renderSteps(preset) {
   const [a, b] = preset.basket;
-  const names = `<b style="color:${colorOf(a)}">${a}</b> ou <b style="color:${colorOf(b)}">${b}</b>`;
-  $("steps").innerHTML = signalTurbo
-    ? `
-    <h3>Comment marche ce signal (30 secondes)</h3>
+  const names = `<b style="color:${colorOf(a)}">${a}</b> et <b style="color:${colorOf(b)}">${b}</b>`;
+  $("steps").innerHTML = `
     <ol class="plan-steps">
-      <li>📊 On mesure la force de ${names} en combinant leur hausse sur 1, 3, 6 et 12 mois
-        (les poids se recalibrent seuls sur les 3 dernières années — jamais sur le futur).</li>
-      <li>🏆 Le plus fort reçoit l'argent du mois. Score <b>≥ +5 %</b> → signal fort :
-        on déploie aussi <b>toute la réserve</b> mise de côté.</li>
-      <li>🛑 Score négatif (tout baisse) → on n'achète rien : le budget s'accumule en
-        <b>réserve</b>, prête pour le prochain signal fort.</li>
+      <li>📊 Le signal compare ${names} : leur force de hausse sur 1, 3, 6 et 12 mois
+        (pondération recalibrée automatiquement — jamais sur le futur).</li>
+      <li>🏆 Ton argent du mois va sur <b>le plus fort des deux</b>. S'il est en très forte
+        tendance (score ≥ +5 %), le signal te dit d'investir aussi le cash mis de côté.</li>
+      <li>🛑 Si les deux baissent : tu n'achètes <b>rien</b>, tu gardes le cash. Il sera
+        investi d'un coup quand la tendance repartira.</li>
+      <li>🔁 On ne vend <b>jamais</b> — testé : vendre coûte 16 à 30 % de patrimoine.</li>
     </ol>
-    <p class="note">On ne vend jamais — testé : vendre coûte 16 à 30 % de patrimoine vs DCA.
-    Validé hors-échantillon, frais inclus : ≈ +30 % de patrimoine vs DCA sur SPY/QQQ 2015→2026,
-    max drawdown réduit de −55 % à −33 %.</p>`
-    : `
-    <h3>Comment marche ce signal (30 secondes)</h3>
-    <ol class="plan-steps">
-      <li>📊 Chaque mois, on regarde qui a le plus monté sur les 6 derniers mois : ${names}.</li>
-      <li>🏆 Tout le budget du mois va sur le gagnant. Pas de partage, pas de dosage.</li>
-      <li>🛑 Si les deux baissent, on n'achète rien ce mois-ci — le cash attend des jours meilleurs.</li>
-    </ol>
-    <p class="note">On ne vend jamais : on ne fait que choisir où va l'argent NEUF chaque mois.</p>`;
-}
-
-/** LA question : pourquoi une action par mois, et QUAND est-ce que j'investis ? */
-function renderWhy() {
-  $("why").innerHTML = `
-    <h3>« Quand est-ce que j'investis, concrètement ? »</h3>
-    <p><b>Le signal est recalculé à chaque clôture</b> — cette page est toujours à jour.
-    Ce qui est mensuel, ce n'est pas le signal : c'est <b>ton argent</b> (le budget arrive
-    une fois par mois). La règle de vie :</p>
-    <ol class="plan-steps">
-      <li>Le jour où tu as du cash à placer (virement du 26, prime, n'importe quand) :
-        <b>ouvre cette page</b>.</li>
-      <li>Elle te dit <b>quoi</b> (le leader du moment) et <b>combien</b> (tranche du mois,
-        ou réserve entière si le signal est fort). Tu exécutes. 5 minutes.</li>
-      <li>Pas de cash aujourd'hui ? Rien à faire. C'est tout.</li>
-    </ol>
-    <p class="note">Investir plus souvent que l'arrivée de ton argent ? Testé sur 3 marchés :
-    les cadences quotidienne et hebdomadaire font <b>moins bien</b> que mensuelle après frais
-    (0,5 %/ordre). La fréquence ajoute des frais, pas du rendement — le momentum vit à
-    l'échelle du mois.</p>`;
+    <p class="note"><b>Et « quand » j'investis ?</b> Le signal se recalcule à chaque clôture ;
+    ce qui est mensuel c'est ton argent, pas le signal. Le jour où tu as du cash (ton virement,
+    une prime…), ouvre cette page et fais ce qu'elle dit — c'est tout. Investir plus souvent a
+    été testé (quotidien, hebdo) : ça fait <b>moins bien</b> après frais de courtage.</p>`;
 }
 
 /** Le r\u00e9sultat long terme en une phrase, calcul\u00e9 du backtest complet. */
@@ -622,10 +576,8 @@ async function runSignal() {
   const input = { primary: preset.primary, series };
   const result = runBacktest(input, cfg);
   const sig = currentSignal(input, cfg);
-  renderSignal(sig, cfg);
-  renderPlan(sig, cfg, preset);
+  renderSignal(sig, cfg, preset);
   renderSteps(preset);
-  renderWhy();
   renderRace(result, cfg, sig);
   renderStat(result, preset);
   renderHistory(result, cfg, preset);
@@ -721,6 +673,8 @@ async function main() {
   $("sbudget").addEventListener("input", debounce(runSignal, 200));
   for (const b of document.querySelectorAll(".tab"))
     b.addEventListener("click", () => showTab(b.dataset.tab));
+  for (const d of document.querySelectorAll("details.acc"))
+    d.addEventListener("toggle", () => resizeCharts());
   for (const a of document.querySelectorAll(".goto-backtest"))
     a.addEventListener("click", (e) => { e.preventDefault(); showTab("backtest"); window.scrollTo(0, 0); });
 

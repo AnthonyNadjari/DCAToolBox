@@ -32,41 +32,39 @@
   </nav>
 
   <!-- ------------------------------ Signal tab ------------------------------
-       Deliberately minimal: ONE strategy (momentum rotation, accumulation
-       mode), ONE choice (market preset), ONE decision a month. -->
+       ONE instruction a month. Hero card = the whole plan (what/how much/
+       when); everything else lives in collapsible sections. -->
   <div id="tab-signal" class="tabpane">
     <div class="signal-wrap">
       <section class="signal" id="signal"><div class="sig-action">Chargement…</div></section>
 
       <section class="side-card">
-        <h3>Mon marché</h3>
         <div class="seg" id="market"></div>
         <div class="field" style="margin-top:0.6rem">
           <label for="sbudget">Mon budget mensuel</label>
           <input type="number" id="sbudget" value="1000" min="1" step="50" />
         </div>
-        <div id="turbo"></div>
       </section>
 
-      <section class="side-card" id="plan"></section>
-
-      <section class="side-card" id="steps"></section>
-
-      <!-- Answers THE question: when do I actually invest? -->
-      <section class="side-card" id="why"></section>
-
-      <!-- The race the signal ranks: recent performance of each candidate. -->
-      <div class="chart" id="chart-race"></div>
-      <p class="note" id="stat"></p>
-
-      <section class="side-card">
-        <h3>Les 12 dernières décisions du signal</h3>
+      <details class="acc">
+        <summary>📈 La preuve — ce que ça aurait donné</summary>
+        <p class="note" id="stat"></p>
+        <div class="chart" id="chart-race"></div>
+        <h4 class="acc-h">Les 12 dernières décisions</h4>
         <div class="table-scroll"><table class="metrics" id="history"></table></div>
-      </section>
+      </details>
 
-      <section class="side-card" id="start"></section>
+      <details class="acc">
+        <summary>🧠 Comment ça marche</summary>
+        <div id="steps"></div>
+      </details>
 
-      <p class="note">Envie de tester d'autres règles, périodes ou paramètres ? Ouvre le
+      <details class="acc">
+        <summary>🚀 Démarrer (une seule fois)</summary>
+        <div id="start"></div>
+      </details>
+
+      <p class="note">Envie de tout tester toi-même ? Ouvre le
         <a href="#" class="goto-backtest">🔬 Labo</a>. Outil éducatif — pas un conseil en investissement.</p>
     </div>
   </div>
