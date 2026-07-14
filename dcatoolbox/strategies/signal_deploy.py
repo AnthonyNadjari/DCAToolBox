@@ -33,7 +33,16 @@ if TYPE_CHECKING:
 __all__ = ["SignalDeployStrategy"]
 
 _MIN_NOTIONAL = 1.0
-_SIGNALS = ("vix_pctl", "vix_abs", "rvol_pctl", "volume_cap", "drawdown")
+_SIGNALS = (
+    "vix_pctl",
+    "vix_abs",
+    "rvol_pctl",
+    "volume_cap",
+    "drawdown",
+    "yield_chg",
+    "yield_pctl",
+    "obv",
+)
 
 
 @register_strategy
@@ -75,6 +84,9 @@ class SignalDeployStrategy(Strategy):
             raise ValueError("max_hold must be >= 1")
         self.pctl_window = int(self.params.get("pctl_window", 1260))
         self.signal_ticker = str(self.params.get("signal_ticker", "^VIX"))
+        self.direction = str(self.params.get("direction", "down"))
+        if self.direction not in ("down", "up"):
+            raise ValueError("direction must be 'down' or 'up'")
         self._waiting = 0  # bars the current reserve has been waiting
         self._last_cash = 0.0  # expected post-trade cash, to detect new deposits
 
@@ -121,6 +133,39 @@ class SignalDeployStrategy(Strategy):
             avg = float(np.mean(vol[-64:-1]))
             day_ret = close[-1] / close[-2] - 1.0 if close[-2] > 0 else 0.0
             return avg > 0 and vol[-1] >= self.threshold * avg and day_ret < -0.01
+
+        if self.signal == "yield_chg":
+            # Money-market yield trend over ~3 months: falling yields = cash
+            # leaving the money market ("down" deploys on falling yields).
+            if self.signal_ticker not in context.histories:
+                return False
+            y = context.histories[self.signal_ticker]["close"].to_numpy(dtype=float)[:-1]
+            y = y[np.isfinite(y)]
+            if len(y) < 64:
+                return False
+            chg = float(y[-1] - y[-64])
+            return chg <= -self.threshold if self.direction == "down" else chg >= self.threshold
+
+        if self.signal == "yield_pctl":
+            if self.signal_ticker not in context.histories:
+                return False
+            y = context.histories[self.signal_ticker]["close"].to_numpy(dtype=float)[:-1]
+            y = y[np.isfinite(y)]
+            if len(y) < 63:
+                return False
+            rank = float(np.mean(y[-self.pctl_window :] <= y[-1]))
+            return rank >= self.threshold if self.direction == "up" else rank <= self.threshold
+
+        if self.signal == "obv":
+            # On-balance volume vs its own 126-bar mean: "up" = accumulation
+            # regime (OBV above), "down" = the contrarian read (OBV below).
+            vol = spy["volume"].to_numpy(dtype=float)[:-1]
+            if len(close) < 130 or len(vol) != len(close):
+                return False
+            steps = np.sign(np.diff(close)) * vol[1:]
+            obv = np.cumsum(steps)
+            ma = float(np.mean(obv[-126:]))
+            return obv[-1] >= ma if self.direction == "up" else obv[-1] <= ma
 
         # drawdown
         window = close[-252:]

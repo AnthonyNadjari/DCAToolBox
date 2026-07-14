@@ -82,6 +82,18 @@ MARKETS_VX: dict[str, dict] = {
 }
 MARKETS.update(MARKETS_VX)
 
+# Money-market-vs-equity regime universe: SPY + 3-month T-bill yield (^IRX,
+# the money market's remuneration — the direct competitor of equities) + real
+# SPY volume for the OBV accumulation/distribution read.
+MARKETS_MM: dict[str, dict] = {
+    "MM": {
+        "tickers": ["SPY", "^IRX"],
+        "is": ("1993-02-01", "2010-12-31"),
+        "oos": ("2011-01-01", "2026-12-31"),
+    },
+}
+MARKETS.update(MARKETS_MM)
+
 
 def load_series(ticker: str) -> pd.DataFrame:
     """Load one real series from ``data_real/`` as an OHLCV frame."""
@@ -113,6 +125,7 @@ def experiments() -> list[dict]:
     runs: list[dict] = []
     runs.extend(experiments5())
     runs.extend(experiments_vx())
+    runs.extend(experiments_mm())
     for mkt in ("US", "FR", "FR3"):
         primary = MARKETS[mkt]["tickers"][0]
         # -- baselines ---------------------------------------------------------
@@ -329,6 +342,48 @@ def experiments_vx() -> list[dict]:
         runs.append(cand(f"vcap{int(thr * 10)}", signal="volume_cap", threshold=thr))
     for thr in (0.05, 0.10):
         runs.append(cand(f"dd{int(thr * 100)}", signal="drawdown", threshold=thr))
+    return runs
+
+
+def experiments_mm() -> list[dict]:
+    """PRE-REGISTERED money-market/OBV regime candidates (market MM).
+
+    The hypothesis ("money market vs equity flows spot regime changes; volume
+    drives supply and demand") does not pin down the SIGN of the effect, so
+    both directions are pre-registered for each signal.
+    """
+    runs: list[dict] = [
+        {"id": "MM:dca", "market": "MM", "strategy": "monthly_dca", "params": {}},
+        {
+            "id": "MM:now",
+            "market": "MM",
+            "strategy": "smart_deploy",
+            "params": {"scheme": "equal", "guard": False, "basket": ["SPY"]},
+        },
+    ]
+
+    def cand(cid: str, **params) -> dict:
+        params.setdefault("signal_ticker", "^IRX")
+        return {"id": f"MM:{cid}", "market": "MM", "strategy": "signal_deploy", "params": params}
+
+    for thr in (0.10, 0.25):
+        for direction in ("down", "up"):
+            runs.append(
+                cand(
+                    f"ychg_{direction[0]}{int(thr * 100)}",
+                    signal="yield_chg",
+                    threshold=thr,
+                    direction=direction,
+                )
+            )
+    runs.append(cand("ylev_hi80", signal="yield_pctl", threshold=0.8, direction="up"))
+    runs.append(cand("ylev_lo20", signal="yield_pctl", threshold=0.2, direction="down"))
+    for direction in ("up", "down"):
+        runs.append(cand(f"obv_{direction}", signal="obv", threshold=0.0, direction=direction))
+    runs.append(
+        cand("ychg_d25_b50", signal="yield_chg", threshold=0.25, direction="down", base_deploy=0.5)
+    )
+    runs.append(cand("obv_up_b50", signal="obv", threshold=0.0, direction="up", base_deploy=0.5))
     return runs
 
 
