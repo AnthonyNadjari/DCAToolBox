@@ -122,6 +122,41 @@ def experiments() -> list[dict]:
                     },
                 }
             )
+        # -- smart-deploy grid: target weights x pacing ------------------------
+        for scheme, gate, vt, rate, accel in itertools.product(
+            ("winner", "softmax", "inv_vol"),
+            (False, True),
+            (0.0, 0.15),
+            (1.0, 0.2),
+            (0.0, 3.0),
+        ):
+            runs.append(
+                {
+                    "id": (
+                        f"{mkt}:sd_{scheme}_g{int(gate)}_v{int(vt * 100)}"
+                        f"_r{int(rate * 100)}_a{int(accel)}"
+                    ),
+                    "market": mkt,
+                    "strategy": "smart_deploy",
+                    "params": {
+                        "scheme": scheme,
+                        "trend_gate": gate,
+                        "vol_target": vt,
+                        "deploy_rate": rate,
+                        "dip_accel": accel,
+                    },
+                }
+            )
+        # pacing-only controls (no signal at all): does pacing alone add value?
+        for rate in (1.0, 0.2):
+            runs.append(
+                {
+                    "id": f"{mkt}:sd_equal_r{int(rate * 100)}",
+                    "market": mkt,
+                    "strategy": "smart_deploy",
+                    "params": {"scheme": "equal", "guard": False, "deploy_rate": rate},
+                }
+            )
         _ = primary
     return runs
 

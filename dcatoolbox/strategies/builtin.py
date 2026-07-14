@@ -16,11 +16,13 @@ from dcatoolbox.strategies.momentum import (
 from dcatoolbox.strategies.monthly_dca import MonthlyDCA
 from dcatoolbox.strategies.moving_average_strategy import MovingAverageStrategy
 from dcatoolbox.strategies.rsi_strategy import RSIStrategy
+from dcatoolbox.strategies.smart_deploy import SmartDeployStrategy
 from dcatoolbox.strategies.trend_filter import TrendFilterStrategy
 
 __all__ = [
     "MonthlyDCA",
     "AdaptiveMomentumStrategy",
+    "SmartDeployStrategy",
     "DipBuyingStrategy",
     "RSIStrategy",
     "MovingAverageStrategy",
