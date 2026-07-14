@@ -34,8 +34,9 @@ header h1 { margin: 0; font-size: 1.6rem; }
 .gaia-link {
   position: absolute; top: 1rem; right: 1.5rem;
   color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 600;
-  background: rgba(255, 255, 255, 0.15); padding: 0.35rem 0.7rem; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15); padding: 0.55rem 0.8rem; border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.35);
+  display: inline-flex; align-items: center; min-height: 40px; box-sizing: border-box;
 }
 .gaia-link:hover { background: rgba(255, 255, 255, 0.28); }
 @media (max-width: 600px) { .gaia-link { position: static; display: inline-block; margin-bottom: 0.6rem; } }
@@ -76,7 +77,18 @@ header p { margin: 0.2rem 0 0; opacity: 0.9; font-size: 0.95rem; }
   -webkit-appearance: none; appearance: none;
 }
 .field input[type="range"] { padding: 0; }
-.field input[type="checkbox"] { width: auto; min-height: 22px; min-width: 22px; }
+/* Restore the native check indicator: the global appearance reset above would
+   otherwise leave checked and unchecked boxes visually identical. */
+.field input[type="checkbox"] {
+  width: auto; min-height: 22px; min-width: 22px;
+  -webkit-appearance: checkbox; appearance: auto; accent-color: var(--blue);
+}
+.field select {
+  /* the appearance reset removes the native arrow: draw one, keep text readable */
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.6rem center;
+  padding-right: 1.8rem; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+}
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
 .range-val { float: right; color: var(--blue); font-weight: 600; }
 button.run {
@@ -101,6 +113,7 @@ button.ghost {
   border: 1px solid var(--border); border-bottom: none;
   border-radius: 10px 10px 0 0; background: #eef2f7; color: var(--muted);
   padding: 0.55rem 1.1rem; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+  min-height: 44px; /* iOS tap-target guideline */
 }
 .tab.active { background: var(--card); color: var(--blue-dark); border-color: var(--border); box-shadow: 0 -2px 0 var(--blue) inset; }
 .tabpane[hidden] { display: none; }

@@ -205,19 +205,19 @@ function renderSignal(sig, cfg, preset) {
   let amount;
   let detail;
   if (!sig.rows.length) {
-    action = `Achetez ${cfg.strategy.basket[0]}`;
+    action = `Achète ${cfg.strategy.basket[0]}`;
     amount = budget;
     detail = "Pas encore assez d'historique pour départager — on investit comme un DCA classique.";
   } else if (!sig.fired) {
-    action = "N'achetez rien ce mois-ci";
-    amount = `gardez vos ${budget} de côté`;
-    detail = `Tout baisse en ce moment (le meilleur fait ${sig.rows[0].value}). Le signal préfère attendre : ce cash sera investi d'un coup quand ça repartira.`;
+    action = "N'achète rien — garde ton cash";
+    amount = `garde tes ${budget} de côté`;
+    detail = `Tout baisse en ce moment (le meilleur fait ${sig.rows[0].value}). Le signal préfère attendre : ce cash se réinvestira par tranches quand ça remontera, ou d'un coup si la tendance repart fort (signal ≥ +5 %).`;
   } else if (sig.tier === "high") {
-    action = `Achetez ${leader}`;
-    amount = `${budget} + tout le cash mis de côté les mois précédents`;
+    action = `Achète ${leader}`;
+    amount = `${budget} + le cash gardé les mois « n'achète rien » (0 si tu débutes)`;
     detail = `${leader} (${preset.names[leader] || leader}) est en forte tendance (${sig.rows[0].value}). Signal fort : on investit tout ce qui est disponible.`;
   } else {
-    action = `Achetez ${leader}`;
+    action = `Achète ${leader}`;
     amount = budget;
     detail = `${leader} (${preset.names[leader] || leader}) est le plus fort du moment (${sig.rows[0].value}).`;
   }
@@ -237,7 +237,9 @@ function renderSignal(sig, cfg, preset) {
     </div>
     <ul class="sig-plan">
       <li>💶 <b>Montant :</b> ${amount}</li>
-      <li>📅 <b>Quand :</b> ${sig.fired === false ? "rien à faire ce mois-ci" : `le <b>${nextTxt}</b> — ou n'importe quel jour où tu as du cash (rouvre cette page ce jour-là)`}</li>
+      <li>📅 <b>Quand :</b> ${sig.fired === false
+        ? `rien à faire aujourd'hui — reviens le jour de ton prochain virement (le signal se recalcule chaque soir)`
+        : `le jour où ton budget arrive — prochain rendez-vous : <b>${nextTxt}</b>`}</li>
     </ul>
     <p class="sig-detail">${detail}</p>
     ${ranking}`;
@@ -418,8 +420,9 @@ function renderRace(result, cfg, sig) {
     });
     if (isPick || tickers.length === 1) {
       annotations.push({
-        x: dates[n - 1], y: y[y.length - 1], xanchor: "left", showarrow: false,
-        text: `<b>${t} ${signed(y[y.length - 1])}</b>`, font: { size: 12, color: "#0f172a" },
+        xref: "paper", x: 0.99, xanchor: "right", y: y[y.length - 1], yanchor: "bottom",
+        showarrow: false, text: `<b>${t} ${signed(y[y.length - 1])}</b>`,
+        font: { size: 12, color: "#0f172a" },
       });
     }
   }
@@ -427,7 +430,8 @@ function renderRace(result, cfg, sig) {
     ? `La course sur ${Math.round(lb / 21)} mois`
     : `${aligned.primary} — ${lb} derniers jours de bourse (base 0 %)`;
   draw("chart-race", traces, LAYOUT(title, {
-    yaxis: { tickformat: ".0%" }, margin: { t: 40, r: 90, b: 56, l: 48 }, annotations,
+    yaxis: { tickformat: ".0%" }, margin: { t: 40, r: 16, b: 84, l: 48 }, annotations,
+    legend: { orientation: "h", y: -0.32 }, // below the plot: no title/label overlap on phones
   }));
 }
 
@@ -447,7 +451,7 @@ function renderHistory(result, cfg, preset) {
     const sells = trades.filter((t) => t.side === "sell");
     const amount = buys.reduce((a, t) => a + t.price * t.quantity, 0);
     let what;
-    if (!trades.length) what = "Rien acheté — tout baissait, resté en cash";
+    if (!trades.length) what = "Rien acheté — cash conservé";
     else if (!buys.length && sells.length) what = "Tout vendu — passé en cash";
     else {
       const tk = [...new Set(buys.map((t) => t.ticker))].join(", ");
@@ -528,8 +532,9 @@ function renderSteps(preset) {
         (pondération recalibrée automatiquement — jamais sur le futur).</li>
       <li>🏆 Ton argent du mois va sur <b>le plus fort des deux</b>. S'il est en très forte
         tendance (score ≥ +5 %), le signal te dit d'investir aussi le cash mis de côté.</li>
-      <li>🛑 Si les deux baissent : tu n'achètes <b>rien</b>, tu gardes le cash. Il sera
-        investi d'un coup quand la tendance repartira.</li>
+      <li>🛑 Si les deux baissent : tu n'achètes <b>rien</b>, tu gardes le cash. Il se
+        réinvestit par tranches au retour de la hausse — ou d'un coup si elle est franche
+        (signal fort ≥ +5 %).</li>
       <li>🔁 On ne vend <b>jamais</b> — testé : vendre coûte 16 à 30 % de patrimoine.</li>
     </ol>
     <p class="note"><b>Et « quand » j'investis ?</b> Le signal se recalcule à chaque clôture ;
@@ -545,17 +550,19 @@ function renderStat(result, preset) {
   const y0 = result.bars.dates[0].slice(0, 4);
   const y1 = result.bars.dates[result.bars.dates.length - 1].slice(0, 4);
   const c = preset.currency;
+  const gain = m.final_value - b.final_value;
+  const gapPct = b.final_value > 0 ? m.final_value / b.final_value - 1 : 0;
   $("stat").innerHTML =
-    `\u{1F4C8} Backtest ${y0}\u2192${y1} : en investissant ${cur(m.invested_capital)} ${c} au total, ` +
-    `ce signal aurait donn\u00e9 <b>${cur(m.final_value)} ${c}</b>, contre ` +
-    `${cur(b.final_value)} ${c} pour un DCA classique sur ${preset.primary} ` +
-    `(soit <b>${signed(m.excess_total_return)}</b>). Les performances pass\u00e9es ne pr\u00e9jugent pas du futur.`;
+    `📈 Backtest ${y0}→${y1}, mêmes versements des deux côtés : ce signal aurait donné ` +
+    `<b>${cur(m.final_value)} ${c}</b>, contre ${cur(b.final_value)} ${c} en investissant ` +
+    `bêtement chaque mois sur ${preset.primary} — soit <b>${cur(gain)} ${c} de mieux ` +
+    `(${signed(gapPct)} de patrimoine final)</b>. Les performances passées ne préjugent pas du futur.`;
 }
 
 /** La check-list une-fois-pour-toutes pour d\u00e9marrer en vrai. */
 function renderStart(preset) {
   const [a, b] = preset.basket;
-  $("start").innerHTML = `
+  $("startCard").innerHTML = `
     <h3>Comment d\u00e9marrer en vrai (une seule fois)</h3>
     <ol class="plan-steps">
       <li>Ouvre ${preset.broker}.</li>
