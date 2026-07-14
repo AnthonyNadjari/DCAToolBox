@@ -131,6 +131,11 @@ Work through ALL of the following, quantitatively:
    vs proportional sizing?); percentile windows (5y rolling — regime bias?); the two-condition
    AND cap in the exhaustive sweep (what would OR / 3+ conditions / continuous sizing add,
    and would multiplicity swamp it?).
+   **Prioritization**: execution-protocol variants are already empirically bounded (open vs close
+   fill ±0.02%, limit ladders ±0.03%, TWAP +0.01% — see §3.8), so do NOT spend depth re-litigating
+   fill prices. Prioritize the design choices that were never varied: (a) all-in reserve-release
+   vs proportional/continuous signal-based sizing, (b) the deposit calendar, (c) the 63-bar
+   time-stop horizon.
 2. **Hypothesis-space gaps.** List signal families and data NOT covered that have credible
    peer-reviewed evidence at daily-to-monthly horizons for INDEX-level timing, with honest priors:
    credit spreads (HY-Treasury), yield-curve slope, VIX futures term structure (contango/
@@ -140,6 +145,12 @@ Work through ALL of the following, quantitatively:
    effect size vs the ~55bp/order + 2.8bp/day hurdle, data availability for 20+ years, and whether
    it could plausibly clear a deflated-Sharpe hurdle of ~1.07 given ~1.3 effective validation
    samples.
+   **Data eligibility**: the PEA wrapper constrains the instruments TRADED, not the information
+   set — any public data series is a legitimate signal input. Prefer series with 20+ years of
+   clean history; series requiring proxy construction or with partial coverage (e.g., VIX3M from
+   2009, breadth reconstructions, CBOE put/call from 1995) are IN scope, but flag them as such
+   and discount their statistical weight for the shorter effective sample (count regime blocks,
+   not bars — a 15-year series holds ~8–12 independent blocks).
 3. **Theory attack.** Under what conditions does waiting have POSITIVE option value (predictable
    negative-drift regimes? vol-managed portfolios literature — Moreira & Muir — and why buy-only
    no-leverage cannot implement it? does the countercyclical-premium argument survive?). Is the
@@ -153,9 +164,15 @@ Work through ALL of the following, quantitatively:
    minimum OOS excess (in % of final wealth AND annualized) it must achieve to be significant
    given the multiplicity already spent.
 5. **Verdict.** Is the conclusion sound, overstated, or wrong? Separate: (a) what is proven for
-   THIS investor (retail, monthly flow, ETF universe, no leverage/shorting), (b) what is NOT
-   proven and merely suggested, (c) what a professional desk with different constraints could
-   still do.
+   THIS investor assessed STRICTLY within the stated constraints (retail, monthly flow, ETF
+   universe, no leverage/shorting, French tax wrapper), (b) what is NOT proven and merely
+   suggested, (c) what a professional desk with different constraints could still do,
+   (d) **constraint sensitivity**: identify the SINGLE constraint whose relaxation (weekly or
+   continuous cash flows? one additional asset class? modest leverage, e.g. 1.25×? tax-free
+   selling?) would most plausibly flip the verdict, and quantify why — using the measured
+   magnitudes in §3 (e.g., idle-cash arithmetic caps what flow frequency can add; the widened
+   universe already tested GLD/TLT/EEM and lost; Kelly f*≈2.2–3.7 says leverage is where the
+   binding cap actually sits).
 
 Rules: cite specific numbers from §3 when you use them; distinguish backtested facts from your
 priors; quantify every claim (no "could potentially"); if you find no flaw, say so explicitly
