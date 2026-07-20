@@ -154,7 +154,7 @@ def main() -> None:
     cut = spy.index.searchsorted(pd.Timestamp(IS_END), side="right")
     segs = {"is": slice(0, cut), "oos": slice(cut, n)}
     always = np.ones(n, dtype=bool)
-    day26 = (spy.index.day >= 26).to_numpy()
+    day26 = np.asarray(spy.index.day >= 26)
 
     base = {s: simulate(spy, always, sl, fee) for s, sl in segs.items()}
     print(f"SPY {spy.index[0].date()} -> {spy.index[-1].date()}  IS_END {IS_END}  fee {fee:.4f}")
