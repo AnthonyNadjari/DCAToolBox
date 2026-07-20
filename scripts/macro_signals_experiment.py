@@ -120,6 +120,7 @@ def build() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
 
 
 def simulate(spy: pd.DataFrame, fired: np.ndarray, seg: slice, fee: float) -> float:
+    """Reserve-release accumulation over one segment (cold start)."""
     dates = spy.index[seg]
     op = spy["open"].to_numpy(float)[seg]
     cl = spy["close"].to_numpy(float)[seg]

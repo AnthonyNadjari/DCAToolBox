@@ -34,7 +34,6 @@ import numpy as np
 import pandas as pd
 
 DATA = Path("data_real")
-FEE, SLIP = 0.001, 0.0005
 BUDGET = 1000.0
 MAX_HOLD = 63
 IS_END = "2010-12-31"  # IS: 1993-02 -> 2010-12 | OOS: 2011-01 -> 2026-07
@@ -99,7 +98,14 @@ def _fired(spec: dict, feats: dict[str, np.ndarray], n: int) -> np.ndarray:
     return out
 
 
-def simulate(spy: pd.DataFrame, fired: np.ndarray, base_deploy: float, seg: slice) -> dict:
+def simulate(
+    spy: pd.DataFrame,
+    fired: np.ndarray,
+    base_deploy: float,
+    seg: slice,
+    fee: float = 0.001,
+    slip: float = 0.0005,
+) -> dict:
     """Reserve-release accumulation over one segment (cold start)."""
     dates = spy.index[seg]
     op = spy["open"].to_numpy(dtype=float)[seg]
@@ -116,13 +122,13 @@ def simulate(spy: pd.DataFrame, fired: np.ndarray, base_deploy: float, seg: slic
             cash += inflow
             if base_deploy > 0:
                 spend = inflow * base_deploy
-                shares += spend * (1 - FEE) / (op[i] * (1 + SLIP))
+                shares += spend * (1 - fee) / (op[i] * (1 + slip))
                 cash -= spend
                 orders += 1
         if cash > 1.0:
             waiting += 1
             if fr[i] or waiting >= MAX_HOLD:
-                shares += cash * (1 - FEE) / (op[i] * (1 + SLIP))
+                shares += cash * (1 - fee) / (op[i] * (1 + slip))
                 cash = 0.0
                 orders += 1
                 waiting = 0
@@ -131,7 +137,7 @@ def simulate(spy: pd.DataFrame, fired: np.ndarray, base_deploy: float, seg: slic
     return {"final": round(shares * cl[-1] + cash, 0), "orders": orders}
 
 
-def evaluate(specs: list[dict]) -> list[dict]:
+def evaluate(specs: list[dict], fee: float = 0.001, slip: float = 0.0005) -> list[dict]:
     """Run every spec (plus the two controls) over IS and OOS."""
     spy, feats = build_features()
     n = len(spy)
@@ -151,7 +157,7 @@ def evaluate(specs: list[dict]) -> list[dict]:
             {
                 "name": f"CONTROL_{name}",
                 "conds": [],
-                **{s: simulate(spy, arr, base, sl) for s, sl in segs.items()},
+                **{s: simulate(spy, arr, base, sl, fee, slip) for s, sl in segs.items()},
             }
         )
     for spec in specs:
@@ -162,7 +168,7 @@ def evaluate(specs: list[dict]) -> list[dict]:
                 "conds": spec["conds"],
                 "base_deploy": spec.get("base_deploy", 0.0),
                 **{
-                    s: simulate(spy, fired, spec.get("base_deploy", 0.0), sl)
+                    s: simulate(spy, fired, spec.get("base_deploy", 0.0), sl, fee, slip)
                     for s, sl in segs.items()
                 },
             }
@@ -175,6 +181,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--specs", default="")
     ap.add_argument("--out", default="")
+    ap.add_argument("--fee", type=float, default=0.001)
+    ap.add_argument("--slippage", type=float, default=0.0005)
     ap.add_argument("--features", action="store_true")
     args = ap.parse_args()
     if args.features:
@@ -182,7 +190,7 @@ def main() -> None:
         print("\n".join(sorted(feats)))
         return
     specs = json.loads(Path(args.specs).read_text())
-    results = evaluate(specs)
+    results = evaluate(specs, fee=args.fee, slip=args.slippage)
     payload = json.dumps(results, indent=1)
     if args.out:
         Path(args.out).write_text(payload)
