@@ -1,4 +1,4 @@
-# Build prompt — add ONE research page to an existing Streamlit app
+# Build prompt — add ONE research page to an existing Streamlit app (text-only I/O)
 
 You are adding a single new page to an EXISTING multi-page Streamlit project. Integration
 rules come first, they are non-negotiable:
@@ -8,15 +8,15 @@ rules come first, they are non-negotiable:
   pages, no changes to global config/theme/session_state keys (namespace everything
   `rlab_*`), no new top-level dependencies beyond `xbbg` (and `blpapi`) if not already
   present — the rest must use what the project already has (pandas/numpy/plotly assumed).
-- All data cached under `research_lab_data/` (CSV + `manifest.json`), gitignored. All
-  outputs under `research_lab_exports/`. The page must run even with zero data pulled:
-  every section states which series is missing and which button pulls it.
-- Bloomberg pulls via `xbbg` `blp.bdh` / `blp.bdib`. Incremental refresh (re-pull from
-  last stored date − 5 days). One retry then a clear error — never crash the app.
+- All data cached under `research_lab_data/` (CSV + `manifest.json`), gitignored. The page
+  must run even with zero data pulled: every section states which series is missing and
+  which button pulls it.
+- Bloomberg pulls via `xbbg` `blp.bdh` / `blp.bdib`. Incremental refresh (re-pull from last
+  stored date − 5 days). One retry then a clear error — never crash the app.
 - **No look-ahead in any backtest**: signals on day t use data through t−1. State fill
   conventions in every output. Default costs: 10bp fee + 5bp slippage per equity order.
 - Build EXACTLY what is below. No optimizers, no grid searches, no extra strategies, no
-  extra parameters. Few tests, done exactly, exportable.
+  extra parameters. Few tests, done exactly, with copy-pastable text results.
 
 The page is `st.tabs` with 5 tabs.
 
@@ -107,10 +107,29 @@ SPY over the 15:30–17:30 overlap; ETF mid vs iNAV premium by hour; PX_OFFICIAL
 XNDXNNRL) and vs 2× NDDUUS + EURUSD — regression table (beta, alpha bp/yr, R²) answering
 hedged/quanto/unhedged and the annual cost drag.
 
-## Exports (every tab)
+## Results I/O — TEXT ONLY (no files: the analyst can only receive copy-pasted text)
 
-An "Exporter" button per tab writing `research_lab_exports/<tab>_<timestamp>/` with
-`config.json` (all params + manifest hashes), `results.json`
-({"test", "run_at", "params", "data_ranges", "tables": {name: [rows]}, "headline"}) and the
-PNGs. One global "tout zipper" button. Everything shown must be in `tables` — the bundle is
-parsed by an external analyst, no screenshot-only results.
+1. No zip, no PNG exports. Each tab (including Tab 1) has a **"📋 Copier pour l'analyste"**
+   expander containing ONE `st.code(json_string, language="json")` block — Streamlit's
+   built-in copy button does the rest.
+2. The block is a single JSON object, **compact by construction, hard budget 25,000
+   characters**: `{"test", "run_at", "params": {...}, "data_ranges": {series: [start, end]},
+   "tables": {name: [rows]}, "series": {name: [[date, value], ...]}, "headline",
+   "schema_version": 1, "checksum"}`.
+   - `tables` = every aggregate the tab displays (stats, per-block results, gate status),
+     numbers rounded to 4 significant digits.
+   - `series` = ONLY the curves needed to re-plot: month-end resampled, rounded, max 3
+     series per bundle (e.g. strategy vs control cumulative wealth, tracking difference).
+     Never daily dumps, never OHLCV.
+   - `checksum` = first 8 hex chars of sha256 of the rest of the object (canonical minified
+     JSON, sorted keys) so a truncated paste is detectable.
+3. Over budget? Do NOT truncate silently: drop `series` first (keep `tables` always); if
+   still too big, split into numbered parts `{"part": 1, "of": 2, ...}` in separate code
+   blocks, each under budget.
+4. Tab 1's bundle = manifest health + validation panel results, so data quality is
+   auditable from text alone.
+5. Add one "📥 Importer une réponse" `st.text_area` (key `rlab_import`): the analyst sends
+   back JSON of the same shape — corrected params, or a pre-registered variant spec
+   `{"name", "params": {...}}`. Parse, validate against a small schema, and offer a
+   "Lancer ce test" button that runs the spec through the existing engines with zero code
+   changes.
