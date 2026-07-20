@@ -7,26 +7,27 @@
 
 ## Your role
 
-You are assisting with a personal quantitative research project. I need to export historical
-data from my Bloomberg terminal to CSV files for offline backtesting. For every series listed
-below, give me the **exact, ready-to-paste method**: Excel BDH formulas (preferred) or Desktop
-API `IntradayBarRequest` parameters for the intraday blocks. Resolve every ticker or field
-mnemonic marked **(guess)** or **(likely)** to the exact one on my terminal (use FLDS/DES/SECF
-as needed), and tell me when a series needs an entitlement I may not have (flag it, propose the
-closest entitled substitute).
+You are assisting with a personal quantitative research project. I will retrieve historical
+data myself through the Bloomberg Desktop API in Python (`blpapi` / `xbbg` — same field
+mnemonics as BDH). Your job is NOT to export anything: it is to **resolve and confirm the
+inputs my Python code will use**. For every series listed below:
 
-## Global export rules
+1. Resolve every ticker or field mnemonic marked **(guess)** or **(likely)** to the exact one
+   on my terminal (use FLDS/DES/SECF as needed). Correct anything I got wrong.
+2. Give the **true history start date** visible on this terminal for every series marked
+   "max" / "confirm".
+3. Flag any series that needs an **entitlement** I may not have (EPFR, CDX/CMA, Investors
+   Intelligence, index-level BEst history…) and propose the closest entitled substitute.
+4. For fields with **overrides or settings** (BEST_FPERIOD_OVERRIDE, futures roll/adjustment
+   conventions, DPDF-style adjustment defaults as they apply to API pulls), state the exact
+   override name and the value I should pass so the result is deterministic.
+5. Where a requested series simply does not exist or is not API-retrievable, say so explicitly
+   and propose the nearest substitute — do not silently skip it.
 
-1. One CSV per series. OHLCV series: columns `date,open,high,low,close,volume`. Single-value
-   series: `date,value`. ISO dates, daily frequency unless stated, **maximum available history**.
-2. Non-trading days omitted (no fill), currency = the security's native currency.
-3. Pin the adjustment settings explicitly in each BDH so my personal DPDF defaults cannot
-   silently change an export: splits ON, **dividend adjustment OFF for price series** (total
-   return comes from the dedicated TR fields, never from adjusted prices).
-4. For total-return series use `TOT_RETURN_INDEX_GROSS_DVDS` (gross). Where a net-TR sibling
-   exists, list it too — I want both bounds.
-5. For each block below, produce: (a) the resolved ticker list, (b) one sample BDH formula I can
-   copy for the whole block, (c) any entitlement warnings.
+Conventions my pipeline will apply (so flag anything that conflicts): daily frequency unless
+stated, native currency, no fill of non-trading days; price series split-adjusted but NOT
+dividend-adjusted; total return via `TOT_RETURN_INDEX_GROSS_DVDS` plus the net-TR sibling
+where one exists.
 
 Priority: **P0 first** (blocks A, B, C, F, H). P1 next. P2 only if trivial.
 
@@ -166,9 +167,9 @@ venue for the monthly PEA buy. I understand intraday bars are limited to ~240 da
 ~140) — confirm the exact limits on my terminal.
 
 1. **Intraday 1-minute bars, eventType TRADE + BID + ASK (3 separate requests each)** for:
-   `ESE FP Equity`, `PUST FP Equity`, `SPY US Equity`, front-month e-mini (`ESU5 Index` or
-   current — also generic `ES1 Index` daily), `EURUSD Curncy`. Give me the exact
-   IntradayBarRequest parameters or the Excel BDH intraday syntax.
+   `ESE FP Equity`, `PUST FP Equity`, `SPY US Equity`, front-month e-mini (current contract,
+   plus generic `ES1 Index` daily), `EURUSD Curncy`. Confirm the `IntradayBarRequest`
+   eventTypes and the exact bar-history limit so my Python code requests the right window.
 2. **iNAV**: resolve the intraday indicative-NAV ticker for ESE FP and PUST FP (from the DES/
    ETF page "INAV Ticker" field) and give me its intraday + daily export method.
 3. **Auction data**: which fields on Euronext-listed ETFs carry the opening/closing auction
@@ -183,8 +184,10 @@ venue for the monthly PEA buy. I understand intraday bars are limited to ~240 da
 
 ## Final deliverable I want from you
 
-For each block: (1) the resolved ticker/field list with corrections, (2) one paste-ready BDH
-formula template + the per-series variations, (3) entitlement flags, (4) the true history
-start dates you can see on this terminal for every series marked "max"/"confirm". Where a
-requested series simply does not exist or cannot be exported, say so explicitly and propose
-the nearest substitute — do not silently skip it.
+One consolidated answer, block by block, in table form:
+
+| requested series | resolved ticker | resolved field(s) | overrides/settings | true history start | entitlement flag | notes/corrections |
+
+That table is what I will hand to my Python pipeline (`xbbg`/`blpapi`) verbatim — so exactness
+matters more than prose. Where something doesn't exist or isn't retrievable via the API, write
+NOT AVAILABLE and name the nearest substitute on the same row.
