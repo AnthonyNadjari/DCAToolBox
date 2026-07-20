@@ -62,6 +62,32 @@ full-period wealth — a risk choice, not skill) > immediate-vs-day-26
 deployment (~+0.7% lifetime) > all timing (bounded by the +0.63%
 perfect-foresight ceiling over 33 years). Zero fitted parameters. Never sell.
 
+## Addendum (2026-07-20): the Bloomberg campaigns — the signal branch is closed
+
+Two further pre-registered campaigns were run after the user gained Bloomberg access,
+covering every data family the original program lacked:
+
+1. **Public-proxy macro campaign** (`scripts/macro_signals_experiment.py`, 13 fixed
+   candidates on Baa−10Y credit, Baa−Aaa quality, 10Y−3M curve, MOVE, NFCI, publication
+   lags modeled): **0/13** — every candidate lost to immediate deployment both IS
+   (1993–2012) and OOS (2013–2026), −0.5% to −2.5%, unchanged at fees ×2. NFCI loses
+   despite its revised-history look-ahead advantage.
+2. **Bloomberg-exclusive campaign** (Streamlit lab, Bloomberg terminal data, 12 fixed
+   candidates, 2 dropped on unresolved tickers): HY−IG decompression percentile, absolute
+   HY OAS > 800bp, post-panic peak-retreat, new-lows washout, AAII panic spread and bear
+   extreme, margin-debt deleveraging, and three REAL VIX-futures-curve backwardation
+   measures (constant-maturity CM30 < spot, deep roll yield, mid-curve inversion):
+   **0/10 beat immediate deployment IS; 0 read OOS; 0 survived** (−0.7% to −2.1% both
+   sides of the 2012-12-31 cut, fees ×2 identical). Even the cycle-position signal
+   designed specifically to dodge the waiting cost (deploy after the OAS peak) lost.
+
+Cumulative tally across the whole program: ~6,000 grid backtests, 147 agent-invented
+signals, 4,986 exhaustive signals, 24 pre-registered fear-timing/money-market candidates,
+3 VIX-term-structure proxies, 13 macro proxies, 10 Bloomberg-exclusive candidates —
+**zero timing signals beat immediate deployment out of sample.** The branch "use any
+public or terminal data to time purchases" is closed. What remains open is structural
+only: the leverage dial (CL2/LQQ, PEA-eligible) and execution-cost minimization.
+
 ## The one open dial: leverage (a risk choice, stated honestly)
 
 The audit's corrected constraint-sensitivity verdict — which survives
