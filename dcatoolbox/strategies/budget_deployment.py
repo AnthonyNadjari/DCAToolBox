@@ -32,10 +32,16 @@ class BudgetDeploymentStrategy(Strategy):
 
     name = "abstract"
 
+    #: Budget deployment policies.
+    POLICIES = ("reset", "accumulate")
+
     def _validate(self) -> None:
         self.allocation: float = float(self.params.get("allocation", 0.25))
         if not 0.0 < self.allocation <= 1.0:
             raise ValueError("allocation must be in (0, 1]")
+        self.budget_policy: str = str(self.params.get("budget_policy", "reset"))
+        if self.budget_policy not in self.POLICIES:
+            raise ValueError(f"budget_policy must be one of {self.POLICIES}")
         self._configure()
 
     def _configure(self) -> None:
@@ -47,11 +53,17 @@ class BudgetDeploymentStrategy(Strategy):
         raise NotImplementedError
 
     def on_bar(self, context: MarketContext) -> list[Order]:
-        """Common deploy-on-signal / sweep-on-due-day logic."""
+        """Deploy on signal; sweep the remainder on the due day (policy-aware).
+
+        With ``budget_policy="reset"`` (default) any cash left on the scheduled
+        day is fully invested, so each month's budget is always deployed. With
+        ``budget_policy="accumulate"`` no sweep happens: unspent cash carries over
+        to hunt for larger, less frequent dips (a true "buy the dip" mandate).
+        """
         cash = context.available_cash
         if cash <= _MIN_NOTIONAL:
             return []
-        if context.is_scheduled_day:
+        if context.is_scheduled_day and self.budget_policy == "reset":
             return [self._buy(context, cash, "open", "scheduled")]
         fired, price_field = self._signal(context)
         if fired:

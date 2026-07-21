@@ -33,3 +33,13 @@ jobs:
 
       - name: Test (pytest + coverage)
         run: pytest --cov=dcatoolbox --cov-report=term-missing
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: JS↔Python engine parity
+        run: |
+          python scripts/gen_golden.py
+          node web/engine.test.mjs
