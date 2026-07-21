@@ -81,6 +81,15 @@ covering every data family the original program lacked:
    sides of the 2012-12-31 cut, fees ×2 identical). Even the cycle-position signal
    designed specifically to dodge the waiting cost (deploy after the OAS peak) lost.
 
+3. **Signal Factory** (Streamlit lab, all pulled Bloomberg data, 46 features incl. the IV
+   surface, real UX curve, OAS, breadth, AAII, margin debt): Layer A — 1/1,380 candidates
+   positive on both sides of the 2012 cut (chance level); Layer B — the top-20 selected
+   in-sample went 0/20 out-of-sample; Layer C — the ADAPTIVE version (walk-forward
+   re-selection of the top-10 signals every two years, zero hindsight, 2005→2026) ended
+   at **−9.19% vs immediate deployment**, identical at 10bp and 50bp fees. The
+   "hedge-fund-style" adaptive selector was implemented and it lost: adaptation cannot
+   rescue signals whose edge is zero, it only compounds their waiting costs.
+
 Cumulative tally across the whole program: ~6,000 grid backtests, 147 agent-invented
 signals, 4,986 exhaustive signals, 24 pre-registered fear-timing/money-market candidates,
 3 VIX-term-structure proxies, 13 macro proxies, 10 Bloomberg-exclusive candidates —
