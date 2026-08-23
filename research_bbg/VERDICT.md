@@ -163,3 +163,49 @@ interest, fund flows, earnings revisions, valuation, implied correlation,
 money-market cash, and walk-forward ML — zero beat immediate deployment
 out of sample.** Combined with the July program: ~7,300 tested rules, zero
 survivors. The purchase-timing question for this instrument is answered.
+
+---
+
+# Addendum 3 (2026-08-23, late): Campaign 3 — the hedge-fund reframe (allocation + leverage)
+
+Timing being closed, the question was changed to the two levers a fund
+would actually pull: WHERE the monthly flow goes (8-asset EUR TR universe:
+SPX, NDX, Stoxx 600, MSCI EM, Russell 2000, MSCI Japan, gold, EUR cash,
+1999-2026) and HOW MUCH exposure (2x sleeve, synthetic validated vs real
+CL2, corr 0.93; internal comparisons drag-neutral).
+
+## 3A Flow allocation — momentum autopsy repeats on the richer universe
+
+rel_mom_top1 looked like the first real survivor (+10.2% IS / +16.7% OOS
+vs 100% SPX, all lookback neighbors positive). Matched-mix attribution
+killed it: IS it LOSES 13.1% to the fixed mix of its own realized average
+weights (the mix made +26.9%; the rotation kept +10.2% of it); OOS it adds
++2.6% over its mix (45% NDX + 30% gold — pure beta). Full period 1999-2026
+the rotation trails 100% SPX outright (1.76M vs 2.12M), merely smoother
+(-29% vs -40%). Per-asset trend gating: -24% OOS (cash drag). Conclusion
+unchanged from July, now at 7 assets: switching subtracts value; the only
+thing that "worked" was holding more Nasdaq and gold — a risk choice.
+
+## 3B Leverage dial — state-dependence is conditional beta
+
+Fixed-share frontier (monthly flow % to 2x): wealth rises monotonically
+with the share in BOTH eras (IS 779k->819k, OOS 437k->1,019k) while max
+portfolio drawdown deepens (-54%->-93% IS incl. 2000-09; -33%->-57% OOS).
+Dynamic rules vs the frontier at their own realized average share:
+drawdown-scaled +2.8/+3.1% IS but ~0 OOS (it de-levered through the whole
+bull era); trend gate -5.0% IS / +2.2% OOS; vol-target 20% -0.3% IS /
++3.1% OOS; vol-target 25% +0.2% / +1.4% (noise, and its neighbor flips
+sign). No state-dependent rule beats the fixed frontier on both eras.
+**The leverage dial is a constant, chosen once by drawdown tolerance —
+there is no rule for it.**
+
+## The hedge-fund answer for this mandate
+
+After ~7,400 rules across timing, allocation and leverage state-dependence:
+the entire harvestable edge inventory is structural and certain —
+(1) fee/TER/wrapper (largest, guaranteed), (2) the two beta dials (growth
+tilt and a fixed leverage share, both pre-registered risk choices priced
+off the frontier above), (3) execution (late morning, limit at mid, never
+the closing auction, spread guard), (4) never selling. Every conditional
+rule tested — on price, macro, positioning, flows, ML, cross-asset
+allocation, and leverage state — was either noise or beta in costume.
