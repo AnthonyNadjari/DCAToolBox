@@ -41,3 +41,4 @@ web/.parity/
 *.swp
 data_real/
 results/
+data_bbg/
