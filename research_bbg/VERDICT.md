@@ -135,3 +135,31 @@ What Bloomberg access genuinely bought: (1) the certain execution rule
 funds (CL2 5.8x vs ESE 2.8x, maxDD -60% vs -34%); (3) closure at a far
 higher evidentiary standard: the timing branch is not merely unexploited,
 it is now measured to be empty at ±10bp resolution over 37 years.
+
+## Addendum 2 (2026-08-23 night): MMF cash gauge and machine learning
+
+**Money-market-fund "cash on the sidelines" (trader's suggestion).** ICI
+total MMF assets (MMFA Index, weekly, 1990-2026, publication lag modeled):
+9 pre-registered specs — cash surges, cash-vs-equity z-scores/percentiles,
+cash-rotation-out. 0/9: best +0.03% IS flips to -0.68% OOS. Mechanism: MMF
+cash surges DURING selloffs, but the deployment reserve pays drift while
+waiting for the surge to register; by the time sidelined cash peaks, the
+price has recovered past the arrival-day level.
+
+**Machine learning (pre-registered walk-forward, commit before results).**
+Ridge, gradient boosting and logistic classification on the full 90+
+feature library, 21-day forward target, expanding walk-forward with 21-bar
+purge, yearly refits, fixed prediction-to-deployment mapping. Out-of-sample
+R²: ridge -2.23, GBM -0.55 — the models predict WORSE than the
+unconditional mean. All six deployment variants negative in both eras
+(backfill -0.4..-1.4%, real fund -0.2..-0.7%). The conception document's
+a-priori rejection of supervised ML at this data scale is now an empirical
+result on this exact dataset.
+
+**Final session tally: 667 pre-registered rule variants + 6 ML rules,
+across price, calendar, FOMC/macro events, volatility complex incl. real
+futures curve, credit, FX/EUR, sentiment surveys, positioning, short
+interest, fund flows, earnings revisions, valuation, implied correlation,
+money-market cash, and walk-forward ML — zero beat immediate deployment
+out of sample.** Combined with the July program: ~7,300 tested rules, zero
+survivors. The purchase-timing question for this instrument is answered.
