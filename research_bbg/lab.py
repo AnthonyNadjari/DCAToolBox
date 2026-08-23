@@ -46,9 +46,10 @@ def fired_mask(spec: dict, feats: dict[str, np.ndarray], n: int) -> np.ndarray:
 
 
 def simulate(asset: pd.DataFrame, fired: np.ndarray, base_deploy: float,
-             seg: slice, fee: float = FEE, max_hold: int = MAX_HOLD) -> dict:
+             seg: slice, fee: float = FEE, max_hold: int = MAX_HOLD,
+             fill: str = "open") -> dict:
     dates = asset.index[seg]
-    op = asset["open"].to_numpy(dtype=float)[seg]
+    op = asset["open" if fill == "open" else "close"].to_numpy(dtype=float)[seg]
     cl = asset["close"].to_numpy(dtype=float)[seg]
     fr = fired[seg]
     month = dates.to_period("M")
@@ -91,7 +92,8 @@ def evaluate(specs: list[dict], fee: float = FEE) -> list[dict]:
         row = {"name": spec["name"], "conds": spec["conds"],
                "base_deploy": spec.get("base_deploy", 0.0),
                **{s: simulate(asset, fired, spec.get("base_deploy", 0.0), sl, fee,
-                              int(spec.get("max_hold", MAX_HOLD)))
+                              int(spec.get("max_hold", MAX_HOLD)),
+                              spec.get("fill", "open"))
                   for s, sl in segs.items()}}
         for s in segs:
             row[s]["vs_now"] = round(row[s]["final"] / ref[s] - 1, 5)

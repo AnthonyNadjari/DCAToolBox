@@ -1,0 +1,698 @@
+[
+ {
+  "name": "lit_prefomc_any",
+  "conds": [
+   {
+    "feature": "days_to_fomc",
+    "op": "<",
+    "thr": 1.5
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_prefomc_cap10",
+  "conds": [
+   {
+    "feature": "days_to_fomc",
+    "op": "<",
+    "thr": 1.5
+   }
+  ],
+  "max_hold": 10,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_prefomc_vixgate",
+  "conds": [
+   {
+    "feature": "days_to_fomc",
+    "op": "<",
+    "thr": 1.5
+   },
+   {
+    "feature": "vix_now",
+    "op": ">",
+    "thr": 20
+   }
+  ],
+  "max_hold": 10,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_fomc_eve_close",
+  "conds": [
+   {
+    "feature": "days_to_fomc",
+    "op": "<",
+    "thr": 1.5
+   }
+  ],
+  "max_hold": 10,
+  "base_deploy": 0.0,
+  "fill": "close"
+ },
+ {
+  "name": "lit_nfp_eve",
+  "conds": [
+   {
+    "feature": "days_to_nfp",
+    "op": "<",
+    "thr": 1.5
+   }
+  ],
+  "max_hold": 5,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_nfp_eve_close",
+  "conds": [
+   {
+    "feature": "days_to_nfp",
+    "op": "<",
+    "thr": 1.5
+   }
+  ],
+  "max_hold": 5,
+  "base_deploy": 0.0,
+  "fill": "close"
+ },
+ {
+  "name": "lit_fomc_even_week",
+  "conds": [
+   {
+    "feature": "fomc_even_week",
+    "op": ">",
+    "thr": 0.5
+   }
+  ],
+  "max_hold": 10,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_tom_t4",
+  "conds": [
+   {
+    "feature": "tdays_to_month_end",
+    "op": "<",
+    "thr": 3.5
+   },
+   {
+    "feature": "tdays_to_month_end",
+    "op": ">",
+    "thr": 2.5
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "close"
+ },
+ {
+  "name": "lit_tom_t4_open",
+  "conds": [
+   {
+    "feature": "tdays_to_month_end",
+    "op": "<",
+    "thr": 3.5
+   },
+   {
+    "feature": "tdays_to_month_end",
+    "op": ">",
+    "thr": 2.5
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_tom_t2",
+  "conds": [
+   {
+    "feature": "tdays_to_month_end",
+    "op": "<",
+    "thr": 1.5
+   },
+   {
+    "feature": "tdays_to_month_end",
+    "op": ">",
+    "thr": 0.5
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "close"
+ },
+ {
+  "name": "lit_tom_window",
+  "conds": [
+   {
+    "feature": "tdays_to_month_end",
+    "op": "<",
+    "thr": 3.5
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_opex_entry",
+  "conds": [
+   {
+    "feature": "days_to_opex",
+    "op": "<",
+    "thr": 7.5
+   },
+   {
+    "feature": "days_to_opex",
+    "op": ">",
+    "thr": 2.5
+   }
+  ],
+  "max_hold": 15,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_avoid_postopex",
+  "conds": [
+   {
+    "feature": "post_opex_week",
+    "op": "<",
+    "thr": 0.5
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_rsi2_trend_cap5",
+  "conds": [
+   {
+    "feature": "rsi_2",
+    "op": "<",
+    "thr": 10
+   },
+   {
+    "feature": "sma_ratio_200",
+    "op": ">",
+    "thr": 0.0
+   }
+  ],
+  "max_hold": 5,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_rsi2_trend_cap10",
+  "conds": [
+   {
+    "feature": "rsi_2",
+    "op": "<",
+    "thr": 10
+   },
+   {
+    "feature": "sma_ratio_200",
+    "op": ">",
+    "thr": 0.0
+   }
+  ],
+  "max_hold": 10,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_rsi2_deep_cap5",
+  "conds": [
+   {
+    "feature": "rsi_2",
+    "op": "<",
+    "thr": 5
+   },
+   {
+    "feature": "sma_ratio_200",
+    "op": ">",
+    "thr": 0.0
+   }
+  ],
+  "max_hold": 5,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_2down_cap5",
+  "conds": [
+   {
+    "feature": "down_streak",
+    "op": ">",
+    "thr": 1.5
+   },
+   {
+    "feature": "sma_ratio_200",
+    "op": ">",
+    "thr": 0.0
+   }
+  ],
+  "max_hold": 5,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_dip2_cap10",
+  "conds": [
+   {
+    "feature": "ret_5",
+    "op": "<",
+    "thr": -0.02
+   }
+  ],
+  "max_hold": 10,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_vix_p80_cap21",
+  "conds": [
+   {
+    "feature": "vix_pctl",
+    "op": ">",
+    "thr": 0.8
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_vix_p80_cap10",
+  "conds": [
+   {
+    "feature": "vix_pctl",
+    "op": ">",
+    "thr": 0.8
+   }
+  ],
+  "max_hold": 10,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_backwardation_cap5",
+  "conds": [
+   {
+    "feature": "vix_ts",
+    "op": ">",
+    "thr": 0.0
+   }
+  ],
+  "max_hold": 5,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_volcrush_bearkiller",
+  "conds": [
+   {
+    "feature": "vix_peak_63",
+    "op": ">",
+    "thr": 50
+   },
+   {
+    "feature": "vix_now",
+    "op": "<",
+    "thr": 30
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_vix40_wait",
+  "conds": [
+   {
+    "feature": "vix_now",
+    "op": ">",
+    "thr": 40
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "lit_vix30_relief",
+  "conds": [
+   {
+    "feature": "vix_peak_63",
+    "op": ">",
+    "thr": 30
+   },
+   {
+    "feature": "vix_now",
+    "op": "<",
+    "thr": 30
+   },
+   {
+    "feature": "vix_chg_5",
+    "op": "<",
+    "thr": 0
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_cftc_pctl_low",
+  "conds": [
+   {
+    "feature": "cftc_pctl",
+    "op": "<",
+    "thr": 0.1
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_cftc_z_low",
+  "conds": [
+   {
+    "feature": "cftc_z_1y",
+    "op": "<",
+    "thr": -1.5
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_cftc_z_low_cap21",
+  "conds": [
+   {
+    "feature": "cftc_z_1y",
+    "op": "<",
+    "thr": -1.5
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_naaim_low",
+  "conds": [
+   {
+    "feature": "naaim_pctl",
+    "op": "<",
+    "thr": 0.1
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_naaim_sub30",
+  "conds": [
+   {
+    "feature": "naaim",
+    "op": "<",
+    "thr": 30
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_naaim_low_cap21",
+  "conds": [
+   {
+    "feature": "naaim_pctl",
+    "op": "<",
+    "thr": 0.1
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_si_low",
+  "conds": [
+   {
+    "feature": "si_pctl",
+    "op": "<",
+    "thr": 0.5
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_si_not_extreme",
+  "conds": [
+   {
+    "feature": "si_pctl",
+    "op": "<",
+    "thr": 0.9
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_flow_outflow",
+  "conds": [
+   {
+    "feature": "spy_flow_21",
+    "op": "<",
+    "thr": -1.0
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_flow_outflow_cap21",
+  "conds": [
+   {
+    "feature": "spy_flow_21",
+    "op": "<",
+    "thr": -1.0
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_flow_pctl_low",
+  "conds": [
+   {
+    "feature": "spy_flow_pctl",
+    "op": "<",
+    "thr": 0.1
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_eps_up",
+  "conds": [
+   {
+    "feature": "eps_rev_21",
+    "op": ">",
+    "thr": 0.0
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_eps_capitulation",
+  "conds": [
+   {
+    "feature": "eps_rev_63",
+    "op": "<",
+    "thr": -0.03
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_fedmodel_cheap",
+  "conds": [
+   {
+    "feature": "fed_model_pctl",
+    "op": ">",
+    "thr": 0.8
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_fedmodel_cheap_cap21",
+  "conds": [
+   {
+    "feature": "fed_model_pctl",
+    "op": ">",
+    "thr": 0.8
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_implcorr_spike",
+  "conds": [
+   {
+    "feature": "impl_corr_pctl",
+    "op": ">",
+    "thr": 0.9
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_implcorr_jump",
+  "conds": [
+   {
+    "feature": "impl_corr_chg_21",
+    "op": ">",
+    "thr": 10
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "bask_implcorr_spike_cap21",
+  "conds": [
+   {
+    "feature": "impl_corr_pctl",
+    "op": ">",
+    "thr": 0.9
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "combo_tom_dip",
+  "conds": [
+   {
+    "feature": "tdays_to_month_end",
+    "op": "<",
+    "thr": 3.5
+   },
+   {
+    "feature": "dd_63",
+    "op": "<",
+    "thr": -0.02
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "combo_fomc_flow",
+  "conds": [
+   {
+    "feature": "days_to_fomc",
+    "op": "<",
+    "thr": 1.5
+   },
+   {
+    "feature": "spy_flow_21",
+    "op": "<",
+    "thr": 0.0
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "combo_vix_cftc",
+  "conds": [
+   {
+    "feature": "vix_pctl",
+    "op": ">",
+    "thr": 0.8
+   },
+   {
+    "feature": "cftc_z_1y",
+    "op": "<",
+    "thr": -1.0
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "combo_naaim_dip",
+  "conds": [
+   {
+    "feature": "naaim_pctl",
+    "op": "<",
+    "thr": 0.2
+   },
+   {
+    "feature": "dd_63",
+    "op": "<",
+    "thr": -0.03
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "combo_eps_dip",
+  "conds": [
+   {
+    "feature": "eps_rev_21",
+    "op": ">",
+    "thr": 0.0
+   },
+   {
+    "feature": "dd_63",
+    "op": "<",
+    "thr": -0.03
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ }
+]

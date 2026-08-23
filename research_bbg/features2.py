@@ -102,6 +102,22 @@ def build_features2() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
     f["opex_week"] = ((delta_tf >= 0) & (delta_tf <= 4)).astype(float)
     f["post_opex_week"] = ((delta_tf < 0) & (delta_tf >= -7)).astype(float)
 
+
+    # --- NFP calendar (first Friday of month) and vol-crush state ---
+    nfp_map = {}
+    for per in sorted(set(idx.to_period("M"))):
+        fridays = pd.date_range(per.start_time, per.end_time, freq="W-FRI")
+        nfp_map[per] = fridays[0]
+    nfp_ser = pd.Series([nfp_map[p] for p in idx.to_period("M")], index=idx)
+    nxt_map = {per: nfp_map.get(per + 1) for per in nfp_map}
+    dtn = (nfp_ser - pd.Series(idx, index=idx)).dt.days.astype(float)
+    nxt_ser = pd.Series([nxt_map[p] for p in idx.to_period("M")], index=idx)
+    dtn2 = (nxt_ser - pd.Series(idx, index=idx)).dt.days.astype(float)
+    f["days_to_nfp"] = dtn.where(dtn >= 0, dtn2)     # calendar days to next NFP
+    vixs = _al(load("VIX Index")["PX_LAST"], idx)
+    f["vix_peak_63"] = vixs.rolling(63).max()
+    f["vix_now"] = vixs
+
     extra = {k: s.shift(1).to_numpy(dtype=float) for k, s in f.items()}
     feats.update(extra)
     return asset, feats
