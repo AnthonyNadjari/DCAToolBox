@@ -85,3 +85,53 @@ Buy the day the cash arrives. Everything. Late morning, limit at mid, skip
 if spread > 25 bp. The only decisions that moved the outcome are structural:
 the fee (0.5% is high — halving it beats every signal ever tested here),
 the leverage dose, and never selling.
+
+---
+
+# Addendum (2026-08-23 evening): the online-deep-dive + BASK campaign
+
+Six parallel deep-research agents swept the academic and practitioner
+literature (60+ sources: JF/JFE/RFS/JFQA, AQR, Elm, Quantpedia, NY Fed,
+QuantSeeker replications); BASK supplied terminal tickers for every
+Bloomberg-native family it could name (CFTC IMM0ENCN, NAAIM, JCJ/COR1M
+implied correlation, SPY short interest, FUND_FLOW incl. leveraged pairs,
+BEst revisions, FOMC calendar workflow). The FOMC statement calendar
+1994-2026 was compiled from federalreserve.gov (263 scheduled meetings).
+
+## Campaign 2 — 47 pre-registered literature/BASK delay rules (commit before results)
+
+Pre-FOMC drift (Lucca-Moench incl. VIX-gated & close-fill), announcement-eve
+NFP/CPI (Savor-Wilson), FOMC even weeks (Cieslak et al.), turn-of-month T-4/
+T-2 (Etula dash-for-cash), OpEx entry/avoidance, Connors RSI(2) with 5/10-day
+caps, Bansal-Stivers VIX>P80, first-day backwardation, bear-killer vol-crush,
+CFTC contrarian, NAAIM capitulation, short-interest, flow capitulation,
+revision momentum, Fed model, implied-correlation spikes, and five combos.
+
+Result: 2/47 IS-positive; 1/47 both sides — lit_tom_window at +0.05%/+0.02%
+LIFETIME (the same turn-of-month noise cluster campaign 1 already killed).
+The overnight/MOC execution anomaly does not transfer either: ESE's Euronext
+open already sits after the US overnight session (open-fill null = close-fill
+null to within 3bp lifetime).
+
+## Campaign 2b — 11 pre-registered specs on the last untested grade-A candidates
+
+VRP (Bollerslev-Tauchen-Zhou), MOVE-VIX divergence (IRFA 2026), Davies
+leveraged-ETF speculation sentiment. Result: the VRP and MOVE-VIX variants
+are IS-positive (+0.04..+0.12%) and ALL flip negative OOS on the real fund
+era. Speculation sentiment negative on both sides. 0/11.
+
+## Session tally and the unchanged conclusion
+
+652 pre-registered specs this session (594 + 47 + 11) across every family
+the literature, the terminal, and BASK could produce — on the real
+instrument, in EUR, at the investor's true 0.5% fee. Survivors: none. The
+literature's own meta-finding matched our measurements exactly: the credible
+post-publication estimate for the entire day-picking game is ~10-25bp/yr,
+and the anomalies carrying it (TOM, pre-FOMC) measurably decayed post-2015.
+
+What Bloomberg access genuinely bought: (1) the certain execution rule
+(late morning, limit at mid, never the closing auction, skip if spread
+> 25bp — worth ~5-10bp per order); (2) the leverage-dial numbers on real
+funds (CL2 5.8x vs ESE 2.8x, maxDD -60% vs -34%); (3) closure at a far
+higher evidentiary standard: the timing branch is not merely unexploited,
+it is now measured to be empty at ±10bp resolution over 37 years.
