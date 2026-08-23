@@ -17,7 +17,6 @@ import sys
 from datetime import date
 from pathlib import Path
 
-import pandas as pd
 from xbbg import blp
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -40,9 +39,12 @@ def pull_one(ticker: str, fields: list[str], start: str) -> dict:
     path = OUT / f"{safe_name(ticker)}.parquet"
     df.to_parquet(path)
     return {
-        "ticker": ticker, "rows": len(df),
-        "first": str(df.index[0])[:10], "last": str(df.index[-1])[:10],
-        "fields": list(df.columns), "file": path.name,
+        "ticker": ticker,
+        "rows": len(df),
+        "first": str(df.index[0])[:10],
+        "last": str(df.index[-1])[:10],
+        "fields": list(df.columns),
+        "file": path.name,
     }
 
 
@@ -60,8 +62,10 @@ def main() -> None:
         except Exception as exc:  # noqa: BLE001
             info = {"ticker": ticker, "rows": 0, "error": str(exc)[:200]}
         log.append(info)
-        print(f"{'PULLED' if info['rows'] else 'FAILED':6} {ticker}: "
-              f"{info.get('rows')} rows {info.get('first','')} -> {info.get('last','')}")
+        print(
+            f"{'PULLED' if info['rows'] else 'FAILED':6} {ticker}: "
+            f"{info.get('rows')} rows {info.get('first', '')} -> {info.get('last', '')}"
+        )
     (OUT.parent / "pull_log.json").write_text(json.dumps(log, indent=2))
 
 

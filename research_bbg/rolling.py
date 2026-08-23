@@ -22,7 +22,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 from dataset import load
 from lev import build_lev_pair
 
@@ -30,11 +29,14 @@ FEE = 0.005
 
 
 def build_inputs() -> pd.DataFrame:
-    pair = build_lev_pair()                     # base (ESE frame), lev (2x synth)
-    df = pd.DataFrame({
-        "r_base": pair["base"].pct_change().fillna(0.0),
-        "r_lev": pair["lev"].pct_change().fillna(0.0),
-    }, index=pair.index)
+    pair = build_lev_pair()  # base (ESE frame), lev (2x synth)
+    df = pd.DataFrame(
+        {
+            "r_base": pair["base"].pct_change().fillna(0.0),
+            "r_lev": pair["lev"].pct_change().fillna(0.0),
+        },
+        index=pair.index,
+    )
     r3m = load("EUR003M Index")["PX_LAST"].reindex(df.index).ffill().fillna(3.0) / 100.0
     df["r_cash"] = r3m / 252
     base = pair["base"]
@@ -59,7 +61,7 @@ def strat_returns(df: pd.DataFrame, w_asset_fn, asset_col: str = "r_base") -> pd
     """Monthly-rebalanced weight in the risky sleeve; rest in cash; fee on turnover."""
     month = df.index.to_period("M")
     is_dep = np.r_[True, month[1:] != month[:-1]]
-    w_target = w_asset_fn(df)                   # daily series of desired weight (from prev close)
+    w_target = w_asset_fn(df)  # daily series of desired weight (from prev close)
     w = 0.0
     out = np.zeros(len(df))
     ra = df[asset_col].to_numpy()
@@ -84,15 +86,18 @@ def rolling_dca(price: pd.Series, null_price: pd.Series, years: int) -> dict:
     h = years * 12
     exc = []
     for start in range(0, len(both) - h):
-        w = both.iloc[start:start + h + 1]
+        w = both.iloc[start : start + h + 1]
         ws = (w["s"].iloc[-1] / w["s"].iloc[:-1]).sum()
         wn = (w["n"].iloc[-1] / w["n"].iloc[:-1]).sum()
         exc.append(ws / wn - 1)
     exc = np.array(exc)
-    return {"windows": len(exc), "win_rate": round(float((exc > 0).mean()), 3),
-            "median": round(float(np.median(exc)), 4),
-            "p5": round(float(np.percentile(exc, 5)), 4),
-            "p95": round(float(np.percentile(exc, 95)), 4)}
+    return {
+        "windows": len(exc),
+        "win_rate": round(float((exc > 0).mean()), 3),
+        "median": round(float(np.median(exc)), 4),
+        "p5": round(float(np.percentile(exc, 5)), 4),
+        "p95": round(float(np.percentile(exc, 95)), 4),
+    }
 
 
 def main() -> None:
@@ -132,8 +137,10 @@ def main() -> None:
         print(f"{'strategy':20s} {'win%':>6} {'median':>8} {'p5':>8} {'p95':>8} {'n':>5}")
         for r in sorted(out, key=lambda r: -r[f"{yrs}y"]["median"]):
             k = r[f"{yrs}y"]
-            print(f"{r['name']:20s} {k['win_rate']:>6.0%} {k['median']:>+8.2%} "
-                  f"{k['p5']:>+8.2%} {k['p95']:>+8.2%} {k['windows']:>5}")
+            print(
+                f"{r['name']:20s} {k['win_rate']:>6.0%} {k['median']:>+8.2%} "
+                f"{k['p5']:>+8.2%} {k['p95']:>+8.2%} {k['windows']:>5}"
+            )
 
 
 if __name__ == "__main__":

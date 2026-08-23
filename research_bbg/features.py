@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-
 from dataset import build_asset_frame, load
 
 WIN_PCTL = 1260  # 5y rolling percentile window
@@ -65,7 +64,7 @@ def build_features() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
     f["fx_rr25"] = _al(load("EURUSD25R1M Curncy")["PX_LAST"], idx)
     f["dxy_ret_63"] = _al(load("DXY Curncy")["PX_LAST"], idx).pct_change(63)
     # overnight decomposition: US close move not yet in the Euronext close
-    ese_ret_usd = (c * 0 + rets) + fx.pct_change()          # asset ret in USD approx
+    ese_ret_usd = (c * 0 + rets) + fx.pct_change()  # asset ret in USD approx
     f["us_after_eu_close"] = spx_c.pct_change() - ese_ret_usd  # yesterday's late-US move
 
     # ---- volatility complex ----
@@ -75,14 +74,14 @@ def build_features() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
     f["vix_chg_5"] = vix.diff(5)
     f["vix_chg_21"] = vix.diff(21)
     vix3m = _al(load("VIX3M Index")["PX_LAST"], idx)
-    f["vix_ts"] = vix / vix3m - 1                    # backwardation > 0
+    f["vix_ts"] = vix / vix3m - 1  # backwardation > 0
     ux1 = _al(load("UX1 Index")["PX_LAST"], idx)
     ux2 = _al(load("UX2 Index")["PX_LAST"], idx)
-    f["ux_roll"] = ux1 / ux2 - 1                     # real futures curve inversion
-    f["vix_basis"] = vix / ux1 - 1                   # spot vs front future
+    f["ux_roll"] = ux1 / ux2 - 1  # real futures curve inversion
+    f["vix_basis"] = vix / ux1 - 1  # spot vs front future
     f["vvix"] = _al(load("VVIX Index")["PX_LAST"], idx)
     v2x = _al(load("V2X Index")["PX_LAST"], idx)
-    f["v2x_vix"] = v2x - vix                         # EU fear premium
+    f["v2x_vix"] = v2x - vix  # EU fear premium
     move = _al(load("MOVE Index")["PX_LAST"], idx)
     f["move_pctl"] = _pctl(move)
     f["skew"] = _al(load("SKEW Index")["PX_LAST"], idx)

@@ -75,6 +75,10 @@ convention = "google"
 "tests/*" = ["D", "S101"]
 # typer.Option(...) in argument defaults is the documented, idiomatic CLI pattern.
 "main.py" = ["B008"]
+# research_bbg is a research lab, not library code: relaxed style.
+"research_bbg/*" = ["D", "N", "E731", "E501", "SIM", "B", "RET", "C4"]
+"scripts/build_signal_page.py" = ["D103", "N806", "E731"]
+"scripts/gen_specs.py" = ["D", "N", "E731"]
 "app.py" = ["B008"]
 
 [tool.mypy]

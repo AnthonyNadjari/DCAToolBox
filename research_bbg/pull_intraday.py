@@ -17,8 +17,7 @@ TICKER = "ESE FP Equity"
 
 
 def main() -> None:
-    days = pd.bdate_range(end=pd.Timestamp.now().normalize() - pd.Timedelta(days=1),
-                          periods=130)
+    days = pd.bdate_range(end=pd.Timestamp.now().normalize() - pd.Timedelta(days=1), periods=130)
     frames = []
     for d in days:
         ds = d.strftime("%Y-%m-%d")

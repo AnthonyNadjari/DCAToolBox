@@ -48,18 +48,28 @@ def build_asset_frame() -> pd.DataFrame:
     gap = (spx_al["PX_OPEN"] / spx_al["PX_LAST"].shift(1)).loc[idx]
     fx_gap = (fx_al / fx_al.shift(1)).loc[idx]
     open_eur = close_eur.shift(1) * gap / fx_gap
-    pre = pd.DataFrame({
-        "open": open_eur, "high": np.maximum(open_eur, close_eur),
-        "low": np.minimum(open_eur, close_eur), "close": close_eur,
-        "volume": 0.0, "real": False,
-    }).dropna(subset=["open", "close"])
+    pre = pd.DataFrame(
+        {
+            "open": open_eur,
+            "high": np.maximum(open_eur, close_eur),
+            "low": np.minimum(open_eur, close_eur),
+            "close": close_eur,
+            "volume": 0.0,
+            "real": False,
+        }
+    ).dropna(subset=["open", "close"])
 
     # --- real fund leg, rescaled so the splice is continuous ---
-    real = pd.DataFrame({
-        "open": ese["PX_OPEN"], "high": ese["PX_HIGH"], "low": ese["PX_LOW"],
-        "close": ese["PX_LAST"], "volume": ese["PX_VOLUME"].fillna(0.0),
-        "real": True,
-    }).dropna(subset=["close"])
+    real = pd.DataFrame(
+        {
+            "open": ese["PX_OPEN"],
+            "high": ese["PX_HIGH"],
+            "low": ese["PX_LOW"],
+            "close": ese["PX_LAST"],
+            "volume": ese["PX_VOLUME"].fillna(0.0),
+            "real": True,
+        }
+    ).dropna(subset=["close"])
     real[["open", "high", "low"]] = real[["open", "high", "low"]].ffill(axis=0)
     scale = pre["close"].iloc[-1] / real["close"].iloc[0]
     real[["open", "high", "low", "close"]] *= scale
@@ -80,15 +90,22 @@ def validate_splice() -> pd.DataFrame:
     cagr_e = (ese.iloc[-1] / ese.iloc[0]) ** (1 / yrs) - 1
     cagr_s = (synth.iloc[-1] / synth.iloc[0]) ** (1 / yrs) - 1
     te = (both["ese"] - both["synth"]).std() * np.sqrt(252)
-    return pd.DataFrame({
-        "corr_daily": [corr], "cagr_real": [cagr_e], "cagr_synth": [cagr_s],
-        "cagr_gap_bps": [(cagr_s - cagr_e) * 1e4], "tracking_err": [te],
-    })
+    return pd.DataFrame(
+        {
+            "corr_daily": [corr],
+            "cagr_real": [cagr_e],
+            "cagr_synth": [cagr_s],
+            "cagr_gap_bps": [(cagr_s - cagr_e) * 1e4],
+            "tracking_err": [te],
+        }
+    )
 
 
 if __name__ == "__main__":
     print(validate_splice().round(4).to_string(index=False))
     frame = build_asset_frame()
     print(frame.iloc[[0, 1, -2, -1]].round(2).to_string())
-    print(f"{len(frame)} bars, {frame.index[0].date()} -> {frame.index[-1].date()}, "
-          f"real from {frame.index[frame['real']].min().date()}")
+    print(
+        f"{len(frame)} bars, {frame.index[0].date()} -> {frame.index[-1].date()}, "
+        f"real from {frame.index[frame['real']].min().date()}"
+    )

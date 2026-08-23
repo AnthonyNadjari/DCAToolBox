@@ -20,7 +20,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 from dataset import load
 
 FEE = 0.005
@@ -28,7 +27,7 @@ BUDGET = 1000.0
 IS_END = pd.Timestamp("2013-09-15")
 
 RISKY = {
-    "spx": ("SPXT Index", True),      # (ticker, is_usd)
+    "spx": ("SPXT Index", True),  # (ticker, is_usd)
     "ndx": ("XNDX Index", True),
     "eur": ("SXXR Index", False),
     "em": ("NDUEEGF Index", True),
@@ -77,8 +76,7 @@ def simulate_flow(panel: pd.DataFrame, weight_fn, seg: slice) -> dict:
             shares[k] += BUDGET * f * (1 - fee) / px[i, k]
             wsum[k] += f
     final = float((shares * px[(seg.stop or len(panel)) - 1]).sum())
-    avg_w = {nm: round(wsum[k] / max(ndep, 1), 3)
-             for k, nm in enumerate(names) if wsum[k] > 0.001}
+    avg_w = {nm: round(wsum[k] / max(ndep, 1), 3) for k, nm in enumerate(names) if wsum[k] > 0.001}
     return {"final": round(final), "avg_w": avg_w, "months": ndep}
 
 
@@ -89,7 +87,7 @@ def fixed(weights: dict):
 def make_strategies(panel: pd.DataFrame) -> dict:
     risky = [c for c in panel.columns if c != "cash"]
     logp = np.log(panel[risky])
-    mom = logp.shift(21) - logp.shift(252)                # 12-1 momentum
+    mom = logp.shift(21) - logp.shift(252)  # 12-1 momentum
     vol = panel[risky].pct_change().rolling(63).std()
     sma200 = panel[risky] / panel[risky].rolling(200).mean() - 1
     cash_12m = panel["cash"].pct_change(231).shift(21)
@@ -106,6 +104,7 @@ def make_strategies(panel: pd.DataFrame) -> dict:
                 key = nm if (np.isfinite(ok) and ok > 0) else "cash"
                 w[key] = w.get(key, 0.0) + 1.0 / n
             return w
+
         return f
 
     def rel_top(n):
@@ -114,6 +113,7 @@ def make_strategies(panel: pd.DataFrame) -> dict:
             if m.isna().any():
                 return {"spx": 1.0}
             return {nm: 1.0 / n for nm in m.nlargest(n).index}
+
         return f
 
     def inv_vol(i, p):
@@ -176,8 +176,10 @@ def main() -> None:
     print(f"panel {panel.index[0].date()} -> {panel.index[-1].date()}\n")
     print(f"{'strategy':30s} {'IS final':>10} {'vs spx':>8} {'OOS final':>10} {'vs spx':>8}")
     for r in sorted(out, key=lambda r: -r["oos"]["vs_spx"]):
-        print(f"{r['name']:30s} {r['is']['final']:>10,} {r['is']['vs_spx']:>+8.2%} "
-              f"{r['oos']['final']:>10,} {r['oos']['vs_spx']:>+8.2%}")
+        print(
+            f"{r['name']:30s} {r['is']['final']:>10,} {r['is']['vs_spx']:>+8.2%} "
+            f"{r['oos']['final']:>10,} {r['oos']['vs_spx']:>+8.2%}"
+        )
     print("\nrealized avg weights (OOS):")
     for r in out:
         if not r["name"].startswith("FIX"):

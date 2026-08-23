@@ -26,7 +26,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 from features import build_features
 
 BUDGET = 1000.0
@@ -45,9 +44,15 @@ def fired_mask(spec: dict, feats: dict[str, np.ndarray], n: int) -> np.ndarray:
     return out
 
 
-def simulate(asset: pd.DataFrame, fired: np.ndarray, base_deploy: float,
-             seg: slice, fee: float = FEE, max_hold: int = MAX_HOLD,
-             fill: str = "open") -> dict:
+def simulate(
+    asset: pd.DataFrame,
+    fired: np.ndarray,
+    base_deploy: float,
+    seg: slice,
+    fee: float = FEE,
+    max_hold: int = MAX_HOLD,
+    fill: str = "open",
+) -> dict:
     dates = asset.index[seg]
     op = asset["open" if fill == "open" else "close"].to_numpy(dtype=float)[seg]
     cl = asset["close"].to_numpy(dtype=float)[seg]
@@ -84,17 +89,33 @@ def evaluate(specs: list[dict], fee: float = FEE) -> list[dict]:
     day26 = np.asarray(asset.index.day >= 26)
     out = []
     for name, arr, base in [("now", np.ones(n, bool), 0.0), ("dca26", day26, 0.0)]:
-        out.append({"name": f"CONTROL_{name}", "conds": [],
-                    **{s: simulate(asset, arr, base, sl, fee) for s, sl in segs.items()}})
+        out.append(
+            {
+                "name": f"CONTROL_{name}",
+                "conds": [],
+                **{s: simulate(asset, arr, base, sl, fee) for s, sl in segs.items()},
+            }
+        )
     ref = {s: out[0][s]["final"] for s in segs}
     for spec in specs:
         fired = fired_mask(spec, feats, n) if spec["conds"] else np.zeros(n, bool)
-        row = {"name": spec["name"], "conds": spec["conds"],
-               "base_deploy": spec.get("base_deploy", 0.0),
-               **{s: simulate(asset, fired, spec.get("base_deploy", 0.0), sl, fee,
-                              int(spec.get("max_hold", MAX_HOLD)),
-                              spec.get("fill", "open"))
-                  for s, sl in segs.items()}}
+        row = {
+            "name": spec["name"],
+            "conds": spec["conds"],
+            "base_deploy": spec.get("base_deploy", 0.0),
+            **{
+                s: simulate(
+                    asset,
+                    fired,
+                    spec.get("base_deploy", 0.0),
+                    sl,
+                    fee,
+                    int(spec.get("max_hold", MAX_HOLD)),
+                    spec.get("fill", "open"),
+                )
+                for s, sl in segs.items()
+            },
+        }
         for s in segs:
             row[s]["vs_now"] = round(row[s]["final"] / ref[s] - 1, 5)
         out.append(row)
@@ -120,5 +141,7 @@ def main() -> None:
         print(f"wrote {args.out} ({len(results)} rows)")
     else:
         print(payload)
+
+
 if __name__ == "__main__":
     main()

@@ -66,12 +66,16 @@ def walk_forward_predictions() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
         ridge = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(), Ridge(alpha=10.0))
         ridge.fit(Xtr, ytr2)
         preds["ridge"][te] = ridge.predict(X[te])
-        gbm = HistGradientBoostingRegressor(max_iter=200, max_depth=3,
-                                            learning_rate=0.05, random_state=0)
+        gbm = HistGradientBoostingRegressor(
+            max_iter=200, max_depth=3, learning_rate=0.05, random_state=0
+        )
         gbm.fit(Xtr, ytr2)
         preds["gbm"][te] = gbm.predict(X[te])
-        logit = make_pipeline(SimpleImputer(strategy="median"), StandardScaler(),
-                              LogisticRegression(C=0.1, max_iter=1000))
+        logit = make_pipeline(
+            SimpleImputer(strategy="median"),
+            StandardScaler(),
+            LogisticRegression(C=0.1, max_iter=1000),
+        )
         logit.fit(Xtr, (ytr2 > 0).astype(int))
         preds["logit"][te] = logit.predict_proba(X[te])[:, 1]
     return asset, {"y": y, **preds}
@@ -89,8 +93,11 @@ def main() -> None:
     for m in ("ridge", "gbm", "logit"):
         pr = p[m]
         ok = np.isfinite(pr) & np.isfinite(y)
-        oos_r2 = 1 - np.nansum((y[ok] - pr[ok]) ** 2) / np.nansum((y[ok] - np.nanmean(y[ok])) ** 2) \
-            if m != "logit" else float("nan")
+        oos_r2 = (
+            1 - np.nansum((y[ok] - pr[ok]) ** 2) / np.nansum((y[ok] - np.nanmean(y[ok])) ** 2)
+            if m != "logit"
+            else float("nan")
+        )
         thr_pos = 0.0 if m != "logit" else 0.5
         rules = {
             f"{m}_pos": (np.where(np.isfinite(pr), pr > thr_pos, False), 63),
@@ -98,15 +105,22 @@ def main() -> None:
         q = pd.Series(pr).rolling(252, min_periods=126).quantile(0.75).to_numpy()
         rules[f"{m}_topq_cap21"] = (np.where(np.isfinite(pr) & np.isfinite(q), pr > q, False), 21)
         for rname, (fired, cap) in rules.items():
-            row = {"name": rname, "oos_r2": round(float(oos_r2), 5) if np.isfinite(oos_r2) else None}
+            row = {
+                "name": rname,
+                "oos_r2": round(float(oos_r2), 5) if np.isfinite(oos_r2) else None,
+            }
             for s, sl in segs.items():
                 r = lab.simulate(asset, fired, 0.0, sl, max_hold=cap)
                 r["vs_now"] = round(r["final"] / ref[s] - 1, 5)
                 row[s] = r
             out.append(row)
-            print(f"{rname:20s} R2 {row['oos_r2']}  backfill {row['backfill_era']['vs_now']:+.4f}  "
-                  f"realfund {row['real_fund_era']['vs_now']:+.4f}")
-    json.dump(out, open(Path(__file__).parent.parent / "research_bbg" / "results_ml.json", "w"), indent=1)
+            print(
+                f"{rname:20s} R2 {row['oos_r2']}  backfill {row['backfill_era']['vs_now']:+.4f}  "
+                f"realfund {row['real_fund_era']['vs_now']:+.4f}"
+            )
+    json.dump(
+        out, open(Path(__file__).parent.parent / "research_bbg" / "results_ml.json", "w"), indent=1
+    )
 
 
 if __name__ == "__main__":

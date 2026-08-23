@@ -9,13 +9,10 @@ CFTC +3d (Friday release for Tuesday data), NAAIM +1d, short interest +7d.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
-
 from dataset import DATA, load
-from features import WIN_PCTL, _al, _pctl, build_features
+from features import _al, _pctl, build_features
 
 
 def build_features2() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
@@ -79,7 +76,6 @@ def build_features2() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
         f["days_since_fomc"] = pd.Series(since, index=idx)
         f["fomc_even_week"] = pd.Series(((since // 7) % 2 == 0).astype(float), index=idx)
 
-
     # --- short-horizon / calendar mechanics (practitioner rules) ---
     c = asset["close"]
     delta2 = c.diff()
@@ -98,10 +94,9 @@ def build_features2() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
         third_fri[per] = tf
     tf_ser = pd.Series([third_fri[p] for p in idx.to_period("M")], index=idx)
     delta_tf = (tf_ser - pd.Series(idx, index=idx)).dt.days
-    f["days_to_opex"] = delta_tf.astype(float)          # >0 before, <0 after
+    f["days_to_opex"] = delta_tf.astype(float)  # >0 before, <0 after
     f["opex_week"] = ((delta_tf >= 0) & (delta_tf <= 4)).astype(float)
     f["post_opex_week"] = ((delta_tf < 0) & (delta_tf >= -7)).astype(float)
-
 
     # --- NFP calendar (first Friday of month) and vol-crush state ---
     nfp_map = {}
@@ -113,16 +108,15 @@ def build_features2() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
     dtn = (nfp_ser - pd.Series(idx, index=idx)).dt.days.astype(float)
     nxt_ser = pd.Series([nxt_map[p] for p in idx.to_period("M")], index=idx)
     dtn2 = (nxt_ser - pd.Series(idx, index=idx)).dt.days.astype(float)
-    f["days_to_nfp"] = dtn.where(dtn >= 0, dtn2)     # calendar days to next NFP
+    f["days_to_nfp"] = dtn.where(dtn >= 0, dtn2)  # calendar days to next NFP
     vixs = _al(load("VIX Index")["PX_LAST"], idx)
     f["vix_peak_63"] = vixs.rolling(63).max()
     f["vix_now"] = vixs
 
-
     # --- campaign 2b: VRP, MOVE-VIX divergence, speculation sentiment ---
     spx_ret = _al(load("SPX Index")["PX_LAST"], idx).pct_change()
-    rv22 = (spx_ret ** 2).rolling(22).sum() * (100 ** 2)   # monthly %^2 units approx
-    iv = vixs ** 2 / 12
+    rv22 = (spx_ret**2).rolling(22).sum() * (100**2)  # monthly %^2 units approx
+    iv = vixs**2 / 12
     vrp = iv - rv22
     f["vrp"] = vrp
     f["vrp_q_3y"] = vrp.rolling(756, min_periods=252).rank(pct=True)
@@ -141,10 +135,9 @@ def build_features2() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
         sc = lev.abs().rolling(252, min_periods=63).mean()
         f["spec_sent"] = _al((lev.rolling(21).sum() / (sc * 21)).clip(-5, 5), idx)
 
-
     # --- money-market fund assets: the "cash on the sidelines" gauge ---
-    mmf = _al(load("MMFA")["PX_LAST"], idx, extra_lag=3)   # weekly ICI, Thursday release
-    f["mmf_growth_13w"] = mmf.pct_change(65)               # ~13 weeks in bdays
+    mmf = _al(load("MMFA")["PX_LAST"], idx, extra_lag=3)  # weekly ICI, Thursday release
+    f["mmf_growth_13w"] = mmf.pct_change(65)  # ~13 weeks in bdays
     f["mmf_growth_4w"] = mmf.pct_change(20)
     spx_lvl = _al(load("SPX Index")["PX_LAST"], idx)
     ratio = mmf / spx_lvl
@@ -159,11 +152,33 @@ def build_features2() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
 if __name__ == "__main__":
     asset, feats = build_features2()
     base = 64
-    newk = [k for k in feats if k in (
-        "cftc_net","cftc_pctl","cftc_z_1y","naaim","naaim_pctl","impl_corr",
-        "impl_corr_pctl","impl_corr_chg_21","si_ratio","si_pctl","spy_flow_21",
-        "spy_flow_pctl","eps_rev_21","eps_rev_63","earn_yld","fed_model",
-        "fed_model_pctl","days_to_fomc","days_since_fomc","fomc_even_week")]
+    newk = [
+        k
+        for k in feats
+        if k
+        in (
+            "cftc_net",
+            "cftc_pctl",
+            "cftc_z_1y",
+            "naaim",
+            "naaim_pctl",
+            "impl_corr",
+            "impl_corr_pctl",
+            "impl_corr_chg_21",
+            "si_ratio",
+            "si_pctl",
+            "spy_flow_21",
+            "spy_flow_pctl",
+            "eps_rev_21",
+            "eps_rev_63",
+            "earn_yld",
+            "fed_model",
+            "fed_model_pctl",
+            "days_to_fomc",
+            "days_since_fomc",
+            "fomc_even_week",
+        )
+    ]
     for k in sorted(newk):
         x = feats[k]
         print(f"{k:20s} {int(np.isfinite(x).sum()):6d} bars")

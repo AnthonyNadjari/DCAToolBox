@@ -1,11 +1,17 @@
 """Campaign 2b: the final research agent's top untested candidates."""
+
 import json
 from pathlib import Path
 
 
 def s(name, conds, max_hold=63, base_deploy=0.0, fill="open"):
-    return {"name": name, "conds": [{"feature": f, "op": o, "thr": t} for f, o, t in conds],
-            "max_hold": max_hold, "base_deploy": base_deploy, "fill": fill}
+    return {
+        "name": name,
+        "conds": [{"feature": f, "op": o, "thr": t} for f, o, t in conds],
+        "max_hold": max_hold,
+        "base_deploy": base_deploy,
+        "fill": fill,
+    }
 
 
 SPECS = [

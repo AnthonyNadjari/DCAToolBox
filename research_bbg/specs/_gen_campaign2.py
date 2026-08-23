@@ -7,13 +7,19 @@ and the BASK-sourced Bloomberg families. max_hold caps the wait per the
 literature's own justification; fill is "open" unless the rule's mechanism
 demands the close.
 """
+
 import json
 from pathlib import Path
 
 
 def s(name, conds, max_hold=63, base_deploy=0.0, fill="open"):
-    return {"name": name, "conds": [{"feature": f, "op": o, "thr": t} for f, o, t in conds],
-            "max_hold": max_hold, "base_deploy": base_deploy, "fill": fill}
+    return {
+        "name": name,
+        "conds": [{"feature": f, "op": o, "thr": t} for f, o, t in conds],
+        "max_hold": max_hold,
+        "base_deploy": base_deploy,
+        "fill": fill,
+    }
 
 
 SPECS = [
@@ -26,9 +32,19 @@ SPECS = [
     s("lit_nfp_eve_close", [("days_to_nfp", "<", 1.5)], 5, fill="close"),
     s("lit_fomc_even_week", [("fomc_even_week", ">", 0.5)], 10),
     # --- turn-of-month / dash-for-cash (McConnell-Xu, Etula RFS 2020) ---
-    s("lit_tom_t4", [("tdays_to_month_end", "<", 3.5), ("tdays_to_month_end", ">", 2.5)], 63, fill="close"),
+    s(
+        "lit_tom_t4",
+        [("tdays_to_month_end", "<", 3.5), ("tdays_to_month_end", ">", 2.5)],
+        63,
+        fill="close",
+    ),
     s("lit_tom_t4_open", [("tdays_to_month_end", "<", 3.5), ("tdays_to_month_end", ">", 2.5)], 63),
-    s("lit_tom_t2", [("tdays_to_month_end", "<", 1.5), ("tdays_to_month_end", ">", 0.5)], 63, fill="close"),
+    s(
+        "lit_tom_t2",
+        [("tdays_to_month_end", "<", 1.5), ("tdays_to_month_end", ">", 0.5)],
+        63,
+        fill="close",
+    ),
     s("lit_tom_window", [("tdays_to_month_end", "<", 3.5)], 63),
     # --- OpEx (Stivers-Sun, Quantpedia) ---
     s("lit_opex_entry", [("days_to_opex", "<", 7.5), ("days_to_opex", ">", 2.5)], 15),
@@ -45,7 +61,11 @@ SPECS = [
     s("lit_backwardation_cap5", [("vix_ts", ">", 0.0)], 5),
     s("lit_volcrush_bearkiller", [("vix_peak_63", ">", 50), ("vix_now", "<", 30)], 63),
     s("lit_vix40_wait", [("vix_now", ">", 40)], 63),
-    s("lit_vix30_relief", [("vix_peak_63", ">", 30), ("vix_now", "<", 30), ("vix_chg_5", "<", 0)], 21),
+    s(
+        "lit_vix30_relief",
+        [("vix_peak_63", ">", 30), ("vix_now", "<", 30), ("vix_chg_5", "<", 0)],
+        21,
+    ),
     # --- BASK families: CFTC positioning (contrarian) ---
     s("bask_cftc_pctl_low", [("cftc_pctl", "<", 0.1)], 63),
     s("bask_cftc_z_low", [("cftc_z_1y", "<", -1.5)], 63),
