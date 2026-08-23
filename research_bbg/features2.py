@@ -141,6 +141,16 @@ def build_features2() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
         sc = lev.abs().rolling(252, min_periods=63).mean()
         f["spec_sent"] = _al((lev.rolling(21).sum() / (sc * 21)).clip(-5, 5), idx)
 
+
+    # --- money-market fund assets: the "cash on the sidelines" gauge ---
+    mmf = _al(load("MMFA")["PX_LAST"], idx, extra_lag=3)   # weekly ICI, Thursday release
+    f["mmf_growth_13w"] = mmf.pct_change(65)               # ~13 weeks in bdays
+    f["mmf_growth_4w"] = mmf.pct_change(20)
+    spx_lvl = _al(load("SPX Index")["PX_LAST"], idx)
+    ratio = mmf / spx_lvl
+    f["mmf_spx_z_3y"] = (ratio - ratio.rolling(756).mean()) / ratio.rolling(756).std()
+    f["mmf_spx_pctl"] = _pctl(ratio)
+
     extra = {k: s.shift(1).to_numpy(dtype=float) for k, s in f.items()}
     feats.update(extra)
     return asset, feats
