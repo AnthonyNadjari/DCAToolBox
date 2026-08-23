@@ -147,12 +147,13 @@ from dcatoolbox.config.enums import ProviderType
 from dcatoolbox.config.settings import BacktestConfig, DataConfig, StrategyConfig
 
 config = BacktestConfig(
-    data=DataConfig(provider=ProviderType.YAHOO, tickers=["SPY"],
-                    start=date(2010, 1, 1), end=date(2026, 1, 1)),
-    strategy=StrategyConfig(name="dip_buying",
-                            params={"threshold": 0.02, "allocation": 0.25}),
+    data=DataConfig(
+        provider=ProviderType.YAHOO, tickers=["SPY"], start=date(2010, 1, 1), end=date(2026, 1, 1)
+    ),
+    strategy=StrategyConfig(name="dip_buying", params={"threshold": 0.02, "allocation": 0.25}),
     benchmark=StrategyConfig(name="monthly_dca"),
-    monthly_budget=1000.0, day_of_month=26,
+    monthly_budget=1000.0,
+    day_of_month=26,
 )
 
 result = run_backtest(config)
@@ -201,6 +202,7 @@ Everything is a validated Pydantic model and can be saved/loaded as YAML or JSON
 
 ```python
 from dcatoolbox.config.io import load_config, save_config
+
 config = load_config("examples/example_config.yaml")
 save_config(config, "my_run.yaml")
 ```
@@ -259,6 +261,7 @@ Drop one self-contained file and decorate the class — **no engine changes**:
 from dcatoolbox.strategies.budget_deployment import BudgetDeploymentStrategy, Signal
 from dcatoolbox.strategies.registry import register_strategy
 
+
 @register_strategy
 class MyStrategy(BudgetDeploymentStrategy):
     name = "my_strategy"
@@ -268,7 +271,7 @@ class MyStrategy(BudgetDeploymentStrategy):
 
     def _signal(self, context) -> Signal:
         history = context.history
-        fired = history["close"].iloc[-1] < history["close"].iloc[-self.lookback:].mean()
+        fired = history["close"].iloc[-1] < history["close"].iloc[-self.lookback :].mean()
         return (fired, "close")
 ```
 
@@ -294,9 +297,10 @@ python main.py optimize --ticker SPY --start 2000-01-01 --end 2026-01-01 --split
 
 ```python
 from dcatoolbox.optimization import GridSearchOptimizer, default_split
+
 opt = GridSearchOptimizer(config)
 evaluation = opt.evaluate_splits(market, default_split(2000, 2026))
-print(evaluation.per_window)   # one row per train / validation / test
+print(evaluation.per_window)  # one row per train / validation / test
 ```
 
 ## Results

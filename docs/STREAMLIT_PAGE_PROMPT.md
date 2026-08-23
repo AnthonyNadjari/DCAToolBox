@@ -24,39 +24,57 @@ The page is `st.tabs` with 5 tabs.
 
 ```python
 SERIES = {
-  # Core total-return + supports
-  "SPTR":     ("SPTR Index",     ["PX_LAST"]),                       # S&P 500 gross TR, 1988-01-04
-  "XNDX":     ("XNDX Index",     ["PX_LAST"]),                       # Nasdaq-100 gross TR, 1999-03-04
-  "SPX":      ("SPX Index",      ["PX_OPEN","PX_HIGH","PX_LOW","PX_LAST"]),
-  "SPY_TR":   ("SPY US Equity",  ["TOT_RETURN_INDEX_GROSS_DVDS"]),   # validation only, 1993-01-29
-  "USGG3M":   ("USGG3M Index",   ["PX_LAST"]),                       # percent
-  "VIX":      ("VIX Index",      ["PX_LAST"]),                       # 1990-
-  "SPX_DVD":  ("SPX Index",      ["EQY_DVD_YLD_12M"]),
-  # Cboe option-strategy benchmarks (PX_LAST each)
-  "PUT": ("PUT Index",["PX_LAST"]), "BXM": ("BXM Index",["PX_LAST"]),
-  "BXY": ("BXY Index",["PX_LAST"]), "BXMD": ("BXMD Index",["PX_LAST"]),
-  "CMBO": ("CMBO Index",["PX_LAST"]), "WPUT": ("WPUT Index",["PX_LAST"]),  # WPUT starts 2006-01-31
-  # SPX fitted IV surface (probe start 2002-01-01; realistically ~2005)
-  "IV_ATM": ("SPX Index", ["30DAY_IMPVOL_100.0%MNY_DF"]),
-  "IV_95":  ("SPX Index", ["30DAY_IMPVOL_95.0%MNY_DF"]),
-  "IV_90":  ("SPX Index", ["30DAY_IMPVOL_90.0%MNY_DF"]),
-  # French wrappers (daily)
-  **{k: (t, ["PX_LAST","PX_BID","PX_ASK","PX_OFFICIAL_CLOSE"])
-     for k, t in [("ESE","ESE FP Equity"),("PUST","PUST FP Equity"),
-                  ("CL2","CL2 FP Equity"),("LQQ","LQQ FP Equity")]},
-  **{f"{k}_NAV": (t, ["FUND_NET_ASSET_VAL"])
-     for k, t in [("ESE","ESE FP Equity"),("PUST","PUST FP Equity"),
-                  ("CL2","CL2 FP Equity"),("LQQ","LQQ FP Equity")]},
-  "M00UUS02": ("M00UUS02 Index", ["PX_LAST"]),   # CL2 benchmark (2x MSCI USA daily net)
-  "XNDXNNRL": ("XNDXNNRL Index", ["PX_LAST"]),   # LQQ benchmark; verify via DES
-  "NDDUUS":   ("NDDUUS Index",   ["PX_LAST"]),
-  "EURUSD":   ("EURUSD Curncy",  ["PX_LAST"]),   # source BGN
+    # Core total-return + supports
+    "SPTR": ("SPTR Index", ["PX_LAST"]),  # S&P 500 gross TR, 1988-01-04
+    "XNDX": ("XNDX Index", ["PX_LAST"]),  # Nasdaq-100 gross TR, 1999-03-04
+    "SPX": ("SPX Index", ["PX_OPEN", "PX_HIGH", "PX_LOW", "PX_LAST"]),
+    "SPY_TR": ("SPY US Equity", ["TOT_RETURN_INDEX_GROSS_DVDS"]),  # validation only, 1993-01-29
+    "USGG3M": ("USGG3M Index", ["PX_LAST"]),  # percent
+    "VIX": ("VIX Index", ["PX_LAST"]),  # 1990-
+    "SPX_DVD": ("SPX Index", ["EQY_DVD_YLD_12M"]),
+    # Cboe option-strategy benchmarks (PX_LAST each)
+    "PUT": ("PUT Index", ["PX_LAST"]),
+    "BXM": ("BXM Index", ["PX_LAST"]),
+    "BXY": ("BXY Index", ["PX_LAST"]),
+    "BXMD": ("BXMD Index", ["PX_LAST"]),
+    "CMBO": ("CMBO Index", ["PX_LAST"]),
+    "WPUT": ("WPUT Index", ["PX_LAST"]),  # WPUT starts 2006-01-31
+    # SPX fitted IV surface (probe start 2002-01-01; realistically ~2005)
+    "IV_ATM": ("SPX Index", ["30DAY_IMPVOL_100.0%MNY_DF"]),
+    "IV_95": ("SPX Index", ["30DAY_IMPVOL_95.0%MNY_DF"]),
+    "IV_90": ("SPX Index", ["30DAY_IMPVOL_90.0%MNY_DF"]),
+    # French wrappers (daily)
+    **{
+        k: (t, ["PX_LAST", "PX_BID", "PX_ASK", "PX_OFFICIAL_CLOSE"])
+        for k, t in [
+            ("ESE", "ESE FP Equity"),
+            ("PUST", "PUST FP Equity"),
+            ("CL2", "CL2 FP Equity"),
+            ("LQQ", "LQQ FP Equity"),
+        ]
+    },
+    **{
+        f"{k}_NAV": (t, ["FUND_NET_ASSET_VAL"])
+        for k, t in [
+            ("ESE", "ESE FP Equity"),
+            ("PUST", "PUST FP Equity"),
+            ("CL2", "CL2 FP Equity"),
+            ("LQQ", "LQQ FP Equity"),
+        ]
+    },
+    "M00UUS02": ("M00UUS02 Index", ["PX_LAST"]),  # CL2 benchmark (2x MSCI USA daily net)
+    "XNDXNNRL": ("XNDXNNRL Index", ["PX_LAST"]),  # LQQ benchmark; verify via DES
+    "NDDUUS": ("NDDUUS Index", ["PX_LAST"]),
+    "EURUSD": ("EURUSD Curncy", ["PX_LAST"]),  # source BGN
 }
 
 INTRADAY = {  # 1-min bars, eventTypes TRADE + BID + ASK. API retains only ~140 days —
-              # pull on first run, append-only archive, warn if newest bar > 7 days old.
-  "ESE_IB": "ESE FP Equity", "PUST_IB": "PUST FP Equity", "SPY_IB": "SPY US Equity",
-  "IESE_IB": "IESE Index", "PUSTIV_IB": "PUSTIV Index",   # official iNAVs of ESE / PUST
+    # pull on first run, append-only archive, warn if newest bar > 7 days old.
+    "ESE_IB": "ESE FP Equity",
+    "PUST_IB": "PUST FP Equity",
+    "SPY_IB": "SPY US Equity",
+    "IESE_IB": "IESE Index",
+    "PUSTIV_IB": "PUSTIV Index",  # official iNAVs of ESE / PUST
 }
 ```
 

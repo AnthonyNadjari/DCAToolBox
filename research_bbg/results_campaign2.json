@@ -1,0 +1,613 @@
+[
+{
+"name": "lit_prefomc_any",
+"is": {
+"final": 772759.0,
+"orders": 185,
+"vs_now": -0.01074
+},
+"oos": {
+"final": 433405.0,
+"orders": 108,
+"vs_now": -0.00901
+}
+},
+{
+"name": "lit_prefomc_cap10",
+"is": {
+"final": 778677.0,
+"orders": 288,
+"vs_now": -0.00316
+},
+"oos": {
+"final": 436238.0,
+"orders": 156,
+"vs_now": -0.00253
+}
+},
+{
+"name": "lit_prefomc_vixgate",
+"is": {
+"final": 778443.0,
+"orders": 288,
+"vs_now": -0.00346
+},
+"oos": {
+"final": 435775.0,
+"orders": 156,
+"vs_now": -0.00359
+}
+},
+{
+"name": "lit_fomc_eve_close",
+"is": {
+"final": 778219.0,
+"orders": 288,
+"vs_now": -0.00375
+},
+"oos": {
+"final": 436339.0,
+"orders": 156,
+"vs_now": -0.0023
+}
+},
+{
+"name": "lit_nfp_eve",
+"is": {
+"final": 780684.0,
+"orders": 289,
+"vs_now": -0.0006
+},
+"oos": {
+"final": 437356.0,
+"orders": 156,
+"vs_now": 3e-05
+}
+},
+{
+"name": "lit_nfp_eve_close",
+"is": {
+"final": 780117.0,
+"orders": 289,
+"vs_now": -0.00132
+},
+"oos": {
+"final": 437207.0,
+"orders": 156,
+"vs_now": -0.00031
+}
+},
+{
+"name": "lit_fomc_even_week",
+"is": {
+"final": 780009.0,
+"orders": 289,
+"vs_now": -0.00146
+},
+"oos": {
+"final": 437570.0,
+"orders": 156,
+"vs_now": 0.00052
+}
+},
+{
+"name": "lit_tom_t4",
+"is": {
+"final": 777432.0,
+"orders": 288,
+"vs_now": -0.00476
+},
+"oos": {
+"final": 432569.0,
+"orders": 156,
+"vs_now": -0.01092
+}
+},
+{
+"name": "lit_tom_t4_open",
+"is": {
+"final": 778379.0,
+"orders": 288,
+"vs_now": -0.00355
+},
+"oos": {
+"final": 432775.0,
+"orders": 156,
+"vs_now": -0.01045
+}
+},
+{
+"name": "lit_tom_t2",
+"is": {
+"final": 775975.0,
+"orders": 288,
+"vs_now": -0.00662
+},
+"oos": {
+"final": 432160.0,
+"orders": 156,
+"vs_now": -0.01185
+}
+},
+{
+"name": "lit_tom_window",
+"is": {
+"final": 781524.0,
+"orders": 289,
+"vs_now": 0.00048
+},
+"oos": {
+"final": 437421.0,
+"orders": 156,
+"vs_now": 0.00018
+}
+},
+{
+"name": "lit_opex_entry",
+"is": {
+"final": 779351.0,
+"orders": 288,
+"vs_now": -0.0023
+},
+"oos": {
+"final": 436242.0,
+"orders": 156,
+"vs_now": -0.00252
+}
+},
+{
+"name": "lit_avoid_postopex",
+"is": {
+"final": 780848.0,
+"orders": 289,
+"vs_now": -0.00039
+},
+"oos": {
+"final": 437275.0,
+"orders": 156,
+"vs_now": -0.00016
+}
+},
+{
+"name": "lit_rsi2_trend_cap5",
+"is": {
+"final": 780860.0,
+"orders": 289,
+"vs_now": -0.00037
+},
+"oos": {
+"final": 436643.0,
+"orders": 156,
+"vs_now": -0.0016
+}
+},
+{
+"name": "lit_rsi2_trend_cap10",
+"is": {
+"final": 779037.0,
+"orders": 288,
+"vs_now": -0.0027
+},
+"oos": {
+"final": 437017.0,
+"orders": 156,
+"vs_now": -0.00075
+}
+},
+{
+"name": "lit_rsi2_deep_cap5",
+"is": {
+"final": 780486.0,
+"orders": 289,
+"vs_now": -0.00085
+},
+"oos": {
+"final": 436602.0,
+"orders": 156,
+"vs_now": -0.0017
+}
+},
+{
+"name": "lit_2down_cap5",
+"is": {
+"final": 781163.0,
+"orders": 289,
+"vs_now": 2e-05
+},
+"oos": {
+"final": 436915.0,
+"orders": 156,
+"vs_now": -0.00098
+}
+},
+{
+"name": "lit_dip2_cap10",
+"is": {
+"final": 778331.0,
+"orders": 288,
+"vs_now": -0.00361
+},
+"oos": {
+"final": 435818.0,
+"orders": 156,
+"vs_now": -0.00349
+}
+},
+{
+"name": "lit_vix_p80_cap21",
+"is": {
+"final": 779094.0,
+"orders": 240,
+"vs_now": -0.00263
+},
+"oos": {
+"final": 435528.0,
+"orders": 132,
+"vs_now": -0.00415
+}
+},
+{
+"name": "lit_vix_p80_cap10",
+"is": {
+"final": 778770.0,
+"orders": 288,
+"vs_now": -0.00305
+},
+"oos": {
+"final": 436510.0,
+"orders": 156,
+"vs_now": -0.00191
+}
+},
+{
+"name": "lit_backwardation_cap5",
+"is": {
+"final": 779164.0,
+"orders": 289,
+"vs_now": -0.00254
+},
+"oos": {
+"final": 436811.0,
+"orders": 156,
+"vs_now": -0.00122
+}
+},
+{
+"name": "lit_volcrush_bearkiller",
+"is": {
+"final": 771765.0,
+"orders": 89,
+"vs_now": -0.01201
+},
+"oos": {
+"final": 429345.0,
+"orders": 51,
+"vs_now": -0.01829
+}
+},
+{
+"name": "lit_vix40_wait",
+"is": {
+"final": 771963.0,
+"orders": 98,
+"vs_now": -0.01176
+},
+"oos": {
+"final": 428470.0,
+"orders": 50,
+"vs_now": -0.02029
+}
+},
+{
+"name": "lit_vix30_relief",
+"is": {
+"final": 778363.0,
+"orders": 233,
+"vs_now": -0.00357
+},
+"oos": {
+"final": 434520.0,
+"orders": 127,
+"vs_now": -0.00646
+}
+},
+{
+"name": "bask_cftc_pctl_low",
+"is": {
+"final": 771506.0,
+"orders": 125,
+"vs_now": -0.01234
+},
+"oos": {
+"final": 430582.0,
+"orders": 60,
+"vs_now": -0.01546
+}
+},
+{
+"name": "bask_cftc_z_low",
+"is": {
+"final": 771209.0,
+"orders": 112,
+"vs_now": -0.01272
+},
+"oos": {
+"final": 431021.0,
+"orders": 65,
+"vs_now": -0.01446
+}
+},
+{
+"name": "bask_cftc_z_low_cap21",
+"is": {
+"final": 777507.0,
+"orders": 220,
+"vs_now": -0.00466
+},
+"oos": {
+"final": 433707.0,
+"orders": 124,
+"vs_now": -0.00832
+}
+},
+{
+"name": "bask_naaim_low",
+"is": {
+"final": 769870.0,
+"orders": 97,
+"vs_now": -0.01444
+},
+"oos": {
+"final": 432780.0,
+"orders": 62,
+"vs_now": -0.01044
+}
+},
+{
+"name": "bask_naaim_sub30",
+"is": {
+"final": 771148.0,
+"orders": 104,
+"vs_now": -0.0128
+},
+"oos": {
+"final": 432119.0,
+"orders": 52,
+"vs_now": -0.01195
+}
+},
+{
+"name": "bask_naaim_low_cap21",
+"is": {
+"final": 776661.0,
+"orders": 213,
+"vs_now": -0.00575
+},
+"oos": {
+"final": 434637.0,
+"orders": 123,
+"vs_now": -0.00619
+}
+},
+{
+"name": "bask_si_low",
+"is": {
+"final": 774280.0,
+"orders": 200,
+"vs_now": -0.00879
+},
+"oos": {
+"final": 434138.0,
+"orders": 123,
+"vs_now": -0.00733
+}
+},
+{
+"name": "bask_si_not_extreme",
+"is": {
+"final": 775412.0,
+"orders": 228,
+"vs_now": -0.00734
+},
+"oos": {
+"final": 436869.0,
+"orders": 150,
+"vs_now": -0.00109
+}
+},
+{
+"name": "bask_flow_outflow",
+"is": {
+"final": 772620.0,
+"orders": 96,
+"vs_now": -0.01092
+},
+"oos": {
+"final": 429278.0,
+"orders": 46,
+"vs_now": -0.01844
+}
+},
+{
+"name": "bask_flow_outflow_cap21",
+"is": {
+"final": 777023.0,
+"orders": 213,
+"vs_now": -0.00528
+},
+"oos": {
+"final": 433316.0,
+"orders": 118,
+"vs_now": -0.00921
+}
+},
+{
+"name": "bask_flow_pctl_low",
+"is": {
+"final": 771113.0,
+"orders": 104,
+"vs_now": -0.01285
+},
+"oos": {
+"final": 433068.0,
+"orders": 79,
+"vs_now": -0.00978
+}
+},
+{
+"name": "bask_eps_up",
+"is": {
+"final": 779058.0,
+"orders": 259,
+"vs_now": -0.00268
+},
+"oos": {
+"final": 435745.0,
+"orders": 147,
+"vs_now": -0.00366
+}
+},
+{
+"name": "bask_eps_capitulation",
+"is": {
+"final": 772850.0,
+"orders": 144,
+"vs_now": -0.01062
+},
+"oos": {
+"final": 429563.0,
+"orders": 55,
+"vs_now": -0.01779
+}
+},
+{
+"name": "bask_fedmodel_cheap",
+"is": {
+"final": 777241.0,
+"orders": 187,
+"vs_now": -0.005
+},
+"oos": {
+"final": 430977.0,
+"orders": 54,
+"vs_now": -0.01456
+}
+},
+{
+"name": "bask_fedmodel_cheap_cap21",
+"is": {
+"final": 778684.0,
+"orders": 247,
+"vs_now": -0.00316
+},
+"oos": {
+"final": 433892.0,
+"orders": 122,
+"vs_now": -0.00789
+}
+},
+{
+"name": "bask_implcorr_spike",
+"is": {
+"final": 771856.0,
+"orders": 103,
+"vs_now": -0.0119
+},
+"oos": {
+"final": 430899.0,
+"orders": 59,
+"vs_now": -0.01474
+}
+},
+{
+"name": "bask_implcorr_jump",
+"is": {
+"final": 770712.0,
+"orders": 106,
+"vs_now": -0.01336
+},
+"oos": {
+"final": 433587.0,
+"orders": 93,
+"vs_now": -0.00859
+}
+},
+{
+"name": "bask_implcorr_spike_cap21",
+"is": {
+"final": 777746.0,
+"orders": 216,
+"vs_now": -0.00436
+},
+"oos": {
+"final": 434464.0,
+"orders": 124,
+"vs_now": -0.00659
+}
+},
+{
+"name": "combo_tom_dip",
+"is": {
+"final": 778075.0,
+"orders": 246,
+"vs_now": -0.00394
+},
+"oos": {
+"final": 433450.0,
+"orders": 112,
+"vs_now": -0.0089
+}
+},
+{
+"name": "combo_fomc_flow",
+"is": {
+"final": 777773.0,
+"orders": 219,
+"vs_now": -0.00432
+},
+"oos": {
+"final": 433488.0,
+"orders": 124,
+"vs_now": -0.00882
+}
+},
+{
+"name": "combo_vix_cftc",
+"is": {
+"final": 777177.0,
+"orders": 217,
+"vs_now": -0.00508
+},
+"oos": {
+"final": 434102.0,
+"orders": 121,
+"vs_now": -0.00741
+}
+},
+{
+"name": "combo_naaim_dip",
+"is": {
+"final": 768734.0,
+"orders": 101,
+"vs_now": -0.01589
+},
+"oos": {
+"final": 432474.0,
+"orders": 73,
+"vs_now": -0.01114
+}
+},
+{
+"name": "combo_eps_dip",
+"is": {
+"final": 777761.0,
+"orders": 241,
+"vs_now": -0.00434
+},
+"oos": {
+"final": 435217.0,
+"orders": 131,
+"vs_now": -0.00486
+}
+}
+]

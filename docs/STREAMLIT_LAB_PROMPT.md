@@ -34,105 +34,169 @@ extra parameters.
 
 ```python
 DAILY_SERIES = {
-  # --- Block A: core (P0) ---
-  "SPY":       ("SPY US Equity",  ["PX_OPEN","PX_HIGH","PX_LOW","PX_LAST","PX_VOLUME"]),
-  "SPY_TR":    ("SPY US Equity",  ["TOT_RETURN_INDEX_GROSS_DVDS"]),          # 1993-01-29
-  "QQQ":       ("QQQ US Equity",  ["PX_OPEN","PX_HIGH","PX_LOW","PX_LAST","PX_VOLUME"]),
-  "QQQ_TR":    ("QQQ US Equity",  ["TOT_RETURN_INDEX_GROSS_DVDS"]),          # 1999-03-10
-  "SPX":       ("SPX Index",      ["PX_OPEN","PX_HIGH","PX_LOW","PX_LAST"]), # open unreliable pre-1982
-  "SPTR":      ("SPTR Index",     ["PX_LAST"]),                              # 1988-01-04 gross TR
-  "SPTR500N":  ("SPTR500N Index", ["PX_LAST"]),                              # 1989-12-29 net TR
-  "NDX":       ("NDX Index",      ["PX_OPEN","PX_HIGH","PX_LOW","PX_LAST"]), # 1985-02-04
-  "XNDX":      ("XNDX Index",     ["PX_LAST"]),                              # 1999-03-04 gross TR
-  "XNDXNNRL":  ("XNDXNNRL Index", ["PX_LAST"]),                              # net TR; verify via DES first
-  # --- Block B: options / VRP (P0) ---
-  "PUT":  ("PUT Index",  ["PX_LAST"]),   # 1986-06-30
-  "BXM":  ("BXM Index",  ["PX_LAST"]),   # 1986-06-30
-  "BXY":  ("BXY Index",  ["PX_LAST"]),   # 1988-06-01
-  "BXMD": ("BXMD Index", ["PX_LAST"]),   # 1986-06-20
-  "CMBO": ("CMBO Index", ["PX_LAST"]),   # 1986-06-30
-  "WPUT": ("WPUT Index", ["PX_LAST"]),   # 2006-01-31
-  "PPUT": ("PPUT Index", ["PX_LAST"]),   # 1986-06-30
-  "CLL":  ("CLL Index",  ["PX_LAST"]),   # 1986-06-23
-  "VIX":  ("VIX Index",  ["PX_OPEN","PX_HIGH","PX_LOW","PX_LAST"]),  # PX_LAST 1990-; OHL only 2000-
-  "SKEW": ("SKEW Index", ["PX_LAST"]),   # 2011-01-03 ONLY (BBG has no 1990 backfill)
-  "VIX9D":("VIX9D Index",["PX_LAST"]),   # 2011-01-03
-  "VVIX": ("VVIX Index", ["PX_LAST"]),   # 2006-03-06
-  "SPX_IV_ATM_30D": ("SPX Index", ["30DAY_IMPVOL_100.0%MNY_DF"]),   # probe start 2002-01-01
-  "SPX_IV_95_30D":  ("SPX Index", ["30DAY_IMPVOL_95.0%MNY_DF"]),
-  "SPX_IV_90_30D":  ("SPX Index", ["30DAY_IMPVOL_90.0%MNY_DF"]),
-  "SPX_IV_ATM_3M":  ("SPX Index", ["3MTH_IMPVOL_100.0%MNY_DF"]),    # verify mnemonic via FLDS
-  "SPX_IV_25DP_30D":("SPX Index", ["30DAY_IMPVOL_25.0%DELTA_PUT_DF"]),  # verify via FLDS
-  "SPX_DVD_YLD": ("SPX Index", ["EQY_DVD_YLD_12M"]),                # probe start 1985
-  "SPX_EARN_YLD":("SPX Index", ["EARN_YLD"]),                       # as-revised, NOT point-in-time
-  "USGG3M": ("USGG3M Index", ["PX_LAST"]),                          # percent; probe start 1981
-  # BEst (point-in-time), from 2006-07-20; monthly gap 2006-2016 to probe:
-  "SPX_BEST_EPS": ("SPX Index", ["BEST_EPS"]),      # override BEST_FPERIOD_OVERRIDE="1BF"
-  "SPX_BEST_PE":  ("SPX Index", ["BEST_PE_RATIO"]), # override BEST_FPERIOD_OVERRIDE="1BF"
-  # --- Block C: VIX futures (P0/P1) ---
-  # UX1..UX4 P0, UX5..UX8 P2. Pull UNADJUSTED generics; constant-maturity is built in code.
-  **{f"UX{i}": (f"UX{i} Index",
-      ["PX_SETTLE","PX_LAST","PX_OPEN","PX_HIGH","PX_LOW","PX_VOLUME","OPEN_INT","FUT_ACT_DAYS_EXP"])
-      for i in range(1, 9)},                                        # start 2004-03-26; PX_SETTLE authoritative
-  "VIX3M": ("VIX3M Index", ["PX_LAST"]),   # 2002-01-02 (VXV stitched)
-  "VIX6M": ("VIX6M Index", ["PX_LAST"]),   # 2008-01-02
-  "VXN":   ("VXN Index",   ["PX_LAST"]),   # 2001-02-02
-  "SPVXSP":("SPVXSP Index",["PX_LAST"]),   # 2005-12-20 ER
-  "SPVXSTR":("SPVXSTR Index",["PX_LAST"]), # 2005-12-20 TR
-  "VPD": ("VPD Index", ["PX_LAST"]),       # 2004-06-15
-  "VPN": ("VPN Index", ["PX_LAST"]),       # 2004-06-15
-  # --- Block D: credit / macro (P1) ---
-  "HY_OAS": ("LF98OAS Index", ["PX_LAST"]),   # PERCENT -> x100 = bp; probe start 1992-1994
-  "IG_OAS": ("LUACOAS Index", ["PX_LAST"]),   # PERCENT; <=1990
-  "USGG2YR": ("USGG2YR Index", ["PX_LAST"]),
-  "USGG10YR":("USGG10YR Index",["PX_LAST"]),
-  "MOVE": ("MOVE Index", ["PX_LAST"]),        # probe 1988-1989
-  "BAA":  ("MOODCBAA Index", ["PX_LAST"]),    # probe 1919
-  "AAA":  ("MOODCAAA Index", ["PX_LAST"]),
-  "BFCIUS": ("BFCIUS Index", ["PX_LAST"]),    # probe 1994-1999 (GSUSFCI NOT entitled)
-  "USGGBE10": ("USGGBE10 Index", ["PX_LAST"]),# probe 2003
-  # --- Block E: breadth / sentiment (P1) ---
-  "NYAD": ("NYAD Index", ["PX_LAST"]),        # probe 1960
-  "NYHI": ("NWHLNYHI Index", ["PX_LAST"]),
-  "NYLO": ("NWHLNYLO Index", ["PX_LAST"]),
-  "AAII_BULL": ("AAIIBULL Index", ["PX_LAST"]),  # weekly, Thursday release -> lag to Thursday close
-  "AAII_BEAR": ("AAIIBEAR Index", ["PX_LAST"]),
-  "MARGDEBT": ("MARGDEBT Index", ["PX_LAST"]),   # monthly, ~6-week lag -> lag accordingly
-  # --- Block F: French wrappers + leverage (P0) ---
-  # For each: OHLCV + PX_BID/PX_ASK + PX_OFFICIAL_CLOSE daily; TR; NAV.
-  **{name: (tkr, ["PX_OPEN","PX_HIGH","PX_LOW","PX_LAST","PX_VOLUME","PX_BID","PX_ASK","PX_OFFICIAL_CLOSE"])
-     for name, tkr in [("ESE","ESE FP Equity"),("PUST","PUST FP Equity"),("PE500","PE500 FP Equity"),
-                       ("CW8","CW8 FP Equity"),("CL2","CL2 FP Equity"),("LQQ","LQQ FP Equity")]},
-  **{f"{name}_TR": (tkr, ["TOT_RETURN_INDEX_GROSS_DVDS"])
-     for name, tkr in [("ESE","ESE FP Equity"),("PUST","PUST FP Equity"),("PE500","PE500 FP Equity"),
-                       ("CW8","CW8 FP Equity"),("CL2","CL2 FP Equity"),("LQQ","LQQ FP Equity")]},
-  **{f"{name}_NAV": (tkr, ["FUND_NET_ASSET_VAL"])
-     for name, tkr in [("ESE","ESE FP Equity"),("PUST","PUST FP Equity"),
-                       ("CL2","CL2 FP Equity"),("LQQ","LQQ FP Equity")]},
-  "M00UUS02": ("M00UUS02 Index", ["PX_LAST"]),  # CL2 benchmark (2x MSCI USA daily net) — probe history
-  "NDDUUS": ("NDDUUS Index", ["PX_LAST"]),      # probe 1994
-  "EURUSD": ("EURUSD Curncy", ["PX_LAST"]),     # PRICING_SOURCE=BGN explicitly
-  "FEDL01": ("FEDL01 Index", ["PX_LAST"]),      # 1954-07-01
-  "EONIA":  ("EONIA Index",  ["PX_LAST"]),      # 1999-01-04 -> 2022-01-03
-  "ESTRON": ("ESTRON Index", ["PX_LAST"]),      # 2019-10-01; splice EONIA = ESTR + 8.5bp
-  "SPY_BIDASK": ("SPY US Equity", ["PX_BID","PX_ASK"]),  # from 2000-01-31, pull in yearly chunks
+    # --- Block A: core (P0) ---
+    "SPY": ("SPY US Equity", ["PX_OPEN", "PX_HIGH", "PX_LOW", "PX_LAST", "PX_VOLUME"]),
+    "SPY_TR": ("SPY US Equity", ["TOT_RETURN_INDEX_GROSS_DVDS"]),  # 1993-01-29
+    "QQQ": ("QQQ US Equity", ["PX_OPEN", "PX_HIGH", "PX_LOW", "PX_LAST", "PX_VOLUME"]),
+    "QQQ_TR": ("QQQ US Equity", ["TOT_RETURN_INDEX_GROSS_DVDS"]),  # 1999-03-10
+    "SPX": ("SPX Index", ["PX_OPEN", "PX_HIGH", "PX_LOW", "PX_LAST"]),  # open unreliable pre-1982
+    "SPTR": ("SPTR Index", ["PX_LAST"]),  # 1988-01-04 gross TR
+    "SPTR500N": ("SPTR500N Index", ["PX_LAST"]),  # 1989-12-29 net TR
+    "NDX": ("NDX Index", ["PX_OPEN", "PX_HIGH", "PX_LOW", "PX_LAST"]),  # 1985-02-04
+    "XNDX": ("XNDX Index", ["PX_LAST"]),  # 1999-03-04 gross TR
+    "XNDXNNRL": ("XNDXNNRL Index", ["PX_LAST"]),  # net TR; verify via DES first
+    # --- Block B: options / VRP (P0) ---
+    "PUT": ("PUT Index", ["PX_LAST"]),  # 1986-06-30
+    "BXM": ("BXM Index", ["PX_LAST"]),  # 1986-06-30
+    "BXY": ("BXY Index", ["PX_LAST"]),  # 1988-06-01
+    "BXMD": ("BXMD Index", ["PX_LAST"]),  # 1986-06-20
+    "CMBO": ("CMBO Index", ["PX_LAST"]),  # 1986-06-30
+    "WPUT": ("WPUT Index", ["PX_LAST"]),  # 2006-01-31
+    "PPUT": ("PPUT Index", ["PX_LAST"]),  # 1986-06-30
+    "CLL": ("CLL Index", ["PX_LAST"]),  # 1986-06-23
+    "VIX": (
+        "VIX Index",
+        ["PX_OPEN", "PX_HIGH", "PX_LOW", "PX_LAST"],
+    ),  # PX_LAST 1990-; OHL only 2000-
+    "SKEW": ("SKEW Index", ["PX_LAST"]),  # 2011-01-03 ONLY (BBG has no 1990 backfill)
+    "VIX9D": ("VIX9D Index", ["PX_LAST"]),  # 2011-01-03
+    "VVIX": ("VVIX Index", ["PX_LAST"]),  # 2006-03-06
+    "SPX_IV_ATM_30D": ("SPX Index", ["30DAY_IMPVOL_100.0%MNY_DF"]),  # probe start 2002-01-01
+    "SPX_IV_95_30D": ("SPX Index", ["30DAY_IMPVOL_95.0%MNY_DF"]),
+    "SPX_IV_90_30D": ("SPX Index", ["30DAY_IMPVOL_90.0%MNY_DF"]),
+    "SPX_IV_ATM_3M": ("SPX Index", ["3MTH_IMPVOL_100.0%MNY_DF"]),  # verify mnemonic via FLDS
+    "SPX_IV_25DP_30D": ("SPX Index", ["30DAY_IMPVOL_25.0%DELTA_PUT_DF"]),  # verify via FLDS
+    "SPX_DVD_YLD": ("SPX Index", ["EQY_DVD_YLD_12M"]),  # probe start 1985
+    "SPX_EARN_YLD": ("SPX Index", ["EARN_YLD"]),  # as-revised, NOT point-in-time
+    "USGG3M": ("USGG3M Index", ["PX_LAST"]),  # percent; probe start 1981
+    # BEst (point-in-time), from 2006-07-20; monthly gap 2006-2016 to probe:
+    "SPX_BEST_EPS": ("SPX Index", ["BEST_EPS"]),  # override BEST_FPERIOD_OVERRIDE="1BF"
+    "SPX_BEST_PE": ("SPX Index", ["BEST_PE_RATIO"]),  # override BEST_FPERIOD_OVERRIDE="1BF"
+    # --- Block C: VIX futures (P0/P1) ---
+    # UX1..UX4 P0, UX5..UX8 P2. Pull UNADJUSTED generics; constant-maturity is built in code.
+    **{
+        f"UX{i}": (
+            f"UX{i} Index",
+            [
+                "PX_SETTLE",
+                "PX_LAST",
+                "PX_OPEN",
+                "PX_HIGH",
+                "PX_LOW",
+                "PX_VOLUME",
+                "OPEN_INT",
+                "FUT_ACT_DAYS_EXP",
+            ],
+        )
+        for i in range(1, 9)
+    },  # start 2004-03-26; PX_SETTLE authoritative
+    "VIX3M": ("VIX3M Index", ["PX_LAST"]),  # 2002-01-02 (VXV stitched)
+    "VIX6M": ("VIX6M Index", ["PX_LAST"]),  # 2008-01-02
+    "VXN": ("VXN Index", ["PX_LAST"]),  # 2001-02-02
+    "SPVXSP": ("SPVXSP Index", ["PX_LAST"]),  # 2005-12-20 ER
+    "SPVXSTR": ("SPVXSTR Index", ["PX_LAST"]),  # 2005-12-20 TR
+    "VPD": ("VPD Index", ["PX_LAST"]),  # 2004-06-15
+    "VPN": ("VPN Index", ["PX_LAST"]),  # 2004-06-15
+    # --- Block D: credit / macro (P1) ---
+    "HY_OAS": ("LF98OAS Index", ["PX_LAST"]),  # PERCENT -> x100 = bp; probe start 1992-1994
+    "IG_OAS": ("LUACOAS Index", ["PX_LAST"]),  # PERCENT; <=1990
+    "USGG2YR": ("USGG2YR Index", ["PX_LAST"]),
+    "USGG10YR": ("USGG10YR Index", ["PX_LAST"]),
+    "MOVE": ("MOVE Index", ["PX_LAST"]),  # probe 1988-1989
+    "BAA": ("MOODCBAA Index", ["PX_LAST"]),  # probe 1919
+    "AAA": ("MOODCAAA Index", ["PX_LAST"]),
+    "BFCIUS": ("BFCIUS Index", ["PX_LAST"]),  # probe 1994-1999 (GSUSFCI NOT entitled)
+    "USGGBE10": ("USGGBE10 Index", ["PX_LAST"]),  # probe 2003
+    # --- Block E: breadth / sentiment (P1) ---
+    "NYAD": ("NYAD Index", ["PX_LAST"]),  # probe 1960
+    "NYHI": ("NWHLNYHI Index", ["PX_LAST"]),
+    "NYLO": ("NWHLNYLO Index", ["PX_LAST"]),
+    "AAII_BULL": (
+        "AAIIBULL Index",
+        ["PX_LAST"],
+    ),  # weekly, Thursday release -> lag to Thursday close
+    "AAII_BEAR": ("AAIIBEAR Index", ["PX_LAST"]),
+    "MARGDEBT": ("MARGDEBT Index", ["PX_LAST"]),  # monthly, ~6-week lag -> lag accordingly
+    # --- Block F: French wrappers + leverage (P0) ---
+    # For each: OHLCV + PX_BID/PX_ASK + PX_OFFICIAL_CLOSE daily; TR; NAV.
+    **{
+        name: (
+            tkr,
+            [
+                "PX_OPEN",
+                "PX_HIGH",
+                "PX_LOW",
+                "PX_LAST",
+                "PX_VOLUME",
+                "PX_BID",
+                "PX_ASK",
+                "PX_OFFICIAL_CLOSE",
+            ],
+        )
+        for name, tkr in [
+            ("ESE", "ESE FP Equity"),
+            ("PUST", "PUST FP Equity"),
+            ("PE500", "PE500 FP Equity"),
+            ("CW8", "CW8 FP Equity"),
+            ("CL2", "CL2 FP Equity"),
+            ("LQQ", "LQQ FP Equity"),
+        ]
+    },
+    **{
+        f"{name}_TR": (tkr, ["TOT_RETURN_INDEX_GROSS_DVDS"])
+        for name, tkr in [
+            ("ESE", "ESE FP Equity"),
+            ("PUST", "PUST FP Equity"),
+            ("PE500", "PE500 FP Equity"),
+            ("CW8", "CW8 FP Equity"),
+            ("CL2", "CL2 FP Equity"),
+            ("LQQ", "LQQ FP Equity"),
+        ]
+    },
+    **{
+        f"{name}_NAV": (tkr, ["FUND_NET_ASSET_VAL"])
+        for name, tkr in [
+            ("ESE", "ESE FP Equity"),
+            ("PUST", "PUST FP Equity"),
+            ("CL2", "CL2 FP Equity"),
+            ("LQQ", "LQQ FP Equity"),
+        ]
+    },
+    "M00UUS02": (
+        "M00UUS02 Index",
+        ["PX_LAST"],
+    ),  # CL2 benchmark (2x MSCI USA daily net) — probe history
+    "NDDUUS": ("NDDUUS Index", ["PX_LAST"]),  # probe 1994
+    "EURUSD": ("EURUSD Curncy", ["PX_LAST"]),  # PRICING_SOURCE=BGN explicitly
+    "FEDL01": ("FEDL01 Index", ["PX_LAST"]),  # 1954-07-01
+    "EONIA": ("EONIA Index", ["PX_LAST"]),  # 1999-01-04 -> 2022-01-03
+    "ESTRON": ("ESTRON Index", ["PX_LAST"]),  # 2019-10-01; splice EONIA = ESTR + 8.5bp
+    "SPY_BIDASK": ("SPY US Equity", ["PX_BID", "PX_ASK"]),  # from 2000-01-31, pull in yearly chunks
 }
 
 # Try-and-log (unresolved on terminal — attempt BDH, log failures, do not crash):
 CANDIDATES = {
-  "S5TH":  [("S5TH Index",  ["PX_LAST"])],
-  "S5FI":  [("S5FI Index",  ["PX_LAST"])],
-  "PC_EQUITY": [("CPCE Index", ["PX_LAST"]), ("PCCE Index", ["PX_LAST"])],
-  "PC_TOTAL":  [("PCRATIO Index", ["PX_LAST"]), ("CPCETOT Index", ["PX_LAST"])],
-  "COT_ES": [("CFNMESSP Index", ["PX_LAST"])],
-  "VXX": [("VXX US Equity", ["PX_LAST","TOT_RETURN_INDEX_GROSS_DVDS"])],   # 2019 ETN splice caveat
-  "SVXY": [("SVXY US Equity", ["PX_LAST","TOT_RETURN_INDEX_GROSS_DVDS"])], # Feb-2018 -1x -> -0.5x break
+    "S5TH": [("S5TH Index", ["PX_LAST"])],
+    "S5FI": [("S5FI Index", ["PX_LAST"])],
+    "PC_EQUITY": [("CPCE Index", ["PX_LAST"]), ("PCCE Index", ["PX_LAST"])],
+    "PC_TOTAL": [("PCRATIO Index", ["PX_LAST"]), ("CPCETOT Index", ["PX_LAST"])],
+    "COT_ES": [("CFNMESSP Index", ["PX_LAST"])],
+    "VXX": [
+        ("VXX US Equity", ["PX_LAST", "TOT_RETURN_INDEX_GROSS_DVDS"])
+    ],  # 2019 ETN splice caveat
+    "SVXY": [
+        ("SVXY US Equity", ["PX_LAST", "TOT_RETURN_INDEX_GROSS_DVDS"])
+    ],  # Feb-2018 -1x -> -0.5x break
 }
 
 INTRADAY = {  # 1-min bars, eventTypes TRADE + BID + ASK; API keeps only ~140 days!
-  "ESE_IB":  "ESE FP Equity", "PUST_IB": "PUST FP Equity", "SPY_IB": "SPY US Equity",
-  "ES_IB":   "<front ES contract, resolve at runtime>", "EURUSD_IB": "EURUSD Curncy",
-  "IESE_IB": "IESE Index", "PUSTIV_IB": "PUSTIV Index",   # official iNAVs of ESE / PUST
+    "ESE_IB": "ESE FP Equity",
+    "PUST_IB": "PUST FP Equity",
+    "SPY_IB": "SPY US Equity",
+    "ES_IB": "<front ES contract, resolve at runtime>",
+    "EURUSD_IB": "EURUSD Curncy",
+    "IESE_IB": "IESE Index",
+    "PUSTIV_IB": "PUSTIV Index",  # official iNAVs of ESE / PUST
 }
 ```
 
