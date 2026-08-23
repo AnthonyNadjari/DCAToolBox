@@ -118,6 +118,29 @@ def build_features2() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
     f["vix_peak_63"] = vixs.rolling(63).max()
     f["vix_now"] = vixs
 
+
+    # --- campaign 2b: VRP, MOVE-VIX divergence, speculation sentiment ---
+    spx_ret = _al(load("SPX Index")["PX_LAST"], idx).pct_change()
+    rv22 = (spx_ret ** 2).rolling(22).sum() * (100 ** 2)   # monthly %^2 units approx
+    iv = vixs ** 2 / 12
+    vrp = iv - rv22
+    f["vrp"] = vrp
+    f["vrp_q_3y"] = vrp.rolling(756, min_periods=252).rank(pct=True)
+    move2 = _al(load("MOVE Index")["PX_LAST"], idx)
+    zm = (move2 - move2.rolling(252).mean()) / move2.rolling(252).std()
+    zv = (vixs - vixs.rolling(252).mean()) / vixs.rolling(252).std()
+    f["move_vix_div"] = zm - zv
+    lev = None
+    for t, sign in [("SSO_FLOW", 1), ("UPRO_FLOW", 1), ("SDS_FLOW", -1), ("SPXU_FLOW", -1)]:
+        try:
+            fl = load(t)["FUND_FLOW"].fillna(0.0) * sign
+            lev = fl if lev is None else lev.add(fl, fill_value=0.0)
+        except FileNotFoundError:
+            pass
+    if lev is not None:
+        sc = lev.abs().rolling(252, min_periods=63).mean()
+        f["spec_sent"] = _al((lev.rolling(21).sum() / (sc * 21)).clip(-5, 5), idx)
+
     extra = {k: s.shift(1).to_numpy(dtype=float) for k, s in f.items()}
     feats.update(extra)
     return asset, feats
