@@ -209,3 +209,51 @@ off the frontier above), (3) execution (late morning, limit at mid, never
 the closing auction, spread guard), (4) never selling. Every conditional
 rule tested — on price, macro, positioning, flows, ML, cross-asset
 allocation, and leverage state — was either noise or beta in costume.
+
+---
+
+# Addendum 4 (2026-08-23, night): realistic horizons, selling allowed, campaign 4
+
+Reframe at the user's request: judgment over ALL rolling 5y/10y monthly-DCA
+windows (384/324 windows, 1989-2026), selling allowed (tax-free inside PEA),
+0.5% fee per weight change.
+
+## Sell rules on the 1x sleeve: all dead
+Every sell trigger on ESE — 200dma, Faber 10-month, 12-1 momentum, vol
+targeting, VIX term-structure inversion, credit decompression, MMF cash
+surge, trend+VIX combo — has NEGATIVE median 5y excess vs buy-and-hold and
+win rates 21-41%. At 10y the trend variants reach ~52-56% wins with fat
+left tails (p5 -15..-33%). Options-based and money-market sell signals are
+the worst (-10% to -21% median 10y). Selling the unlevered sleeve is paying
+whipsaw for insurance the horizon does not need.
+
+## The one structure that survives every autopsy: TREND-GATED LEVERAGE
+2x sleeve above the 200dma, cash below ("Leverage for the Long Run",
+Gayed 2016 — the mechanism is vol-drag avoidance on daily-reset leverage,
+i.e. monetizing the ONE predictable quantity (variance), which our July
+verdict said was unmonetizable only because leverage was excluded):
+
+- Full sample (incl. synthetic 2000-09): 10y windows 94% win, median
+  +53.8%, p5 -1.9% vs holding ESE. 5y: 78% / +18.3% / -10.5%.
+- Beats the CONSTANT-exposure benchmark at its own 1.71x average
+  (head-to-head 68% win, +29.4% median 10y) — first candidate ever to
+  pass matched-benchmark attribution.
+- Robust: +300bp/yr extra drag still 76%/+34.9%; sma150/250 neighbors all
+  positive, no sign flips.
+- REAL CL2 2009-2026 (V-shaped-crash era only): trend keeps just +2.5%
+  median vs ESE (59% win, 1.7 switches/yr) while plain hold-CL2 made +70%
+  median and won 100% of windows. The filter's payoff is concentrated in
+  multi-year bears; in V-recovery regimes it costs most of the leverage
+  premium.
+
+## The honest menu (5-10y horizon, per rolling-window distributions)
+
+| Policy | 10y median vs ESE | 10y worst-5% | Character |
+|---|---|---|---|
+| 100% ESE | 0 | 0 | baseline |
+| 100% CL2 (2x) | +64% (real era: +70%) | -39% (path DD to -57..-93%) | max wealth, must hold catastrophic DD |
+| CL2 + 200dma trend gate | +54% full / +2.5% real era | -2% full / -11% real era | keeps leverage upside when long bears occur; pays whipsaw in V-regimes |
+
+No timing alpha exists; this is risk ARCHITECTURE. The choice between the
+three rows is a belief about future crash shape plus drawdown tolerance —
+made once, pre-registered, never re-decided mid-drawdown.

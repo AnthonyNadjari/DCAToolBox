@@ -39,8 +39,8 @@ def build_inputs() -> pd.DataFrame:
     df["r_cash"] = r3m / 252
     base = pair["base"]
     df["sma200_up"] = (base > base.rolling(200).mean()).astype(float)
-    sma10m = base.resample("ME").last().rolling(10).mean()
-    faber = (base.resample("ME").last() > sma10m).astype(float)
+    sma10m = base.resample("M").last().rolling(10).mean()
+    faber = (base.resample("M").last() > sma10m).astype(float)
     df["faber_up"] = faber.reindex(df.index).ffill()
     df["tsmom_up"] = (base.pct_change(231).shift(21) > 0).astype(float)
     vol = df["r_base"].rolling(63).std() * np.sqrt(252)
@@ -78,8 +78,8 @@ def strat_returns(df: pd.DataFrame, w_asset_fn, asset_col: str = "r_base") -> pd
 
 def rolling_dca(price: pd.Series, null_price: pd.Series, years: int) -> dict:
     """All rolling <years>-year monthly DCA windows: excess final wealth vs null."""
-    monthly_p = price.resample("ME").last().dropna()
-    monthly_n = null_price.reindex(price.index).resample("ME").last().dropna()
+    monthly_p = price.resample("M").last().dropna()
+    monthly_n = null_price.reindex(price.index).resample("M").last().dropna()
     both = pd.concat([monthly_p, monthly_n], axis=1, keys=["s", "n"]).dropna()
     h = years * 12
     exc = []
