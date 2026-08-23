@@ -46,7 +46,7 @@ def fired_mask(spec: dict, feats: dict[str, np.ndarray], n: int) -> np.ndarray:
 
 
 def simulate(asset: pd.DataFrame, fired: np.ndarray, base_deploy: float,
-             seg: slice, fee: float = FEE) -> dict:
+             seg: slice, fee: float = FEE, max_hold: int = MAX_HOLD) -> dict:
     dates = asset.index[seg]
     op = asset["open"].to_numpy(dtype=float)[seg]
     cl = asset["close"].to_numpy(dtype=float)[seg]
@@ -65,7 +65,7 @@ def simulate(asset: pd.DataFrame, fired: np.ndarray, base_deploy: float,
                 orders += 1
         if cash > 1.0:
             waiting += 1
-            if fr[i] or waiting >= MAX_HOLD:
+            if fr[i] or waiting >= max_hold:
                 shares += cash * (1 - fee) / op[i]
                 cash = 0.0
                 orders += 1
@@ -90,7 +90,8 @@ def evaluate(specs: list[dict], fee: float = FEE) -> list[dict]:
         fired = fired_mask(spec, feats, n) if spec["conds"] else np.zeros(n, bool)
         row = {"name": spec["name"], "conds": spec["conds"],
                "base_deploy": spec.get("base_deploy", 0.0),
-               **{s: simulate(asset, fired, spec.get("base_deploy", 0.0), sl, fee)
+               **{s: simulate(asset, fired, spec.get("base_deploy", 0.0), sl, fee,
+                              int(spec.get("max_hold", MAX_HOLD)))
                   for s, sl in segs.items()}}
         for s in segs:
             row[s]["vs_now"] = round(row[s]["final"] / ref[s] - 1, 5)
