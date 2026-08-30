@@ -128,6 +128,27 @@ def main() -> None:
             row[f"y{yrs}"] = rolling_dca(p, null_p, yrs)
         rolling.append(row)
 
+    # --- monthly sleeve returns: the dashboard recomputes policies from these ---
+    # Each curve is a monthly DCA accumulation, so its own return series is
+    # W_t / (W_{t-1} + C(1-fee)) - 1. Shipping the returns (rather than one
+    # precomputed path per policy) lets the browser mix any flow allocation.
+    contrib = np.diff(np.r_[0.0, np.asarray(equity["invested"], dtype=float)])
+    sleeve_r = {}
+    for name in MIX:
+        w = np.asarray(equity[name], dtype=float)
+        prev = np.r_[0.0, w[:-1]]
+        sleeve_r[name] = [round(float(v), 8) for v in (w / (prev + contrib * (1 - 0.005)) - 1.0)]
+    on_month = up.reindex(eq_idx).ffill().astype(int)
+    cash_m = month_ends((1 + df["r_cash"]).cumprod()).reindex(eq_idx).pct_change().fillna(0.0)
+    sleeves = {
+        "dates": equity["dates"],
+        "risk_on": [int(v) for v in on_month],
+        "cash": [round(float(v), 8) for v in cash_m],
+        "fee": 0.005,
+        "contribution": 1000.0,
+        "r": sleeve_r,
+    }
+
     payload = {
         "generated": str(date.today()),
         "signal": signal,
@@ -135,6 +156,7 @@ def main() -> None:
         "equity": equity,
         "off_periods": offs,
         "rolling": rolling,
+        "sleeves": sleeves,
     }
     OUT.write_text(json.dumps(payload), encoding="utf-8")
     print(
