@@ -178,3 +178,103 @@ main { max-width: 1060px; margin: 0 auto; padding: 0 24px 80px; }
   .rule-list li { grid-template-columns: 34px 1fr; }
   .tickers { font-size: 13px; }
 }
+
+/* ---------- dashboard controls ---------- */
+.controls {
+  display: grid; gap: 18px 26px; margin-top: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; padding: 22px 24px;
+}
+.ctl.wide { grid-column: 1 / -1; }
+.ctl label {
+  display: block; font-family: var(--mono); font-size: 11px; font-weight: 500;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); margin-bottom: 10px;
+}
+.ctl-row { display: flex; align-items: center; gap: 12px; }
+.ctl-row output { font-size: 14px; color: var(--ink); min-width: 74px; text-align: right; }
+.ctl input[type="range"] {
+  flex: 1; -webkit-appearance: none; appearance: none; height: 3px;
+  background: var(--line); border-radius: 2px; outline: none;
+}
+.ctl input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--s-strategy); border: 3px solid var(--panel);
+  box-shadow: 0 0 0 1px var(--s-strategy); cursor: pointer;
+}
+.ctl input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%; background: var(--s-strategy);
+  border: 3px solid var(--panel); box-shadow: 0 0 0 1px var(--s-strategy); cursor: pointer;
+}
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button {
+  font-family: var(--body); font-size: 13px; color: var(--muted);
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 7px;
+  padding: 7px 13px; cursor: pointer; transition: background .12s, color .12s, border-color .12s;
+}
+.seg button:hover { color: var(--ink); }
+.seg button.on { background: rgba(57,135,229,0.14); border-color: var(--s-strategy); color: var(--ink); }
+.seg.muted { opacity: .4; pointer-events: none; }
+
+/* ---------- stat tiles ---------- */
+.card-head { margin-bottom: 18px; }
+.card-head h2 { margin-bottom: 4px; }
+.card-head p { font-size: 13px; }
+.stats { display: grid; gap: 1px; grid-template-columns: repeat(3, 1fr); background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+@media (min-width: 900px) { .stats { grid-template-columns: repeat(6, 1fr); } }
+@media (max-width: 520px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+.stat { background: var(--panel-2); padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; }
+.stat-k { font-size: 12px; color: var(--muted); }
+.stat-v { font-size: 24px; font-weight: 500; letter-spacing: -0.01em; }
+.stat-s { font-size: 11px; color: var(--dim); }
+.stat.good .stat-v { color: var(--on); }
+.stat.bad .stat-v { color: var(--off); }
+.verdict-warning {
+  margin-top: 18px; padding: 14px 16px; font-size: 14px; line-height: 1.6;
+  background: var(--off-dim); border-left: 3px solid var(--off); border-radius: 0 8px 8px 0;
+}
+.verdict-warning b { color: var(--ink); font-weight: 600; }
+
+/* ---------- policy menu table ---------- */
+.table-wrap { overflow-x: auto; margin-top: 16px; }
+.menu { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
+.menu th {
+  font-family: var(--mono); font-size: 11px; font-weight: 500; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--dim); text-align: right;
+  padding: 8px 14px 8px 0; border-bottom: 1px solid var(--line);
+}
+.menu th:first-child { text-align: left; }
+.menu td { padding: 9px 14px 9px 0; border-bottom: 1px solid var(--line); text-align: right; font-size: 13px; }
+.menu td:first-child { text-align: left; font-family: var(--body); font-size: 14px; }
+.menu tr { cursor: pointer; }
+.menu tbody tr:hover td { background: rgba(255,255,255,0.03); }
+.menu tr.cur td { background: rgba(57,135,229,0.10); color: var(--ink); }
+.menu tr:focus-visible { outline: 2px solid var(--s-strategy); }
+
+/* ---------- chart tooltip ---------- */
+.chart .tip {
+  position: absolute; top: 8px; pointer-events: none; z-index: 3;
+  background: #0b101b; border: 1px solid var(--line); border-radius: 6px;
+  padding: 7px 9px; font-family: var(--mono); font-size: 11.5px; line-height: 1.55;
+  color: var(--ink); white-space: nowrap; box-shadow: 0 6px 24px rgba(0,0,0,.5);
+}
+.chart .tip span { display: block; color: var(--muted); }
+.chart .tip b { color: var(--ink); font-weight: 500; }
+.chart .tip i { display: inline-block; width: 8px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.chart text.ax { fill: var(--dim); font-family: var(--mono); font-size: 10px; }
+
+/* ---------- misc ---------- */
+.flap.on { color: var(--on); text-shadow: 0 0 60px rgba(63,181,119,.25); }
+.flap.off { color: var(--off); text-shadow: 0 0 60px rgba(224,82,82,.25); }
+.card > .dim { font-size: 14px; max-width: 78ch; }
+.caveats ul { list-style: none; padding: 0; }
+.caveats li { padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+.caveats li strong { color: var(--ink); font-weight: 600; }
+footer { max-width: 1060px; margin: 0 auto; padding: 0 24px 60px; }
+footer p { font-size: 11.5px; color: var(--dim); }
+
+@media (max-width: 640px) {
+  .controls { padding: 18px 16px; gap: 16px; }
+  .stat-v { font-size: 20px; }
+  .verdict { font-size: clamp(48px, 15vw, 96px); }
+}

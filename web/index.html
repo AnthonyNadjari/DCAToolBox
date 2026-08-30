@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Le Signal — DCAToolBox</title>
-<meta name="description" content="One monthly instruction for a leveraged S&P 500 / Nasdaq accumulation plan: risk on or risk off, decided by the 200-day moving average.">
+<meta name="description" content="Tableau de bord d'un plan d'épargne mensuel sur ETF PEA : l'instruction du mois, et le backtest complet recalculé dans le navigateur — horizon, dose de levier, filtre de tendance, époque.">
 <link rel="icon" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,75 +24,173 @@
 </header>
 
 <main>
-  <!-- ============ THE INSTRUMENT ============ -->
+  <!-- ============ INSTRUCTION DU MOIS ============ -->
   <section class="hero" id="hero" aria-live="polite">
-    <p class="eyebrow mono">This month&rsquo;s instruction &mdash; S&amp;P 500 vs 200-day average</p>
+    <p class="eyebrow mono">Instruction du mois &mdash; S&amp;P 500 vs moyenne 200 jours</p>
     <h1 class="verdict" id="verdict"><span class="flap">&mdash;&mdash;</span></h1>
-    <p class="verdict-sub mono" id="verdict-sub">loading market data&hellip;</p>
+    <p class="verdict-sub mono" id="verdict-sub">chargement des donn&eacute;es&hellip;</p>
     <p class="verdict-action" id="verdict-action"></p>
+  </section>
+
+  <!-- ============ CONTRÔLES ============ -->
+  <section class="controls" id="controls" aria-label="Paramètres du backtest">
+    <div class="ctl">
+      <label for="budget">Budget mensuel</label>
+      <div class="ctl-row">
+        <input type="range" id="budget" min="100" max="5000" step="100" value="1000">
+        <output class="mono" id="budget-out">1 000 &euro;</output>
+      </div>
+    </div>
+    <div class="ctl">
+      <label for="lev">Part du flux en 2&times;</label>
+      <div class="ctl-row">
+        <input type="range" id="lev" min="0" max="100" step="5" value="70">
+        <output class="mono" id="lev-out">70 %</output>
+      </div>
+    </div>
+    <div class="ctl">
+      <label id="gate-label">Filtre de tendance</label>
+      <div class="seg" role="group" aria-labelledby="gate-label" id="gate-seg">
+        <button type="button" data-gate="1" class="on">Actif</button>
+        <button type="button" data-gate="0">Sans</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <label id="hz-label">Horizon</label>
+      <div class="seg" role="group" aria-labelledby="hz-label" id="hz-seg">
+        <button type="button" data-h="1">1 an</button>
+        <button type="button" data-h="2">2</button>
+        <button type="button" data-h="3" class="on">3</button>
+        <button type="button" data-h="5">5</button>
+        <button type="button" data-h="7">7</button>
+        <button type="button" data-h="10">10</button>
+      </div>
+    </div>
+    <div class="ctl wide">
+      <label id="era-label">&Eacute;poque test&eacute;e</label>
+      <div class="seg" role="group" aria-labelledby="era-label" id="era-seg">
+        <button type="button" data-era="all" class="on">Tout 1989&ndash;2026</button>
+        <button type="button" data-era="bear">Avec les krachs longs (d&eacute;buts 1989&ndash;2008)</button>
+        <button type="button" data-era="bull">Ère r&eacute;cente (d&eacute;buts 2009&ndash;)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RÉSULTATS DE LA POLITIQUE CHOISIE ============ -->
+  <section class="card">
+    <div class="card-head">
+      <h2 id="policy-name">&mdash;</h2>
+      <p class="dim" id="policy-sub">&mdash;</p>
+    </div>
+    <div class="stats" id="stats"></div>
+    <p class="verdict-warning" id="downside">&mdash;</p>
+  </section>
+
+  <!-- ============ DISTRIBUTION DES FENÊTRES ============ -->
+  <section class="card">
+    <h2>Toutes les fen&ecirc;tres possibles, tri&eacute;es de la pire &agrave; la meilleure</h2>
+    <p class="dim">Chaque point = un plan d&eacute;marr&eacute; un mois diff&eacute;rent et tenu sur l&rsquo;horizon choisi.
+      L&rsquo;axe vertical est ce que vaut le plan pour 1&nbsp;&euro; vers&eacute;. Sous la ligne&nbsp;1,00, vous avez perdu de l&rsquo;argent.</p>
     <figure class="chart-block">
-      <div class="chart" id="gate-chart" role="img" aria-label="S&P 500 price against its 200-day moving average, last three years, with risk-off periods shaded"></div>
-      <figcaption class="chart-caption mono">SPX close <span class="k k-spx"></span> vs 200-DMA <span class="k k-sma"></span> &middot; shaded = risk off</figcaption>
+      <div class="chart" id="dist-chart" role="img" aria-label="Distribution triée des résultats de fenêtres glissantes"></div>
+      <figcaption class="chart-caption mono" id="dist-legend"></figcaption>
     </figure>
   </section>
 
-  <!-- ============ THE RULE CARD ============ -->
+  <!-- ============ MENU DES POLITIQUES ============ -->
+  <section class="card">
+    <h2>Le menu, &agrave; cet horizon et sur cette &eacute;poque</h2>
+    <p class="dim">M&eacute;diane, 5<sup>e</sup> centile et pire cas en multiple des sommes vers&eacute;es&nbsp;; probabilit&eacute; de finir sous
+      son argent&nbsp;; pire baisse du portefeuille en cours de route. Cliquez une ligne pour la charger dans les contr&ocirc;les.</p>
+    <div class="table-wrap">
+      <table class="menu" id="menu">
+        <thead><tr>
+          <th scope="col">Politique</th>
+          <th scope="col">M&eacute;diane</th>
+          <th scope="col">p5</th>
+          <th scope="col">Pire</th>
+          <th scope="col">P(perte)</th>
+          <th scope="col">Pire baisse</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ TRAJECTOIRE ============ -->
+  <section class="card">
+    <h2>La trajectoire compl&egrave;te</h2>
+    <p class="dim">Un seul plan, d&eacute;marr&eacute; au d&eacute;but de l&rsquo;&eacute;poque choisie et tenu jusqu&rsquo;au bout&nbsp;: patrimoine
+      (&eacute;chelle log) puis baisse depuis le plus haut. Zones rouges&nbsp;: le filtre &eacute;tait hors march&eacute;.</p>
+    <figure class="chart-block">
+      <div class="chart" id="equity-chart" role="img" aria-label="Patrimoine accumulé, échelle logarithmique"></div>
+      <figcaption class="chart-caption mono" id="equity-legend"></figcaption>
+    </figure>
+    <figure class="chart-block">
+      <div class="chart" id="dd-chart" role="img" aria-label="Baisse du portefeuille depuis son plus haut"></div>
+      <figcaption class="chart-caption mono">Baisse depuis le plus haut du portefeuille en cours de constitution</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============ LE SIGNAL LUI-MÊME ============ -->
+  <section class="card">
+    <h2>Le signal, ces trois derni&egrave;res ann&eacute;es</h2>
+    <figure class="chart-block">
+      <div class="chart" id="gate-chart" role="img" aria-label="S&P 500 face à sa moyenne 200 jours sur trois ans"></div>
+      <figcaption class="chart-caption mono">SPX <span class="k k-spx"></span> vs 200&nbsp;jours <span class="k k-sma"></span> &middot; zones rouges = hors march&eacute;</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============ RÈGLES ============ -->
   <section class="card rules">
-    <h2>The entire system</h2>
+    <h2>Le syst&egrave;me en entier</h2>
     <ol class="rule-list">
       <li>
-        <strong>Every month, the day cash arrives: invest it. Never wait for a dip.</strong>
-        <span>Perfect entry timing was measured to be worth +0.63% over 33 years. Waiting costs ~2.8&nbsp;bp per day.</span>
+        <strong>Chaque mois, le jour o&ugrave; l&rsquo;argent arrive&nbsp;: on l&rsquo;investit. Jamais d&rsquo;attente de repli.</strong>
+        <span>Le timing d&rsquo;entr&eacute;e parfait vaut +0,63&nbsp;% sur 33&nbsp;ans&nbsp;; attendre co&ucirc;te ~2,8&nbsp;pb par jour. ~7&nbsp;400 r&egrave;gles test&eacute;es, aucune gagnante.</span>
       </li>
       <li>
-        <strong>Signal ON &mdash; SPX above its 200-day average:</strong>
-        <span>buy 70% CL2 &middot; 30% LQQ. Hold everything already invested.</span>
-        <strong class="off">Signal OFF &mdash; SPX below it:</strong>
-        <span>this month&rsquo;s cash and all holdings go to the money-market ETF, until the price recrosses.</span>
+        <strong>Signal ON &mdash; SPX au-dessus de sa moyenne 200 jours&nbsp;:</strong>
+        <span>la part 2&times; du mois part en CL2/LQQ (70/30), le reste dans le 1&times;.</span>
+        <strong class="off">Signal OFF &mdash; SPX en dessous&nbsp;:</strong>
+        <span>la poche 2&times; (flux et encours) passe au mon&eacute;taire jusqu&rsquo;au recroisement. Le 1&times; ne bouge jamais.</span>
       </li>
       <li>
-        <strong>Check the signal once a month, on deposit day. That is all.</strong>
-        <span>Historically ~2 switches per year. Buy late morning with a limit at mid; never the closing auction; skip the day if the spread exceeds 25&nbsp;bp.</span>
+        <strong>On regarde le signal une fois par mois, le jour du versement. C&rsquo;est tout.</strong>
+        <span>~2 bascules par an. Ordre en fin de matin&eacute;e, limite au milieu de fourchette&nbsp;; jamais le fixing de cl&ocirc;ture&nbsp;; on saute la journ&eacute;e si l&rsquo;&eacute;cart d&eacute;passe 25&nbsp;pb.</span>
+      </li>
+      <li>
+        <strong>On ne vend jamais le 1&times;.</strong>
+        <span>Toutes les r&egrave;gles de vente sur la poche non lev&eacute;r&eacute;e perdent&nbsp;: m&eacute;diane n&eacute;gative &agrave; 5&nbsp;ans, 21&ndash;41&nbsp;% de r&eacute;ussite.</span>
       </li>
     </ol>
     <table class="tickers">
-      <caption class="sr-only">Funds used by the plan</caption>
-      <thead><tr><th scope="col">Sleeve</th><th scope="col">Fund</th><th scope="col">Ticker</th><th scope="col">Flow</th></tr></thead>
+      <caption class="sr-only">Fonds utilis&eacute;s</caption>
+      <thead><tr><th scope="col">Poche</th><th scope="col">Fonds</th><th scope="col">Code</th><th scope="col">R&ocirc;le</th></tr></thead>
       <tbody>
-        <tr><td>US large &times;2</td><td>Amundi Leveraged MSCI USA Daily (2x)</td><td class="mono">CL2 FP</td><td class="mono">70%</td></tr>
-        <tr><td>Nasdaq-100 &times;2</td><td>Amundi Nasdaq-100 Daily (2x)</td><td class="mono">LQQ FP</td><td class="mono">30%</td></tr>
-        <tr><td>Refuge</td><td>PEA money-market ETF <span class="dim">(confirm ticker with your broker)</span></td><td class="mono">&mdash;</td><td class="mono">when OFF</td></tr>
-        <tr class="alt"><td colspan="4" class="dim">Unlevered fallback if a &minus;45% drawdown is unbearable: 70% ESE FP &middot; 30% PUST FP, no gate, nothing else.</td></tr>
+        <tr><td>1&times;</td><td>BNP Paribas Easy S&amp;P 500</td><td class="mono">ESE</td><td>socle, jamais vendu</td></tr>
+        <tr><td>2&times; US</td><td>Amundi MSCI USA Daily 2x</td><td class="mono">CL2</td><td>70&nbsp;% de la poche lev&eacute;r&eacute;e</td></tr>
+        <tr><td>2&times; tech</td><td>Amundi Nasdaq-100 Daily 2x</td><td class="mono">LQQ</td><td>30&nbsp;% de la poche lev&eacute;r&eacute;e</td></tr>
+        <tr><td>refuge</td><td>ETF mon&eacute;taire euro</td><td class="mono">&mdash;</td><td>o&ugrave; va la poche 2&times; quand le signal est OFF</td></tr>
       </tbody>
     </table>
   </section>
 
-  <!-- ============ THE EVIDENCE ============ -->
-  <section class="card evidence">
-    <h2>Why this and nothing else</h2>
-    <p class="lede">7,400+ timing and signal rules were tested on this mandate &mdash; price, volatility, options, credit, FOMC calendar, positioning, fund flows, money-market cash, machine learning. <strong>Zero beat buying immediately, out of sample.</strong> The gate below is not return prediction: it is volatility-drag control on the leveraged funds &mdash; the one mechanism that survived every audit.</p>
-
-    <figure class="chart-block">
-      <h3>1,000&nbsp;&euro; per month since 1989 <span class="dim">&middot; 0.5% fee per trade &middot; log scale</span></h3>
-      <div class="chart chart-tall" id="equity-chart" role="img" aria-label="Growth of monthly 1000 euro investments under four policies, log scale, 1989 to 2026"></div>
-      <div class="legend mono" id="equity-legend"></div>
-    </figure>
-
-    <details class="data-table">
-      <summary class="mono">View the numbers as a table</summary>
-      <div id="equity-table"></div>
-    </details>
-
-    <h3>Rolling 5- and 10-year windows <span class="dim">&middot; excess final wealth vs unlevered 70/30</span></h3>
-    <div class="roll-wrap"><table class="roll" id="roll-table"></table></div>
-    <p class="footnote">The gate&rsquo;s payoff concentrates in long bear markets (2000&ndash;09). In V-shaped decades it costs part of the leverage premium to whipsaw &mdash; that is the insurance premium, known and accepted in advance.</p>
+  <!-- ============ CE QUE CE BACKTEST NE PROUVE PAS ============ -->
+  <section class="card caveats">
+    <h2>Ce que ces chiffres ne prouvent pas</h2>
+    <ul>
+      <li><strong>Les fen&ecirc;tres se chevauchent.</strong> 385 fen&ecirc;tres de 5&nbsp;ans ne sont pas 385 exp&eacute;riences ind&eacute;pendantes&nbsp;: sur 37&nbsp;ans il y en a environ 7 de vraiment distinctes. Les pourcentages de r&eacute;ussite sont indicatifs, pas des probabilit&eacute;s.</li>
+      <li><strong>Avant 2013, les fonds 2&times; sont reconstitu&eacute;s.</strong> CL2 existe depuis 2009, LQQ depuis 2006, ESE depuis 2013&nbsp;; tout ce qui pr&eacute;c&egrave;de est simul&eacute; &agrave; partir des indices, frais et co&ucirc;t de financement d&eacute;duits. Les deux krachs longs (2000&ndash;2002, 2008) ne sont dans le backtest que sous cette forme.</li>
+      <li><strong>Les baisses sont mesur&eacute;es fin de mois.</strong> Le creux v&eacute;cu en intra-mois est plus profond que celui affich&eacute;.</li>
+      <li><strong>Le menu a &eacute;t&eacute; choisi apr&egrave;s avoir vu ces donn&eacute;es.</strong> Le filtre de tendance est la seule structure ayant surv&eacute;cu &agrave; l&rsquo;attribution contre son propre niveau d&rsquo;exposition moyen&nbsp;; il reste une prise de position sur la forme du prochain krach.</li>
+    </ul>
   </section>
-
-  <footer class="colophon">
-    <p class="mono">Research record: <a href="https://github.com/AnthonyNadjari/DCAToolBox/blob/bbg-research/research_bbg/VERDICT.md">VERDICT.md</a> &middot; <a href="https://github.com/AnthonyNadjari/DCAToolBox">source</a></p>
-    <p>Backtests use real fund prices where they exist and index-derived synthetics before fund inception; leveraged synthetics include borrow cost and fee drag, validated against CL2. Past performance does not predict future results. Not investment advice.</p>
-  </footer>
 </main>
+
+<footer>
+  <p class="mono dim" id="foot">&mdash;</p>
+</footer>
 
 <script src="app.js"></script>
 </body>
