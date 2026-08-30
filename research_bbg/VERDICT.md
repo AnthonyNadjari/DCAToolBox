@@ -257,3 +257,57 @@ verdict said was unmonetizable only because leverage was excluded):
 No timing alpha exists; this is risk ARCHITECTURE. The choice between the
 three rows is a belief about future crash shape plus drawdown tolerance —
 made once, pre-registered, never re-decided mid-drawdown.
+
+---
+
+# Addendum 5 (2026-08-30): short horizons, risk-mitigated leverage, dashboard
+
+Reframe at the user's request: 5y/10y windows are too long to judge by, and
+100% 2x is too risky for savings. Fifteen flow-level policies (partial
+leverage 25/50/75%, the same gated, wealth caps, glide paths) scored over
+rolling 1/2/3/5/7/10-year windows on savings metrics — multiple of
+contributions, probability of ending below the money paid in, drawdown of
+the accumulating pot — split between the backfill era (starts 1989-2008,
+contains the two long bears) and the real-fund era (starts 2009+).
+Code: `sleeves.py` (recovers the four realised sleeve return series from the
+published paths; exact reconstruction, beta 2.003) and `horizons.py`.
+
+## The dose is not the lever; the filter is
+
+Reducing the 2x share interpolates linearly between 1x and 2x — it gives up
+as much median as it removes tail. The filter changes the SHAPE. Full period,
+3y windows (multiple of contributions): 1x 1.21 median / 0.77 p5 / 16% below
+contributions; ungated 2x 1.40 / 0.52 / 19% with a -48% worst pot drawdown;
+gated 2x 1.23 / **0.94** / **11%**. At 5y the gated sleeve dominates plain 1x
+on every metric (1.44 / 0.92 / 9% vs 1.39 / 0.79 / 17%). The middle setting —
+50% of the flow into the gated sleeve — matches the 1x median (1.22 vs 1.21)
+with a materially better 5th percentile (0.86 vs 0.77).
+
+Two limits, both era-dependent and both now switchable on the site:
+at 1-2 years the filter is a net cost (34% of 1y windows below contributions
+vs 26% unfiltered — whipsaw with no bear to pay for it); and the eras
+disagree — starts 1989-2008 favour the filter (5y: 1.37 vs 1.20 median, 15%
+vs 28% below contributions), starts 2009+ favour raw 2x (5y median 2.10,
+worst window still 1.36).
+
+## Panel of proposed mitigations: nothing new survives
+
+A specialist panel proposed sixteen further structures (de-lever gate, core/
+satellite, euro caps, soft gate, trim bands, goal buckets, wealth and
+target-date glides, vol-targeted sizing, capital-at-risk budgets). Re-scored
+here, the caps and glides land on the same frontier as their own average
+exposure, and the most seductive one fails: the "contributions floor"
+(2x sleeve sized so a -60% shock still leaves the pot above what was paid in)
+was reported as holding in all 444 months — but that was measured on the
+single 1989-start path, where the pot dwarfs contributions. On fresh-start
+rolling windows, the metric a saver actually faces, it ends below
+contributions in **85% of 3-year and 93% of 5-year windows**, because it sits
+in the money market until the pot has grown away from its own floor. The
+lesson is about measurement, not about the idea.
+
+## Site
+
+`web/` is now a dashboard rather than a presentation: the monthly instruction
+stays on top, and the backtest re-runs in the browser from monthly sleeve
+returns under five controls (budget, share of flow in 2x, filter on/off,
+horizon, era). The JS engine reproduces `horizons.py` exactly.
