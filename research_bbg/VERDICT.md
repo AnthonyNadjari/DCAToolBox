@@ -1,4 +1,4 @@
-﻿# Direct-Bloomberg re-run: full verdict (2026-08-23)
+# Direct-Bloomberg re-run: full verdict (2026-08-23)
 
 The signal program was re-run from scratch with a live Bloomberg terminal
 connection (blpapi/xbbg, port 8194), on the instrument the investor actually
@@ -7,33 +7,33 @@ cost of **0.50%/trade** and nothing else.
 
 ## What was new vs the 2026-07 campaigns
 
-- **Direct API pulls** of 43 daily series (1975â†’2026 where available) â€” no
+- **Direct API pulls** of 43 daily series (1975→2026 where available) — no
   more manual exports: instrument bid/ask/NAV, real VIX futures generics
   (UX1-3), CDX HY, MOVE, SKEW, VVIX, V2X, AAII, put/call, A/D line, NFCI,
   Citi surprise indices (USD & EUR), EURUSD implied vol and risk reversals,
   ES futures basis, Bund spread, commodities.
-- **EUR investor frame** â€” never tested before (all prior work was USD/SPY).
-  Asset = real ESE from inception 2013-09-16, backfilled 1989â†’2013 with
+- **EUR investor frame** — never tested before (all prior work was USD/SPY).
+  Asset = real ESE from inception 2013-09-16, backfilled 1989→2013 with
   SPXT/EURUSD minus TER; splice validated (26 bps/yr CAGR gap vs real fund).
   IS = backfill era, OOS = the real fund's lifetime.
 - **New signal families**: FX/EUR (EURUSD momentum/level/vol/risk-reversals),
-  EU-vs-US fear (V2Xâˆ’VIX), EU-vs-US macro surprise, and the overnight gap
+  EU-vs-US fear (V2X−VIX), EU-vs-US macro surprise, and the overnight gap
   (late-US move after the Euronext close, absorbed at the next ESE open).
-- **Intraday microstructure** on the real order book (127 days Ã— ~470 bars of
+- **Intraday microstructure** on the real order book (127 days × ~470 bars of
   trade/bid/ask).
 
-## Campaign 1 â€” 594 pre-registered specs (commit 974a800 before any result)
+## Campaign 1 — 594 pre-registered specs (commit 974a800 before any result)
 
 90 specs from six blind agent families + 504 mechanical single-condition
 quantile specs over all 64 features.
 
 - IS-positive: **15/594** (best +0.26% lifetime).
 - Positive on both sides: **4/594**, all turn-of-month calendar variants at
-  +0.02%â€¦+0.09% *lifetime* (13y OOS) â€” noise level; killed by neighborhood
-  instability (the q95 neighbor flips to âˆ’0.27% OOS) and contradicted by the
-  day-26 control itself (âˆ’0.90% OOS vs immediate).
-- Fee sensitivity 0.25%â†’1.00%: results unchanged (same order count as the
-  null â€” fees cancel).
+  +0.02%…+0.09% *lifetime* (13y OOS) — noise level; killed by neighborhood
+  instability (the q95 neighbor flips to −0.27% OOS) and contradicted by the
+  day-26 control itself (−0.90% OOS vs immediate).
+- Fee sensitivity 0.25%→1.00%: results unchanged (same order count as the
+  null — fees cancel).
 - Every Bloomberg-exclusive feature (ux_roll, vix_basis, cdx_hy, es_basis,
   fx_rr25, v2x_vix, cesi_*, us_after_eu_close): negative OOS.
 
@@ -42,48 +42,48 @@ data: no timing signal beats deploying each month's cash immediately.**
 
 ## Intraday (the data Bloomberg actually adds): execution, not signals
 
-Bloomberg keeps only ~6 months of intraday bars â€” 6 monthly decisions, so
+Bloomberg keeps only ~6 months of intraday bars — 6 monthly decisions, so
 intraday *signals* are untestable and stay closed. But 60,186 bid/ask bars
 answer the execution question with certainty:
 
 | Window (Paris) | Median spread | P90 | Note |
 |---|---|---|---|
-| 09:30â€“14:00 | **3.3â€“3.4 bp** | 4.4 bp | tightest; price â‰ˆ day VWAP |
-| 15:30â€“17:00 (US open) | 4.1â€“4.3 bp | 5.2â€“6.4 bp | vol spillover |
+| 09:30–14:00 | **3.3–3.4 bp** | 4.4 bp | tightest; price ≈ day VWAP |
+| 15:30–17:00 (US open) | 4.1–4.3 bp | 5.2–6.4 bp | vol spillover |
 | 17:30 closing auction | **11 bp** | **28 bp** | worst; 14% of volume trades here |
 
 Daily close spreads since 2013 confirm the regime: median 8.7 bp, p90 29 bp,
-crisis days 2â€“7% (2015-08, 2013 illiquid era).
+crisis days 2–7% (2015-08, 2013 illiquid era).
 
 **Execution rule (certain, forecast-free): buy late morning Paris time with a
 limit at mid; never the closing auction; skip the day if the spread exceeds
-25 bp.** Worth ~5â€“10 bp/order with certainty â€” small next to the 0.5% fee,
+25 bp.** Worth ~5–10 bp/order with certainty — small next to the 0.5% fee,
 but free.
 
-## Leverage â€” the one dial that moved wealth (real fund data, 2013â€“2026)
+## Leverage — the one dial that moved wealth (real fund data, 2013–2026)
 
-1000 EUR/month at 0.5% fee, common window 2013-09â†’2026-08:
+1000 EUR/month at 0.5% fee, common window 2013-09→2026-08:
 
 | Flow | Final wealth | Multiple of contributions | Max fund DD |
 |---|---|---|---|
-| 100% ESE (1Ã—) | 437k | 2.8Ã— | âˆ’34% |
-| 75/25 ESE/CL2 | 554k | 3.5Ã— | â€” |
-| 50/50 ESE/CL2 | 670k | 4.3Ã— | â€” |
-| 100% CL2 (2Ã— USA) | 904k | 5.8Ã— | âˆ’60% |
-| 100% LQQ (2Ã— NDX) | 1,528k | 9.8Ã— | âˆ’61% |
+| 100% ESE (1×) | 437k | 2.8× | −34% |
+| 75/25 ESE/CL2 | 554k | 3.5× | — |
+| 50/50 ESE/CL2 | 670k | 4.3× | — |
+| 100% CL2 (2× USA) | 904k | 5.8× | −60% |
+| 100% LQQ (2× NDX) | 1,528k | 9.8× | −61% |
 
-CL2's realized beta vs ESE: 2.02 â€” the daily-reset mechanics delivered clean
-2Ã— over this window. Honesty requirements: this window is one uninterrupted
+CL2's realized beta vs ESE: 2.02 — the daily-reset mechanics delivered clean
+2× over this window. Honesty requirements: this window is one uninterrupted
 bull market; a 2000-2009 decade inflicts the volatility drag with none of the
-drift, and âˆ’60% is a *fund* drawdown the investor must hold through. This is
-a pre-registered RISK choice (Kelly headroom: full investment â‰ˆ 0.3â€“0.45
+drift, and −60% is a *fund* drawdown the investor must hold through. This is
+a pre-registered RISK choice (Kelly headroom: full investment ≈ 0.3–0.45
 fractional Kelly), not alpha.
 
 ## Standing production policy (unchanged by ~600 further backtests)
 
 Buy the day the cash arrives. Everything. Late morning, limit at mid, skip
 if spread > 25 bp. The only decisions that moved the outcome are structural:
-the fee (0.5% is high â€” halving it beats every signal ever tested here),
+the fee (0.5% is high — halving it beats every signal ever tested here),
 the leverage dose, and never selling.
 
 ---
@@ -98,7 +98,7 @@ implied correlation, SPY short interest, FUND_FLOW incl. leveraged pairs,
 BEst revisions, FOMC calendar workflow). The FOMC statement calendar
 1994-2026 was compiled from federalreserve.gov (263 scheduled meetings).
 
-## Campaign 2 â€” 47 pre-registered literature/BASK delay rules (commit before results)
+## Campaign 2 — 47 pre-registered literature/BASK delay rules (commit before results)
 
 Pre-FOMC drift (Lucca-Moench incl. VIX-gated & close-fill), announcement-eve
 NFP/CPI (Savor-Wilson), FOMC even weeks (Cieslak et al.), turn-of-month T-4/
@@ -107,13 +107,13 @@ caps, Bansal-Stivers VIX>P80, first-day backwardation, bear-killer vol-crush,
 CFTC contrarian, NAAIM capitulation, short-interest, flow capitulation,
 revision momentum, Fed model, implied-correlation spikes, and five combos.
 
-Result: 2/47 IS-positive; 1/47 both sides â€” lit_tom_window at +0.05%/+0.02%
+Result: 2/47 IS-positive; 1/47 both sides — lit_tom_window at +0.05%/+0.02%
 LIFETIME (the same turn-of-month noise cluster campaign 1 already killed).
 The overnight/MOC execution anomaly does not transfer either: ESE's Euronext
 open already sits after the US overnight session (open-fill null = close-fill
 null to within 3bp lifetime).
 
-## Campaign 2b â€” 11 pre-registered specs on the last untested grade-A candidates
+## Campaign 2b — 11 pre-registered specs on the last untested grade-A candidates
 
 VRP (Bollerslev-Tauchen-Zhou), MOVE-VIX divergence (IRFA 2026), Davies
 leveraged-ETF speculation sentiment. Result: the VRP and MOVE-VIX variants
@@ -123,7 +123,7 @@ era. Speculation sentiment negative on both sides. 0/11.
 ## Session tally and the unchanged conclusion
 
 652 pre-registered specs this session (594 + 47 + 11) across every family
-the literature, the terminal, and BASK could produce â€” on the real
+the literature, the terminal, and BASK could produce — on the real
 instrument, in EUR, at the investor's true 0.5% fee. Survivors: none. The
 literature's own meta-finding matched our measurements exactly: the credible
 post-publication estimate for the entire day-picking game is ~10-25bp/yr,
@@ -131,16 +131,16 @@ and the anomalies carrying it (TOM, pre-FOMC) measurably decayed post-2015.
 
 What Bloomberg access genuinely bought: (1) the certain execution rule
 (late morning, limit at mid, never the closing auction, skip if spread
-> 25bp â€” worth ~5-10bp per order); (2) the leverage-dial numbers on real
+> 25bp — worth ~5-10bp per order); (2) the leverage-dial numbers on real
 funds (CL2 5.8x vs ESE 2.8x, maxDD -60% vs -34%); (3) closure at a far
 higher evidentiary standard: the timing branch is not merely unexploited,
-it is now measured to be empty at Â±10bp resolution over 37 years.
+it is now measured to be empty at ±10bp resolution over 37 years.
 
 ## Addendum 2 (2026-08-23 night): MMF cash gauge and machine learning
 
 **Money-market-fund "cash on the sidelines" (trader's suggestion).** ICI
 total MMF assets (MMFA Index, weekly, 1990-2026, publication lag modeled):
-9 pre-registered specs â€” cash surges, cash-vs-equity z-scores/percentiles,
+9 pre-registered specs — cash surges, cash-vs-equity z-scores/percentiles,
 cash-rotation-out. 0/9: best +0.03% IS flips to -0.68% OOS. Mechanism: MMF
 cash surges DURING selloffs, but the deployment reserve pays drift while
 waiting for the surge to register; by the time sidelined cash peaks, the
@@ -150,7 +150,7 @@ price has recovered past the arrival-day level.
 Ridge, gradient boosting and logistic classification on the full 90+
 feature library, 21-day forward target, expanding walk-forward with 21-bar
 purge, yearly refits, fixed prediction-to-deployment mapping. Out-of-sample
-RÂ²: ridge -2.23, GBM -0.55 â€” the models predict WORSE than the
+R²: ridge -2.23, GBM -0.55 — the models predict WORSE than the
 unconditional mean. All six deployment variants negative in both eras
 (backfill -0.4..-1.4%, real fund -0.2..-0.7%). The conception document's
 a-priori rejection of supervised ML at this data scale is now an empirical
@@ -160,13 +160,13 @@ result on this exact dataset.
 across price, calendar, FOMC/macro events, volatility complex incl. real
 futures curve, credit, FX/EUR, sentiment surveys, positioning, short
 interest, fund flows, earnings revisions, valuation, implied correlation,
-money-market cash, and walk-forward ML â€” zero beat immediate deployment
+money-market cash, and walk-forward ML — zero beat immediate deployment
 out of sample.** Combined with the July program: ~7,300 tested rules, zero
 survivors. The purchase-timing question for this instrument is answered.
 
 ---
 
-# Addendum 3 (2026-08-23, late): Campaign 3 â€” the hedge-fund reframe (allocation + leverage)
+# Addendum 3 (2026-08-23, late): Campaign 3 — the hedge-fund reframe (allocation + leverage)
 
 Timing being closed, the question was changed to the two levers a fund
 would actually pull: WHERE the monthly flow goes (8-asset EUR TR universe:
@@ -174,19 +174,19 @@ SPX, NDX, Stoxx 600, MSCI EM, Russell 2000, MSCI Japan, gold, EUR cash,
 1999-2026) and HOW MUCH exposure (2x sleeve, synthetic validated vs real
 CL2, corr 0.93; internal comparisons drag-neutral).
 
-## 3A Flow allocation â€” momentum autopsy repeats on the richer universe
+## 3A Flow allocation — momentum autopsy repeats on the richer universe
 
 rel_mom_top1 looked like the first real survivor (+10.2% IS / +16.7% OOS
 vs 100% SPX, all lookback neighbors positive). Matched-mix attribution
 killed it: IS it LOSES 13.1% to the fixed mix of its own realized average
 weights (the mix made +26.9%; the rotation kept +10.2% of it); OOS it adds
-+2.6% over its mix (45% NDX + 30% gold â€” pure beta). Full period 1999-2026
++2.6% over its mix (45% NDX + 30% gold — pure beta). Full period 1999-2026
 the rotation trails 100% SPX outright (1.76M vs 2.12M), merely smoother
 (-29% vs -40%). Per-asset trend gating: -24% OOS (cash drag). Conclusion
 unchanged from July, now at 7 assets: switching subtracts value; the only
-thing that "worked" was holding more Nasdaq and gold â€” a risk choice.
+thing that "worked" was holding more Nasdaq and gold — a risk choice.
 
-## 3B Leverage dial â€” state-dependence is conditional beta
+## 3B Leverage dial — state-dependence is conditional beta
 
 Fixed-share frontier (monthly flow % to 2x): wealth rises monotonically
 with the share in BOTH eras (IS 779k->819k, OOS 437k->1,019k) while max
@@ -196,19 +196,19 @@ drawdown-scaled +2.8/+3.1% IS but ~0 OOS (it de-levered through the whole
 bull era); trend gate -5.0% IS / +2.2% OOS; vol-target 20% -0.3% IS /
 +3.1% OOS; vol-target 25% +0.2% / +1.4% (noise, and its neighbor flips
 sign). No state-dependent rule beats the fixed frontier on both eras.
-**The leverage dial is a constant, chosen once by drawdown tolerance â€”
+**The leverage dial is a constant, chosen once by drawdown tolerance —
 there is no rule for it.**
 
 ## The hedge-fund answer for this mandate
 
 After ~7,400 rules across timing, allocation and leverage state-dependence:
-the entire harvestable edge inventory is structural and certain â€”
+the entire harvestable edge inventory is structural and certain —
 (1) fee/TER/wrapper (largest, guaranteed), (2) the two beta dials (growth
 tilt and a fixed leverage share, both pre-registered risk choices priced
 off the frontier above), (3) execution (late morning, limit at mid, never
 the closing auction, spread guard), (4) never selling. Every conditional
-rule tested â€” on price, macro, positioning, flows, ML, cross-asset
-allocation, and leverage state â€” was either noise or beta in costume.
+rule tested — on price, macro, positioning, flows, ML, cross-asset
+allocation, and leverage state — was either noise or beta in costume.
 
 ---
 
@@ -219,9 +219,9 @@ windows (384/324 windows, 1989-2026), selling allowed (tax-free inside PEA),
 0.5% fee per weight change.
 
 ## Sell rules on the 1x sleeve: all dead
-Every sell trigger on ESE â€” 200dma, Faber 10-month, 12-1 momentum, vol
+Every sell trigger on ESE — 200dma, Faber 10-month, 12-1 momentum, vol
 targeting, VIX term-structure inversion, credit decompression, MMF cash
-surge, trend+VIX combo â€” has NEGATIVE median 5y excess vs buy-and-hold and
+surge, trend+VIX combo — has NEGATIVE median 5y excess vs buy-and-hold and
 win rates 21-41%. At 10y the trend variants reach ~52-56% wins with fat
 left tails (p5 -15..-33%). Options-based and money-market sell signals are
 the worst (-10% to -21% median 10y). Selling the unlevered sleeve is paying
@@ -229,14 +229,14 @@ whipsaw for insurance the horizon does not need.
 
 ## The one structure that survives every autopsy: TREND-GATED LEVERAGE
 2x sleeve above the 200dma, cash below ("Leverage for the Long Run",
-Gayed 2016 â€” the mechanism is vol-drag avoidance on daily-reset leverage,
+Gayed 2016 — the mechanism is vol-drag avoidance on daily-reset leverage,
 i.e. monetizing the ONE predictable quantity (variance), which our July
 verdict said was unmonetizable only because leverage was excluded):
 
 - Full sample (incl. synthetic 2000-09): 10y windows 94% win, median
   +53.8%, p5 -1.9% vs holding ESE. 5y: 78% / +18.3% / -10.5%.
 - Beats the CONSTANT-exposure benchmark at its own 1.71x average
-  (head-to-head 68% win, +29.4% median 10y) â€” first candidate ever to
+  (head-to-head 68% win, +29.4% median 10y) — first candidate ever to
   pass matched-benchmark attribution.
 - Robust: +300bp/yr extra drag still 76%/+34.9%; sma150/250 neighbors all
   positive, no sign flips.
@@ -255,7 +255,7 @@ verdict said was unmonetizable only because leverage was excluded):
 | CL2 + 200dma trend gate | +54% full / +2.5% real era | -2% full / -11% real era | keeps leverage upside when long bears occur; pays whipsaw in V-regimes |
 
 No timing alpha exists; this is risk ARCHITECTURE. The choice between the
-three rows is a belief about future crash shape plus drawdown tolerance â€”
+three rows is a belief about future crash shape plus drawdown tolerance —
 made once, pre-registered, never re-decided mid-drawdown.
 
 ---
@@ -265,28 +265,28 @@ made once, pre-registered, never re-decided mid-drawdown.
 Reframe at the user's request: 5y/10y windows are too long to judge by, and
 100% 2x is too risky for savings. Fifteen flow-level policies (partial
 leverage 25/50/75%, the same gated, wealth caps, glide paths) scored over
-rolling 1/2/3/5/7/10-year windows on savings metrics â€” multiple of
+rolling 1/2/3/5/7/10-year windows on savings metrics — multiple of
 contributions, probability of ending below the money paid in, drawdown of
-the accumulating pot â€” split between the backfill era (starts 1989-2008,
+the accumulating pot — split between the backfill era (starts 1989-2008,
 contains the two long bears) and the real-fund era (starts 2009+).
 Code: `sleeves.py` (recovers the four realised sleeve return series from the
 published paths; exact reconstruction, beta 2.003) and `horizons.py`.
 
 ## The dose is not the lever; the filter is
 
-Reducing the 2x share interpolates linearly between 1x and 2x â€” it gives up
+Reducing the 2x share interpolates linearly between 1x and 2x — it gives up
 as much median as it removes tail. The filter changes the SHAPE. Full period,
 3y windows (multiple of contributions): 1x 1.21 median / 0.77 p5 / 16% below
 contributions; ungated 2x 1.40 / 0.52 / 19% with a -48% worst pot drawdown;
 gated 2x 1.23 / **0.94** / **11%**. At 5y the gated sleeve dominates plain 1x
-on every metric (1.44 / 0.92 / 9% vs 1.39 / 0.79 / 17%). The middle setting â€”
-50% of the flow into the gated sleeve â€” matches the 1x median (1.22 vs 1.21)
+on every metric (1.44 / 0.92 / 9% vs 1.39 / 0.79 / 17%). The middle setting —
+50% of the flow into the gated sleeve — matches the 1x median (1.22 vs 1.21)
 with a materially better 5th percentile (0.86 vs 0.77).
 
 Two limits, both era-dependent and both now switchable on the site:
 at 1-2 years the filter is a net cost (34% of 1y windows below contributions
-vs 26% unfiltered â€” whipsaw with no bear to pay for it); and the eras
-disagree â€” starts 1989-2008 favour the filter (5y: 1.37 vs 1.20 median, 15%
+vs 26% unfiltered — whipsaw with no bear to pay for it); and the eras
+disagree — starts 1989-2008 favour the filter (5y: 1.37 vs 1.20 median, 15%
 vs 28% below contributions), starts 2009+ favour raw 2x (5y median 2.10,
 worst window still 1.36).
 
@@ -298,7 +298,7 @@ target-date glides, vol-targeted sizing, capital-at-risk budgets). Re-scored
 here, the caps and glides land on the same frontier as their own average
 exposure, and the most seductive one fails: the "contributions floor"
 (2x sleeve sized so a -60% shock still leaves the pot above what was paid in)
-was reported as holding in all 444 months â€” but that was measured on the
+was reported as holding in all 444 months — but that was measured on the
 single 1989-start path, where the pot dwarfs contributions. On fresh-start
 rolling windows, the metric a saver actually faces, it ends below
 contributions in **85% of 3-year and 93% of 5-year windows**, because it sits
@@ -314,7 +314,7 @@ horizon, era). The JS engine reproduces `horizons.py` exactly.
 
 ---
 
-## Addendum 6 â€” post-2009 re-run on real fund prices (2026-09-02)
+## Addendum 6 — post-2009 re-run on real fund prices (2026-09-02)
 
 Question: restricted to the investable era (real CL2 from 2009-06-29, real
 LQQ from 2009-01-02, ESE frame), what do the same rules deliver? Fees
@@ -323,14 +323,14 @@ never free, even for BoursoMarkets partner ETFs; CL2/LQQ are Amundi, not
 partners anyway). The harness already charged fee on all turnover, so no
 numbers changed from the fee side.
 
-Run: `post2009.py` â†’ `results_post2009.json`. All rolling 5y/10y monthly-DCA
-windows inside 2009-07 â†’ 2026-08, null = hold ESE.
+Run: `post2009.py` → `results_post2009.json`. All rolling 5y/10y monthly-DCA
+windows inside 2009-07 → 2026-08, null = hold ESE.
 
 | strategy | CAGR | maxDD | 5y win | 5y median | 5y p5 |
 |---|---|---|---|---|---|
 | 70/30 CL2/LQQ, no gate | 30.9% | -57% | 100% | +40.2% | +14.6% |
 | 70/30 CL2/LQQ + 200dma gate | 21.9% | -42% | 91% | +17.6% | -2.3% |
-| hold ESE | 16.3% | -34% | â€” | â€” | â€” |
+| hold ESE | 16.3% | -34% | — | — | — |
 | ESE + 200dma gate | 11.6% | -21% | 1% | -9.6% | -13.8% |
 
 Findings:
@@ -342,7 +342,7 @@ Findings:
 2. VIX/VIX3M inversion gate looked better than the trend gate post-2009
    (27.6% CAGR, -44% maxDD; dodged COVID, rode 2022). REJECTED on the
    out-of-window check 2002-2013: it re-entered during 2008 crash rallies
-   (on 53% of 2008, 72% of 2009-H1) â†’ -59% maxDD vs -24% for the trend
+   (on 53% of 2008, 72% of 2009-H1) → -59% maxDD vs -24% for the trend
    gate. Fast-vol detector, blind to slow bears. Regime luck, not mechanism.
 3. Faber 10-month gate: worst of both worlds post-2009 (53% win 5y, -57%
    maxDD). Stays rejected.
