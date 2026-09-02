@@ -1,0 +1,134 @@
+[
+ {
+  "era": "2009-2026 real",
+  "name": "nogate",
+  "cagr": 0.3089,
+  "maxdd": -0.575
+ },
+ {
+  "era": "2009-2026 real",
+  "name": "trend_to_cash",
+  "cagr": 0.2187,
+  "maxdd": -0.424
+ },
+ {
+  "era": "2009-2026 real",
+  "name": "trend_to_ese",
+  "cagr": 0.2465,
+  "maxdd": -0.453
+ },
+ {
+  "era": "2009-2026 real",
+  "name": "trend_to_half",
+  "cagr": 0.2643,
+  "maxdd": -0.449
+ },
+ {
+  "era": "2009-2026 real",
+  "name": "slope_to_cash",
+  "cagr": 0.2207,
+  "maxdd": -0.575
+ },
+ {
+  "era": "2009-2026 real",
+  "name": "slope_to_ese",
+  "cagr": 0.2555,
+  "maxdd": -0.575
+ },
+ {
+  "era": "2009-2026 real",
+  "name": "trend_or_slope_cash",
+  "cagr": 0.2187,
+  "maxdd": -0.575
+ },
+ {
+  "era": "2009-2026 real",
+  "name": "trend_or_slope_ese",
+  "cagr": 0.2523,
+  "maxdd": -0.575
+ },
+ {
+  "era": "2009-2026 real",
+  "name": "trend_and_credit_cash",
+  "cagr": 0.215,
+  "maxdd": -0.424
+ },
+ {
+  "era": "2009-2026 real",
+  "name": "trend_and_credit_ese",
+  "cagr": 0.2433,
+  "maxdd": -0.453
+ },
+ {
+  "era": "2009-2026 real",
+  "name": "two_tier",
+  "cagr": 0.2167,
+  "maxdd": -0.424
+ },
+ {
+  "era": "2002-2013 payout",
+  "name": "nogate",
+  "cagr": -0.0175,
+  "maxdd": -0.846
+ },
+ {
+  "era": "2002-2013 payout",
+  "name": "trend_to_cash",
+  "cagr": 0.1501,
+  "maxdd": -0.382
+ },
+ {
+  "era": "2002-2013 payout",
+  "name": "trend_to_ese",
+  "cagr": 0.0866,
+  "maxdd": -0.588
+ },
+ {
+  "era": "2002-2013 payout",
+  "name": "trend_to_half",
+  "cagr": 0.0925,
+  "maxdd": -0.586
+ },
+ {
+  "era": "2002-2013 payout",
+  "name": "slope_to_cash",
+  "cagr": 0.0816,
+  "maxdd": -0.408
+ },
+ {
+  "era": "2002-2013 payout",
+  "name": "slope_to_ese",
+  "cagr": 0.0546,
+  "maxdd": -0.627
+ },
+ {
+  "era": "2002-2013 payout",
+  "name": "trend_or_slope_cash",
+  "cagr": 0.112,
+  "maxdd": -0.408
+ },
+ {
+  "era": "2002-2013 payout",
+  "name": "trend_or_slope_ese",
+  "cagr": 0.07,
+  "maxdd": -0.627
+ },
+ {
+  "era": "2002-2013 payout",
+  "name": "trend_and_credit_cash",
+  "cagr": 0.1394,
+  "maxdd": -0.382
+ },
+ {
+  "era": "2002-2013 payout",
+  "name": "trend_and_credit_ese",
+  "cagr": 0.0797,
+  "maxdd": -0.588
+ },
+ {
+  "era": "2002-2013 payout",
+  "name": "two_tier",
+  "cagr": 0.1427,
+  "maxdd": -0.382
+ }
+]

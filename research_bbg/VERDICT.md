@@ -354,3 +354,43 @@ the leveraged sleeve. Post-2009 measures the premium (~9pp/yr in a melt-up
 regime); 2000-2013 measures the payout (survival: -24% vs -85% drawdown).
 Dropping the gate is a legitimate choice ONLY if a -60% drawdown on the
 whole stack is truly bearable; it is not a free upgrade.
+
+---
+
+## Addendum 7 — cheaper insurance: the OFF-position dial (2026-09-02)
+
+Mandate: keep the long-bear insurance but pay less of the ~9pp/yr post-2009
+premium. Code: `gate_lab.py` (11 gate designs, both eras) and `off_dose.py`
+(the dial that matters). Dual-era scoring — premium era 2009-07..2026-08 on
+real CL2/LQQ, payout era 2002-06..2013-09 on validated synthetic 2x — so no
+variant is selected on the era it flatters.
+
+Gate CONDITIONS are a dead end: 200dma-slope, trend-OR-slope, and
+credit-confirmed (HY OAS above its 200d mean) variants all either keep the
+2020 crash (slope lags: -57% DD post-2009) or match plain trend with no
+premium saved. The axis that moves the frontier is the DESTINATION when OFF.
+
+Sweep of x = leverage kept when SPX < 200dma (monthly check, rest to cash):
+
+| off keeps | 09+ CAGR | 09+ DD | 09+ 5y win/p5 | 02-13 CAGR | 02-13 DD | 02-13 5y win/p5 |
+|---|---|---|---|---|---|---|
+| 0% (old gate) | 21.9% | -42% | 91% / -2.3% | 15.0% | -38% | 97% / +7.0% |
+| **25%** | **24.3%** | **-41%** | **99% / +4.2%** | **12.5%** | **-41%** | **97% / +3.6%** |
+| 40% | 25.6% | -42% | 100% / +8.2% | 10.6% | -52% | 91% / -1.0% |
+| 50% | 26.4% | -45% | 100% / +10.5% | 9.2% | -59% | 74% / -4.4% |
+| 100% (no gate) | 30.0% | -57% | 100% / +14.5% | 0.7% | -82% | 37% / -43.5% |
+
+**off = 25% beats the full-cash gate on nearly every cell**: +2.4pp/yr more
+in the premium era, better worst-5% there (+4.2% vs -2.3%), the SAME max
+drawdown in both eras (-41%), and it keeps 97% of payout-era windows winning.
+It also trades only 75% of the pot per switch (25% less fee). Mechanism is
+sound, not mined: vol drag scales with exposure squared, so cutting exposure
+to a quarter removes ~94% of the drag while keeping a quarter of the beta
+for the rebounds the old gate kept missing. The dial is smooth and monotone
+in x — no cherry-picked kink; anything in 25-40% is defensible, insurance
+decays fast beyond 50%.
+
+**New production rule: SPX < 200dma at the monthly check → sell 3/4 of the
+leveraged sleeve to the money market, keep 1/4. Recross → redeploy.**
+Everything else (monthly check on deposit day, 200d window, 70/30 CL2/LQQ,
+execution rules) unchanged.
