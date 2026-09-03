@@ -26,10 +26,23 @@
 <main>
   <!-- ============ INSTRUCTION DU MOIS ============ -->
   <section class="hero" id="hero" aria-live="polite">
-    <p class="eyebrow mono">Instruction du mois &mdash; S&amp;P 500 vs moyenne 200 jours</p>
+    <p class="eyebrow mono">Le Signal &mdash; S&amp;P 500 vs moyenne 200 jours</p>
     <h1 class="verdict" id="verdict"><span class="flap">&mdash;&mdash;</span></h1>
     <p class="verdict-sub mono" id="verdict-sub">chargement des donn&eacute;es&hellip;</p>
-    <p class="verdict-action" id="verdict-action"></p>
+  </section>
+
+  <!-- ============ CE MOIS-CI : LA CHECKLIST ============ -->
+  <section class="card todo">
+    <h2>Ce mois-ci</h2>
+    <ol class="todo-list" id="todo-list"></ol>
+  </section>
+
+  <!-- ============ AUJOURD'HUI EN UN COUP D'ŒIL ============ -->
+  <section class="card">
+    <h2>Aujourd&rsquo;hui en un coup d&rsquo;&oelig;il</h2>
+    <p class="dim">Pour les connexions en journ&eacute;e. Aucune action ne d&eacute;pend de ces indicateurs entre deux
+      versements &mdash; ils r&eacute;pondent juste &agrave; &laquo;&nbsp;o&ugrave; on en est&nbsp;&raquo;.</p>
+    <div class="pulse" id="pulse"></div>
   </section>
 
   <!-- ============ CONTRÔLES ============ -->
@@ -120,8 +133,17 @@
   <!-- ============ TRAJECTOIRE ============ -->
   <section class="card">
     <h2>La trajectoire compl&egrave;te</h2>
-    <p class="dim">Un seul plan, d&eacute;marr&eacute; au d&eacute;but de l&rsquo;&eacute;poque choisie et tenu jusqu&rsquo;au bout&nbsp;: patrimoine
-      (&eacute;chelle log) puis baisse depuis le plus haut. Zones rouges&nbsp;: le filtre &eacute;tait hors march&eacute;.</p>
+    <p class="dim"><strong>Glissez sur le graphe</strong> (ou utilisez les curseurs) pour choisir la p&eacute;riode &mdash;
+      toutes les statistiques, le menu et la distribution se recalculent instantan&eacute;ment sur cette p&eacute;riode.
+      Patrimoine en &eacute;chelle log, puis baisse depuis le plus haut. Zones rouges&nbsp;: le filtre &eacute;tait hors march&eacute;.</p>
+    <div class="brush">
+      <span class="mono brush-label" id="brush-label">&mdash;</span>
+      <div class="brush-sliders">
+        <input type="range" id="brush-from" min="0" value="0" aria-label="début de la période">
+        <input type="range" id="brush-to" min="0" value="0" aria-label="fin de la période">
+      </div>
+      <button type="button" id="brush-reset">toute la p&eacute;riode</button>
+    </div>
     <figure class="chart-block">
       <div class="chart" id="equity-chart" role="img" aria-label="Patrimoine accumulé, échelle logarithmique"></div>
       <figcaption class="chart-caption mono" id="equity-legend"></figcaption>
@@ -153,7 +175,8 @@
         <strong>Signal ON &mdash; SPX au-dessus de sa moyenne 200 jours&nbsp;:</strong>
         <span>la part 2&times; du mois part en CL2/LQQ (70/30), le reste dans le 1&times;.</span>
         <strong class="off">Signal OFF &mdash; SPX en dessous&nbsp;:</strong>
-        <span>la poche 2&times; (flux et encours) passe au mon&eacute;taire jusqu&rsquo;au recroisement. Le 1&times; ne bouge jamais.</span>
+        <span>on vend les <b>3/4</b> de la poche 2&times; (on garde 1/4 investi), le reste au mon&eacute;taire
+        jusqu&rsquo;au recroisement. Le 1&times; ne bouge jamais.</span>
       </li>
       <li>
         <strong>On regarde le signal une fois par mois, le jour du versement. C&rsquo;est tout.</strong>
@@ -171,7 +194,7 @@
         <tr><td>1&times;</td><td>BNP Paribas Easy S&amp;P 500</td><td class="mono">ESE</td><td>socle, jamais vendu</td></tr>
         <tr><td>2&times; US</td><td>Amundi MSCI USA Daily 2x</td><td class="mono">CL2</td><td>70&nbsp;% de la poche lev&eacute;r&eacute;e</td></tr>
         <tr><td>2&times; tech</td><td>Amundi Nasdaq-100 Daily 2x</td><td class="mono">LQQ</td><td>30&nbsp;% de la poche lev&eacute;r&eacute;e</td></tr>
-        <tr><td>refuge</td><td>ETF mon&eacute;taire euro</td><td class="mono">&mdash;</td><td>o&ugrave; va la poche 2&times; quand le signal est OFF</td></tr>
+        <tr><td>refuge</td><td>ETF mon&eacute;taire euro</td><td class="mono">&mdash;</td><td>o&ugrave; vont les 3/4 de la poche 2&times; quand le signal est OFF</td></tr>
       </tbody>
     </table>
   </section>
@@ -184,6 +207,7 @@
       <li><strong>Avant 2013, les fonds 2&times; sont reconstitu&eacute;s.</strong> CL2 existe depuis 2009, LQQ depuis 2006, ESE depuis 2013&nbsp;; tout ce qui pr&eacute;c&egrave;de est simul&eacute; &agrave; partir des indices, frais et co&ucirc;t de financement d&eacute;duits. Les deux krachs longs (2000&ndash;2002, 2008) ne sont dans le backtest que sous cette forme.</li>
       <li><strong>Les baisses sont mesur&eacute;es fin de mois.</strong> Le creux v&eacute;cu en intra-mois est plus profond que celui affich&eacute;.</li>
       <li><strong>Le menu a &eacute;t&eacute; choisi apr&egrave;s avoir vu ces donn&eacute;es.</strong> Le filtre de tendance est la seule structure ayant surv&eacute;cu &agrave; l&rsquo;attribution contre son propre niveau d&rsquo;exposition moyen&nbsp;; il reste une prise de position sur la forme du prochain krach.</li>
+      <li><strong>Le filtre est une assurance, pas un gain.</strong> Dans les histoires resimul&eacute;es (bootstrap), il co&ucirc;te ~6&ndash;10&nbsp;% de richesse m&eacute;diane par fen&ecirc;tre de 5&nbsp;ans face au 2&times; sans filtre, et son efficacit&eacute; d&eacute;pend du jour du mois o&ugrave; on le rel&egrave;ve (&plusmn;5&nbsp;points de CAGR annuel entre phases). On le paie pour les krachs longs, pas pour les autres.</li>
     </ul>
   </section>
 </main>

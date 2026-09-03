@@ -12,6 +12,7 @@ const S = {
   gate: 1, // 1 = leveraged sleeve follows the 200-day filter
   horizon: 3, // years
   era: "all",
+  range: null, // [lo, hi] month indices when the user drags a custom period
 };
 
 const ERAS = {
@@ -19,6 +20,20 @@ const ERAS = {
   bear: { label: "débuts 1989–2008", from: null, maxStart: "2009-01-01" },
   bull: { label: "débuts 2009–", from: "2009-01-01" },
 };
+
+/** [lo, hi] month-index bounds for the selected era (hi inclusive). */
+function eraRange() {
+  const dates = D.sleeves.dates;
+  const n = dates.length - 1;
+  if (S.era === "bull") return [dates.findIndex((d) => d >= ERAS.bull.from), n];
+  if (S.era === "bear") return [0, dates.findIndex((d) => d >= ERAS.bear.maxStart) - 1];
+  return [0, n];
+}
+
+/** The period actually scored: custom drag range if set, else the era. */
+function effRange() {
+  return S.range || eraRange();
+}
 
 let D = null; // data.json
 let R = null; // sleeve returns as typed arrays
@@ -81,16 +96,11 @@ function run(weights, start, n, budget) {
   return { path, contributed: budget * n, final: path[n - 1], mdd };
 }
 
-/** Start indices allowed by the selected era for a window of `n` months. */
+/** Start indices allowed by the selected period for a window of `n` months. */
 function starts(n) {
-  const dates = D.sleeves.dates;
-  const last = dates.length - n;
+  const [lo, hi] = effRange();
   const out = [];
-  for (let i = 0; i <= last; i++) {
-    if (S.era === "bull" && dates[i] < ERAS.bull.from) continue;
-    if (S.era === "bear" && dates[i] >= ERAS.bear.maxStart) continue;
-    out.push(i);
-  }
+  for (let i = lo; i <= hi - n; i++) out.push(i);
   return out;
 }
 
@@ -252,20 +262,102 @@ function policyLabel() {
 function renderHero() {
   const sig = D.signal;
   const on = sig.state === "ON";
-  $("asof").textContent = "au " + sig.asof;
-  $("verdict").innerHTML = `<span class="flap ${on ? "on" : "off"}">${on ? "RISK ON" : "RISK OFF"}</span>`;
-  $("verdict-sub").textContent = `SPX ${sig.spx.toLocaleString("fr-FR")} · 200 j ${sig.sma200.toLocaleString("fr-FR")} · écart ${sig.gap_pct > 0 ? "+" : ""}${sig.gap_pct} % · depuis le ${sig.since}`;
+  document.body.classList.toggle("state-on", on);
+  document.body.classList.toggle("state-off", !on);
+  $("asof").textContent = "données Bloomberg au " + sig.asof;
+  $("verdict").innerHTML = `<span class="flap ${on ? "on" : "off"}">${on ? "Tout investir" : "Défense"}</span>`;
+  $("verdict-sub").textContent =
+    `SPX ${sig.spx.toLocaleString("fr-FR")} · moyenne 200 j ${sig.sma200.toLocaleString("fr-FR")} · ` +
+    `${sig.gap_pct > 0 ? "+" : ""}${String(sig.gap_pct).replace(".", ",")} % · dans cet état depuis ${sig.days_in_state} jours`;
+  renderTodo(on);
+}
+
+/** The monthly checklist — the whole system as 5 numbered steps. */
+function renderTodo(on) {
   const levEur = Math.round((S.budget * S.lev) / 100);
   const oneEur = S.budget - levEur;
-  const parts = [];
-  if (levEur > 0)
-    parts.push(
-      on || !S.gate
-        ? `<b>${levEur.toLocaleString("fr-FR")} €</b> en CL2/LQQ (70/30)`
-        : `<b>${levEur.toLocaleString("fr-FR")} €</b> au monétaire — et la poche 2× déjà investie y reste`,
-    );
-  if (oneEur > 0) parts.push(`<b>${oneEur.toLocaleString("fr-FR")} €</b> en ESE (1×)`);
-  $("verdict-action").innerHTML = "Ce mois-ci : " + parts.join(" · ") + ".";
+  const e = (v) => v.toLocaleString("fr-FR") + " €";
+  const gatedOff = !on && S.gate && S.lev > 0;
+  const items = !gatedOff
+    ? [
+        `Le jour où l'argent arrive : <b>tout investir</b>, sans attendre un repli.`,
+        (levEur > 0 ? `<b>${e(levEur)}</b> en CL2/LQQ (70/30)` : "") +
+          (levEur > 0 && oneEur > 0 ? " · " : "") +
+          (oneEur > 0 ? `<b>${e(oneEur)}</b> en ESE` : ""),
+        `Ordre <b>limite au milieu de la fourchette</b>, en fin de matinée. Jamais à la clôture.`,
+        `Écart acheteur/vendeur > 25 pb affiché ? On remet à <b>demain</b>.`,
+        `On ne vend rien. Prochaine décision : au <b>prochain versement</b>.`,
+      ]
+    : [
+        `Le signal est OFF : la poche 2× passe en défense — <b>on en vend les 3/4</b>, on garde 1/4, le reste au monétaire.`,
+        `Le versement du mois suit la même règle : ${oneEur > 0 ? `<b>${e(oneEur)}</b> en ESE, ` : ""}la part 2× à <b>1/4 investie</b>, 3/4 au monétaire.`,
+        `<b>L'ESE existant ne bouge pas.</b> Jamais.`,
+        `Ordre limite au milieu, fin de matinée ; spread > 25 pb → demain.`,
+        `Retour à la normale dès que le SPX <b>recroise sa moyenne 200 j</b> (${Math.round(D.signal.flip_level).toLocaleString("fr-FR")} aujourd'hui).`,
+      ];
+  $("todo-list").innerHTML = items.map((t) => `<li>${t}</li>`).join("");
+}
+
+/** The "today at a glance" strip — context for mid-day logins, no action attached. */
+function renderPulse(live) {
+  const sig = D.signal;
+  const ind = D.indicators || {};
+  const on = sig.state === "ON";
+  const fr = (v, dp = 0) =>
+    v === undefined || v === null ? "—" : v.toLocaleString("fr-FR", { maximumFractionDigits: dp });
+  const spreadBad = ind.spread_bp_last > 25;
+  const liveGap = live ? (live / sig.flip_level - 1) * 100 : null;
+  const flipSub =
+    liveGap !== null
+      ? `SPX maintenant ${fr(Math.round(live))} · marge ${liveGap > 0 ? "+" : ""}${liveGap.toFixed(1).replace(".", ",")} % <span class="live-dot" title="cours en direct"></span>`
+      : on
+        ? `marge actuelle : +${String(sig.gap_pct).replace(".", ",")} % au-dessus`
+        : `il manque ${String(-sig.gap_pct).replace(".", ",")} % pour recroiser`;
+  const tiles = [
+    {
+      k: "Le signal bascule si…",
+      v: on ? `SPX < ${fr(Math.round(sig.flip_level))}` : `SPX > ${fr(Math.round(sig.flip_level))}`,
+      s: flipSub,
+      tone: on ? "good" : "bad",
+    },
+    {
+      k: "VIX (peur du marché)",
+      v: fr(ind.vix, 1),
+      s:
+        `centile ${Math.round(ind.vix_pctl_1y)} sur 1 an — ` +
+        (ind.vix_pctl_1y < 25 ? "marché calme" : ind.vix_pctl_1y > 75 ? "marché tendu" : "normal"),
+      tone: ind.vix_pctl_1y > 75 ? "bad" : "",
+    },
+    {
+      k: "Spread ESE (hier, clôture)",
+      v: fr(ind.spread_bp_last, 1) + " pb",
+      s: spreadBad
+        ? "au-dessus de la garde 25 pb : on remet l'achat à demain"
+        : `sous la garde de 25 pb (médiane 60 j : ${fr(ind.spread_bp_med_60d, 1)} pb)`,
+      tone: spreadBad ? "warn" : "good",
+    },
+    {
+      k: "Dans cet état depuis",
+      v: `${sig.days_in_state} j`,
+      s: `depuis le ${sig.since}`,
+      tone: "",
+    },
+    {
+      k: "SPX sur 1 mois",
+      v: (ind.spx_chg_1m > 0 ? "+" : "") + String(ind.spx_chg_1m).replace(".", ",") + " %",
+      s: "tendance courte — aucune action liée",
+      tone: ind.spx_chg_1m >= 0 ? "good" : "bad",
+    },
+  ];
+  const host = $("pulse");
+  host.innerHTML = "";
+  tiles.forEach((t) => {
+    const n = el("div", "stat " + t.tone);
+    n.appendChild(el("span", "stat-k", t.k));
+    n.appendChild(el("span", "stat-v mono", t.v));
+    n.appendChild(el("span", "stat-s", t.s));
+    host.appendChild(n);
+  });
 }
 
 function renderPolicy() {
@@ -273,8 +365,13 @@ function renderPolicy() {
   const sc = score(w);
   const base = score({ ese: 1 });
 
+  const dates = D.sleeves.dates;
+  const [r0, r1] = effRange();
   $("policy-name").textContent = policyLabel();
-  $("policy-sub").textContent = `${sc.n} fenêtres de ${S.horizon} an${S.horizon > 1 ? "s" : ""} · ${ERAS[S.era].label} · versements de ${S.budget.toLocaleString("fr-FR")} €/mois`;
+  $("policy-sub").textContent =
+    `${sc.n} fenêtres de ${S.horizon} an${S.horizon > 1 ? "s" : ""} · ` +
+    `période ${dates[r0].slice(0, 7)} → ${dates[r1].slice(0, 7)}${S.range ? " (personnalisée)" : ""} · ` +
+    `versements de ${S.budget.toLocaleString("fr-FR")} €/mois`;
 
   const cells = [
     ["Médiane", mult(sc.median), `1× : ${mult(base.median)}`, sc.median >= base.median ? "good" : "bad"],
@@ -359,11 +456,9 @@ function renderMenu() {
 
 function renderPaths() {
   const dates = D.sleeves.dates;
-  let from = 0;
-  if (S.era === "bull") from = dates.findIndex((d) => d >= ERAS.bull.from);
-  const n = dates.length - from;
-  const nEnd = S.era === "bear" ? dates.findIndex((d) => d >= "2009-01-01") - from : n;
-  const len = Math.max(24, nEnd);
+  const [r0, r1] = effRange();
+  const from = r0;
+  const len = Math.max(24, r1 - r0 + 1);
 
   const w = currentWeights();
   const pol = run(w, from, len, S.budget);
@@ -390,6 +485,8 @@ function renderPaths() {
     tipX: (v) => new Date(v).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }),
     tipY: (v) => eur(v),
   });
+  attachBrush($("equity-chart"), from, len);
+  syncBrushUI();
   $("equity-legend").innerHTML =
     `<span class="k" style="background:${COL.policy}"></span>${policyLabel()} → <b>${eur(pol.final)}</b> &nbsp; ` +
     `<span class="k" style="background:${COL.base}"></span>1× S&P → <b>${eur(bas.final)}</b> &nbsp; ` +
@@ -443,6 +540,92 @@ function renderAll() {
   renderPaths();
 }
 
+/* ------------------------------------------------------- period brush -- */
+
+/** Drag-select a period straight on the equity chart (mouse only; touch scrolls). */
+function attachBrush(host, from, len) {
+  const ML = 54,
+    MR = 14,
+    W = 960; // must match chart() margins
+  let drag = null;
+  const sel = document.createElement("div");
+  sel.className = "sel";
+  sel.hidden = true;
+  host.appendChild(sel);
+
+  const toIdx = (clientX) => {
+    const rect = host.getBoundingClientRect();
+    const fx = (clientX - rect.left) / rect.width;
+    const fPlot = (fx * W - ML) / (W - ML - MR);
+    return Math.max(0, Math.min(len - 1, Math.round(fPlot * (len - 1))));
+  };
+  const toPct = (i) => ((ML + (i / (len - 1)) * (W - ML - MR)) / W) * 100;
+
+  host.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "touch") return;
+    drag = toIdx(e.clientX);
+    host.setPointerCapture(e.pointerId);
+  });
+  host.addEventListener("pointermove", (e) => {
+    if (drag === null) return;
+    const cur = toIdx(e.clientX);
+    const a = Math.min(drag, cur),
+      b = Math.max(drag, cur);
+    sel.hidden = false;
+    sel.style.left = toPct(a) + "%";
+    sel.style.width = Math.max(0.3, toPct(b) - toPct(a)) + "%";
+  });
+  host.addEventListener("pointerup", (e) => {
+    if (drag === null) return;
+    const cur = toIdx(e.clientX);
+    const a = Math.min(drag, cur),
+      b = Math.max(drag, cur);
+    drag = null;
+    sel.hidden = true;
+    if (b - a >= 12) {
+      S.range = [from + a, from + b];
+      syncControls();
+      renderAll();
+    }
+  });
+  host.addEventListener("pointercancel", () => {
+    drag = null;
+    sel.hidden = true;
+  });
+}
+
+/** Reflect the effective period into the brush sliders and label. */
+function syncBrushUI() {
+  const dates = D.sleeves.dates;
+  const [r0, r1] = effRange();
+  const bf = $("brush-from"),
+    bt = $("brush-to");
+  const max = dates.length - 1;
+  if (+bf.max !== max) {
+    bf.max = max;
+    bt.max = max;
+  }
+  if (document.activeElement !== bf) bf.value = r0;
+  if (document.activeElement !== bt) bt.value = r1;
+  $("brush-label").textContent = `${dates[r0].slice(0, 7)} → ${dates[r1].slice(0, 7)}`;
+  $("brush-reset").style.visibility = S.range ? "visible" : "hidden";
+}
+
+/* ------------------------------------------------------------ live quote -- */
+
+/** Live SPX quote from stooq (free, no key). null on any failure — the page
+ *  silently falls back to the last Bloomberg close. */
+async function liveQuote() {
+  try {
+    const r = await fetch("https://stooq.com/q/l/?s=%5Espx&f=sd2t2c&h&e=csv", { cache: "no-store" });
+    const rows = (await r.text()).trim().split("\n");
+    const close = parseFloat(rows[1].split(",")[3]);
+    return Number.isFinite(close) && close > 1000 ? close : null;
+  } catch {
+    return null;
+  }
+}
+
 /* ------------------------------------------------------------ controls -- */
 
 function syncControls() {
@@ -452,7 +635,9 @@ function syncControls() {
   $("lev-out").textContent = S.lev + " %";
   document.querySelectorAll("#gate-seg button").forEach((b) => b.classList.toggle("on", +b.dataset.gate === S.gate));
   document.querySelectorAll("#hz-seg button").forEach((b) => b.classList.toggle("on", +b.dataset.h === S.horizon));
-  document.querySelectorAll("#era-seg button").forEach((b) => b.classList.toggle("on", b.dataset.era === S.era));
+  document
+    .querySelectorAll("#era-seg button")
+    .forEach((b) => b.classList.toggle("on", !S.range && b.dataset.era === S.era));
   $("gate-seg").classList.toggle("muted", S.lev === 0);
 }
 
@@ -460,7 +645,7 @@ function wire() {
   let t = null;
   const debounce = (fn) => {
     clearTimeout(t);
-    t = setTimeout(fn, 90);
+    t = setTimeout(fn, 60);
   };
   $("budget").addEventListener("input", (e) => {
     S.budget = +e.target.value;
@@ -487,9 +672,34 @@ function wire() {
   $("era-seg").addEventListener("click", (e) => {
     if (!e.target.dataset.era) return;
     S.era = e.target.dataset.era;
+    S.range = null; // an era preset clears any custom drag range
     syncControls();
     renderAll();
   });
+
+  // period brush sliders
+  const brushInput = (e) => {
+    const [lo0, hi0] = effRange();
+    let lo = +$("brush-from").value,
+      hi = +$("brush-to").value;
+    if (lo > hi - 12) {
+      if (e.target.id === "brush-from") lo = hi - 12;
+      else hi = lo + 12;
+    }
+    const [elo, ehi] = eraRange();
+    S.range = lo === elo && hi === ehi ? null : [lo, hi];
+    syncControls();
+    syncBrushUI();
+    debounce(renderAll);
+  };
+  $("brush-from").addEventListener("input", brushInput);
+  $("brush-to").addEventListener("input", brushInput);
+  $("brush-reset").addEventListener("click", () => {
+    S.range = null;
+    syncControls();
+    renderAll();
+  });
+
   addEventListener("resize", () => debounce(renderAll));
 }
 
@@ -507,7 +717,11 @@ fetch("data.json")
     syncControls();
     wire();
     renderAll();
+    renderPulse();
     renderGate();
+    liveQuote().then((q) => {
+      if (q) renderPulse(q);
+    });
   })
   .catch((e) => {
     $("verdict-sub").textContent = "données indisponibles : " + e.message;
