@@ -144,6 +144,37 @@ function presets() {
   return P;
 }
 
+/**
+ * Annualized money-weighted return (XIRR) of a DCA window: h monthly deposits
+ * of 1 unit grow to mult × h. Bisection; monotone in the multiple, so all
+ * rankings/medians/quantiles are preserved — this is a display transform.
+ */
+function irr(mult, years) {
+  const h = years * 12;
+  if (!Number.isFinite(mult) || mult <= 0) return NaN;
+  const f = (r) => {
+    let acc = 0;
+    for (let k = 1; k <= h; k++) acc += Math.pow(1 + r, (h - k) / 12);
+    return acc - mult * h;
+  };
+  let lo = -0.99,
+    hi = 10;
+  if (f(lo) > 0) return -0.99;
+  if (f(hi) < 0) return 10;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (f(mid) > 0) hi = mid;
+    else lo = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/** Annualized XIRR of a multiple at the current horizon, as a percent string. */
+const ann = (m, dp = 1) => {
+  const v = irr(m, S.horizon);
+  return Number.isFinite(v) ? pct(v, dp) : "—";
+};
+
 /* -------------------------------------------------------------- charts -- */
 
 function chart(host, opts) {
@@ -357,9 +388,9 @@ function renderPolicy() {
   }
 
   const cells = [
-    ["Médiane", mult(sc.median), `1× : ${mult(base.median)}`, sc.median >= base.median ? "good" : "bad"],
-    ["Cas défavorable (p5)", mult(sc.p5), `1× : ${mult(base.p5)}`, sc.p5 >= base.p5 ? "good" : "bad"],
-    ["Pire fenêtre", mult(sc.worst), `1× : ${mult(base.worst)}`, sc.worst >= base.worst ? "good" : "bad"],
+    ["Rendement annuel médian", ann(sc.median), `1× : ${ann(base.median)}`, sc.median >= base.median ? "good" : "bad"],
+    ["Rendement annuel défavorable (p5)", ann(sc.p5), `1× : ${ann(base.p5)}`, sc.p5 >= base.p5 ? "good" : "bad"],
+    ["Pire rendement annuel", ann(sc.worst), `1× : ${ann(base.worst)}`, sc.worst >= base.worst ? "good" : "bad"],
     ["Finir sous son argent", pct(sc.pLoss), `1× : ${pct(base.pLoss)}`, sc.pLoss <= base.pLoss ? "good" : "bad"],
     ["Baisse médiane subie", pct(sc.medMdd), `1× : ${pct(base.medMdd)}`, sc.medMdd >= base.medMdd ? "good" : "bad"],
     ["Pire baisse subie", pct(sc.worstMdd), `1× : ${pct(base.worstMdd)}`, sc.worstMdd >= base.worstMdd ? "good" : "bad"],
@@ -378,31 +409,30 @@ function renderPolicy() {
   const pireEur = Math.round(sc.worst * S.budget * S.horizon * 12);
   const versé = (S.budget * S.horizon * 12).toLocaleString("fr-FR");
   $("downside").innerHTML =
-    `Sur ${versé} € versés en ${S.horizon} an${S.horizon > 1 ? "s" : ""} : médiane <b>${eur(médEur)}</b>, ` +
-    `mais la pire fenêtre de cette époque finit à <b>${eur(pireEur)}</b> — ` +
-    `soit <b>${pct(sc.worst - 1, 0)}</b> sur l'argent versé, après une baisse de <b>${pct(sc.worstMdd)}</b> en cours de route.`;
+    `Sur ${versé} € versés en ${S.horizon} an${S.horizon > 1 ? "s" : ""} : médiane <b>${eur(médEur)}</b> ` +
+    `(soit <b>${ann(sc.median)}</b> annualisés), mais la pire fenêtre de cette période finit à <b>${eur(pireEur)}</b> ` +
+    `(<b>${ann(sc.worst)}</b>/an), après une baisse de <b>${pct(sc.worstMdd)}</b> en cours de route.`;
 
-  // distribution
-  const sortedP = Float64Array.from(sc.mults).sort();
-  const sortedB = Float64Array.from(base.mults).sort();
-  const x = Array.from(sortedP, (_, i) => (100 * i) / Math.max(1, sortedP.length - 1));
+  // distribution — same windows, expressed in annualized return
+  const sortedP = Array.from(sc.mults).sort((a, b) => a - b).map((m) => irr(m, S.horizon));
+  const sortedB = Array.from(base.mults).sort((a, b) => a - b).map((m) => irr(m, S.horizon));
+  const x = sortedP.map((_, i) => (100 * i) / Math.max(1, sortedP.length - 1));
   chart($("dist-chart"), {
     x,
     height: 280,
-    yFmt: (v) => v.toFixed(2) + "×",
+    yFmt: (v) => Math.round(v * 100) + " %",
     xFmt: (v) => Math.round(v) + " %",
-    hline: 1,
-    yMin: Math.min(1, sortedP[0]) * 0.98,
+    hline: 0,
     series: [
-      { label: policyLabel(), color: COL.policy, y: Array.from(sortedP) },
-      { label: "100 % 1× S&P", color: COL.base, y: Array.from(sortedB) },
+      { label: policyLabel(), color: COL.policy, y: sortedP },
+      { label: "100 % 1× S&P", color: COL.base, y: sortedB },
     ],
     tipX: (v) => "centile " + Math.round(v),
-    tipY: (v) => (Number.isFinite(v) ? v.toFixed(2) + "×" : "—"),
+    tipY: (v) => (Number.isFinite(v) ? (v * 100).toFixed(1) + " %/an" : "—"),
   });
   $("dist-legend").innerHTML =
     `<span class="k" style="background:${COL.policy}"></span>${policyLabel()} &nbsp; ` +
-    `<span class="k" style="background:${COL.base}"></span>100 % 1× S&P &nbsp; · ligne pointillée = seuil de perte`;
+    `<span class="k" style="background:${COL.base}"></span>100 % 1× S&P &nbsp; · ligne pointillée = 0 %/an`;
 
   return { sc, base };
 }
@@ -424,8 +454,8 @@ function renderMenu() {
       `<td>${p.label}</td>` +
       (s.n === 0
         ? '<td colspan="5" class="mono">période trop courte</td>'
-        : `<td class="mono">${mult(s.median)}</td><td class="mono">${mult(s.p5)}</td>` +
-          `<td class="mono">${mult(s.worst)}</td><td class="mono">${pct(s.pLoss)}</td><td class="mono">${pct(s.worstMdd)}</td>`);
+        : `<td class="mono">${ann(s.median)}</td><td class="mono">${ann(s.p5)}</td>` +
+          `<td class="mono">${ann(s.worst)}</td><td class="mono">${pct(s.pLoss)}</td><td class="mono">${pct(s.worstMdd)}</td>`);
     tr.tabIndex = 0;
     const load = () => {
       if (p.lev < 0) return; // the 1x reference row is not a selectable setting
@@ -471,7 +501,7 @@ function renderPaths() {
     tipX: (v) => new Date(v).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }),
     tipY: (v) => eur(v),
   });
-  attachBrush($("equity-chart"), from, len);
+  attachTimeBrush($("equity-chart"), xs[0], xs[len - 1]);
   syncBrushUI();
   $("equity-legend").innerHTML =
     `<span class="k" style="background:${COL.policy}"></span>${policyLabel()} → <b>${eur(pol.final)}</b> &nbsp; ` +
@@ -499,6 +529,7 @@ function renderPaths() {
     tipX: (v) => new Date(v).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }),
     tipY: (v) => (v * 100).toFixed(1) + " %",
   });
+  attachTimeBrush($("dd-chart"), xs[0], xs[len - 1]);
 }
 
 function renderGate() {
@@ -517,6 +548,7 @@ function renderGate() {
     tipX: (v) => new Date(v).toLocaleDateString("fr-FR"),
     tipY: (v) => Math.round(v).toLocaleString("fr-FR"),
   });
+  attachTimeBrush($("gate-chart"), xs[0], xs[xs.length - 1]);
 }
 
 function renderAll() {
@@ -528,56 +560,107 @@ function renderAll() {
 
 /* ------------------------------------------------------- period brush -- */
 
-/** Drag-select a period straight on the equity chart (mouse only; touch scrolls). */
-function attachBrush(host, from, len) {
-  const ML = 54,
-    MR = 14,
-    W = 960; // must match chart() margins
-  let drag = null;
-  const sel = document.createElement("div");
-  sel.className = "sel";
-  sel.hidden = true;
-  host.appendChild(sel);
+const CH = { ML: 54, MR: 14, W: 960 }; // must match chart() margins
 
-  const toIdx = (clientX) => {
-    const rect = host.getBoundingClientRect();
-    const fx = (clientX - rect.left) / rect.width;
-    const fPlot = (fx * W - ML) / (W - ML - MR);
-    return Math.max(0, Math.min(len - 1, Math.round(fPlot * (len - 1))));
-  };
-  const toPct = (i) => ((ML + (i / (len - 1)) * (W - ML - MR)) / W) * 100;
+function hostTime(host, clientX, t0, t1) {
+  const rect = host.getBoundingClientRect();
+  const fx = ((clientX - rect.left) / rect.width) * CH.W;
+  const f = Math.max(0, Math.min(1, (fx - CH.ML) / (CH.W - CH.ML - CH.MR)));
+  return { f, t: t0 + f * (t1 - t0) };
+}
 
-  host.addEventListener("pointerdown", (e) => {
-    if (e.pointerType === "touch") return;
-    drag = toIdx(e.clientX);
-    host.setPointerCapture(e.pointerId);
-  });
-  host.addEventListener("pointermove", (e) => {
-    if (drag === null) return;
-    const cur = toIdx(e.clientX);
-    const a = Math.min(drag, cur),
-      b = Math.max(drag, cur);
-    sel.hidden = false;
-    sel.style.left = toPct(a) + "%";
-    sel.style.width = Math.max(0.3, toPct(b) - toPct(a)) + "%";
-  });
-  host.addEventListener("pointerup", (e) => {
-    if (drag === null) return;
-    const cur = toIdx(e.clientX);
-    const a = Math.min(drag, cur),
-      b = Math.max(drag, cur);
-    drag = null;
-    sel.hidden = true;
-    if (b - a >= Math.min(24, len - 1)) {
-      S.range = [from + a, from + b];
+/** First sleeve month ending at/after timestamp t. */
+function monthIdxAt(t) {
+  const dates = D.sleeves.dates;
+  let lo = 0,
+    hi = dates.length - 1;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1;
+    if (new Date(dates[m]).getTime() < t) lo = m + 1;
+    else hi = m;
+  }
+  return lo;
+}
+
+function setRangeTimes(ta, tb) {
+  const [elo, ehi] = eraRange();
+  let lo = monthIdxAt(Math.min(ta, tb));
+  let hi = Math.max(lo, monthIdxAt(Math.max(ta, tb)));
+  if (hi - lo < 24) {
+    const mid = (lo + hi) >> 1;
+    lo = Math.max(elo, Math.min(ehi - 24, mid - 12));
+    hi = lo + 24;
+  }
+  S.range = lo === elo && hi === ehi ? null : [lo, hi];
+  syncControls();
+  renderAll();
+}
+
+/**
+ * Plotly-style period manipulation on a chart: drag = select, wheel = zoom
+ * around the cursor, double-click = full period. Attached once per host
+ * (listeners persist; chart() wipes innerHTML but not host listeners).
+ */
+function attachTimeBrush(host, t0, t1) {
+  let st = host.__brush;
+  if (!st) {
+    st = host.__brush = { t0, t1, drag: null, sel: document.createElement("div") };
+    st.sel.className = "sel";
+    st.sel.hidden = true;
+    const toPct = (t) => ((CH.ML + ((t - st.t0) / (st.t1 - st.t0)) * (CH.W - CH.ML - CH.MR)) / CH.W) * 100;
+    const paint = (cur) => {
+      const a = Math.min(st.drag, cur),
+        b = Math.max(st.drag, cur);
+      st.sel.hidden = false;
+      st.sel.style.left = toPct(a) + "%";
+      st.sel.style.width = Math.max(0.3, toPct(b) - toPct(a)) + "%";
+    };
+    const finish = (cur) => {
+      const a = st.drag;
+      st.drag = null;
+      st.sel.hidden = true;
+      if (Math.abs(cur - a) > 45 * 864e5) setRangeTimes(a, cur);
+    };
+
+    host.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "touch" || e.button !== 0) return;
+      st.drag = hostTime(host, e.clientX, st.t0, st.t1).t;
+    });
+    // move/up on window: no pointer capture (it ate pointerup in some setups)
+    window.addEventListener("pointermove", (e) => {
+      if (st.drag !== null) paint(hostTime(host, e.clientX, st.t0, st.t1).t);
+    });
+    window.addEventListener("pointerup", (e) => {
+      if (st.drag !== null) finish(hostTime(host, e.clientX, st.t0, st.t1).t);
+    });
+    host.addEventListener("dblclick", () => {
+      S.range = null;
       syncControls();
       renderAll();
-    }
-  });
-  host.addEventListener("pointercancel", () => {
-    drag = null;
-    sel.hidden = true;
-  });
+    });
+    host.addEventListener(
+      "wheel",
+      (e) => {
+        e.preventDefault();
+        const { f } = hostTime(host, e.clientX, st.t0, st.t1);
+        const [elo, ehi] = eraRange();
+        const [r0, r1] = effRange();
+        let span = r1 - r0 + 1;
+        span = Math.max(24, Math.min(ehi - elo + 1, Math.round(span * (e.deltaY > 0 ? 1.3 : 0.77))));
+        const center = r0 + f * (r1 - r0);
+        let lo = Math.round(center - f * span);
+        lo = Math.max(elo, Math.min(ehi - span + 1, lo));
+        const hi = lo + span - 1;
+        S.range = lo === elo && hi === ehi ? null : [lo, hi];
+        syncControls();
+        renderAll();
+      },
+      { passive: false },
+    );
+  }
+  st.t0 = t0;
+  st.t1 = t1;
+  host.appendChild(st.sel); // chart() wiped the host — put the overlay back
 }
 
 /** Reflect the effective period into the date fields and reset button. */
