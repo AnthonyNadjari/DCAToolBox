@@ -52,11 +52,13 @@ const eur = (v) =>
 const pct = (v, dp = 0) => (v * 100).toFixed(dp) + " %";
 const mult = (v) => v.toFixed(2) + "×";
 const median = (a) => {
+  if (!a.length) return NaN;
   const s = Float64Array.from(a).sort();
   const m = s.length >> 1;
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 const quantile = (a, q) => {
+  if (!a.length) return NaN;
   const s = Float64Array.from(a).sort();
   return s[Math.min(s.length - 1, Math.max(0, Math.round(q * (s.length - 1))))];
 };
@@ -269,33 +271,6 @@ function renderHero() {
   $("verdict-sub").textContent =
     `SPX ${sig.spx.toLocaleString("fr-FR")} · moyenne 200 j ${sig.sma200.toLocaleString("fr-FR")} · ` +
     `${sig.gap_pct > 0 ? "+" : ""}${String(sig.gap_pct).replace(".", ",")} % · dans cet état depuis ${sig.days_in_state} jours`;
-  renderTodo(on);
-}
-
-/** The monthly checklist — the whole system as 5 numbered steps. */
-function renderTodo(on) {
-  const levEur = Math.round((S.budget * S.lev) / 100);
-  const oneEur = S.budget - levEur;
-  const e = (v) => v.toLocaleString("fr-FR") + " €";
-  const gatedOff = !on && S.gate && S.lev > 0;
-  const items = !gatedOff
-    ? [
-        `Le jour où l'argent arrive : <b>tout investir</b>, sans attendre un repli.`,
-        (levEur > 0 ? `<b>${e(levEur)}</b> en CL2/LQQ (70/30)` : "") +
-          (levEur > 0 && oneEur > 0 ? " · " : "") +
-          (oneEur > 0 ? `<b>${e(oneEur)}</b> en ESE` : ""),
-        `Ordre <b>limite au milieu de la fourchette</b>, en fin de matinée. Jamais à la clôture.`,
-        `Écart acheteur/vendeur > 25 pb affiché ? On remet à <b>demain</b>.`,
-        `On ne vend rien. Prochaine décision : au <b>prochain versement</b>.`,
-      ]
-    : [
-        `Le signal est OFF : la poche 2× passe en défense — <b>on en vend les 3/4</b>, on garde 1/4, le reste au monétaire.`,
-        `Le versement du mois suit la même règle : ${oneEur > 0 ? `<b>${e(oneEur)}</b> en ESE, ` : ""}la part 2× à <b>1/4 investie</b>, 3/4 au monétaire.`,
-        `<b>L'ESE existant ne bouge pas.</b> Jamais.`,
-        `Ordre limite au milieu, fin de matinée ; spread > 25 pb → demain.`,
-        `Retour à la normale dès que le SPX <b>recroise sa moyenne 200 j</b> (${Math.round(D.signal.flip_level).toLocaleString("fr-FR")} aujourd'hui).`,
-      ];
-  $("todo-list").innerHTML = items.map((t) => `<li>${t}</li>`).join("");
 }
 
 /** The "today at a glance" strip — context for mid-day logins, no action attached. */
@@ -373,6 +348,14 @@ function renderPolicy() {
     `période ${dates[r0].slice(0, 7)} → ${dates[r1].slice(0, 7)}${S.range ? " (personnalisée)" : ""} · ` +
     `versements de ${S.budget.toLocaleString("fr-FR")} €/mois`;
 
+  if (sc.n === 0) {
+    $("stats").innerHTML = "";
+    $("downside").textContent = `Période trop courte pour un horizon de ${S.horizon} an${S.horizon > 1 ? "s" : ""} — élargis la plage ou raccourcis l'horizon.`;
+    $("dist-chart").innerHTML = "";
+    $("dist-legend").textContent = "";
+    return { sc, base };
+  }
+
   const cells = [
     ["Médiane", mult(sc.median), `1× : ${mult(base.median)}`, sc.median >= base.median ? "good" : "bad"],
     ["Cas défavorable (p5)", mult(sc.p5), `1× : ${mult(base.p5)}`, sc.p5 >= base.p5 ? "good" : "bad"],
@@ -438,8 +421,11 @@ function renderMenu() {
     const tr = el("tr");
     if (p.lev === S.lev && (S.lev === 0 ? p.lev === 0 : p.gate === S.gate)) tr.className = "cur";
     tr.innerHTML =
-      `<td>${p.label}</td><td class="mono">${mult(s.median)}</td><td class="mono">${mult(s.p5)}</td>` +
-      `<td class="mono">${mult(s.worst)}</td><td class="mono">${pct(s.pLoss)}</td><td class="mono">${pct(s.worstMdd)}</td>`;
+      `<td>${p.label}</td>` +
+      (s.n === 0
+        ? '<td colspan="5" class="mono">période trop courte</td>'
+        : `<td class="mono">${mult(s.median)}</td><td class="mono">${mult(s.p5)}</td>` +
+          `<td class="mono">${mult(s.worst)}</td><td class="mono">${pct(s.pLoss)}</td><td class="mono">${pct(s.worstMdd)}</td>`);
     tr.tabIndex = 0;
     const load = () => {
       if (p.lev < 0) return; // the 1x reference row is not a selectable setting
@@ -582,7 +568,7 @@ function attachBrush(host, from, len) {
       b = Math.max(drag, cur);
     drag = null;
     sel.hidden = true;
-    if (b - a >= 12) {
+    if (b - a >= Math.min(24, len - 1)) {
       S.range = [from + a, from + b];
       syncControls();
       renderAll();
@@ -594,20 +580,22 @@ function attachBrush(host, from, len) {
   });
 }
 
-/** Reflect the effective period into the brush sliders and label. */
+/** Reflect the effective period into the date fields and reset button. */
 function syncBrushUI() {
   const dates = D.sleeves.dates;
   const [r0, r1] = effRange();
   const bf = $("brush-from"),
     bt = $("brush-to");
-  const max = dates.length - 1;
-  if (+bf.max !== max) {
+  const min = dates[0].slice(0, 7),
+    max = dates[dates.length - 1].slice(0, 7);
+  if (bf.min !== min) {
+    bf.min = min;
     bf.max = max;
+    bt.min = min;
     bt.max = max;
   }
-  if (document.activeElement !== bf) bf.value = r0;
-  if (document.activeElement !== bt) bt.value = r1;
-  $("brush-label").textContent = `${dates[r0].slice(0, 7)} → ${dates[r1].slice(0, 7)}`;
+  if (document.activeElement !== bf) bf.value = dates[r0].slice(0, 7);
+  if (document.activeElement !== bt) bt.value = dates[r1].slice(0, 7);
   $("brush-reset").style.visibility = S.range ? "visible" : "hidden";
 }
 
@@ -677,23 +665,27 @@ function wire() {
     renderAll();
   });
 
-  // period brush sliders
+  // period brush: date fields (drag on the chart also sets these)
+  const monthToIdx = (val, fallback) => {
+    const i = D.sleeves.dates.findIndex((d) => d.slice(0, 7) === val);
+    return i < 0 ? fallback : i;
+  };
   const brushInput = (e) => {
-    const [lo0, hi0] = effRange();
-    let lo = +$("brush-from").value,
-      hi = +$("brush-to").value;
-    if (lo > hi - 12) {
-      if (e.target.id === "brush-from") lo = hi - 12;
-      else hi = lo + 12;
-    }
     const [elo, ehi] = eraRange();
+    let lo = monthToIdx($("brush-from").value, elo);
+    let hi = monthToIdx($("brush-to").value, ehi);
+    const minSpan = Math.min(S.horizon * 12, ehi - elo);
+    if (hi - lo < minSpan) {
+      if (e.target.id === "brush-from") hi = Math.min(ehi, lo + minSpan);
+      else lo = Math.max(elo, hi - minSpan);
+    }
     S.range = lo === elo && hi === ehi ? null : [lo, hi];
     syncControls();
     syncBrushUI();
     debounce(renderAll);
   };
-  $("brush-from").addEventListener("input", brushInput);
-  $("brush-to").addEventListener("input", brushInput);
+  $("brush-from").addEventListener("change", brushInput);
+  $("brush-to").addEventListener("change", brushInput);
   $("brush-reset").addEventListener("click", () => {
     S.range = null;
     syncControls();
