@@ -30,22 +30,33 @@ def safe_name(ticker: str) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "_", ticker).strip("_")
 
 
-def pull_one(ticker: str, fields: list[str], start: str) -> dict:
-    df = blp.bdh(ticker, fields, start, END)
-    if df.empty:
-        return {"ticker": ticker, "rows": 0, "error": "empty"}
-    df.columns = [c[1] for c in df.columns]  # drop ticker level
-    df.index.name = "date"
-    path = OUT / f"{safe_name(ticker)}.parquet"
-    df.to_parquet(path)
-    return {
-        "ticker": ticker,
-        "rows": len(df),
-        "first": str(df.index[0])[:10],
-        "last": str(df.index[-1])[:10],
-        "fields": list(df.columns),
-        "file": path.name,
-    }
+def pull_one(ticker: str, fields: list[str], start: str, attempts: int = 4) -> dict:
+    import time
+
+    last = {"ticker": ticker, "rows": 0, "error": "empty"}
+    for _ in range(attempts):
+        try:
+            df = blp.bdh(ticker, fields, start, END)
+        except Exception as exc:  # noqa: BLE001
+            last = {"ticker": ticker, "rows": 0, "error": str(exc)[:200]}
+            time.sleep(3)
+            continue
+        if df.empty:
+            time.sleep(3)
+            continue
+        df.columns = [c[1] for c in df.columns]  # drop ticker level
+        df.index.name = "date"
+        path = OUT / f"{safe_name(ticker)}.parquet"
+        df.to_parquet(path)
+        return {
+            "ticker": ticker,
+            "rows": len(df),
+            "first": str(df.index[0])[:10],
+            "last": str(df.index[-1])[:10],
+            "fields": list(df.columns),
+            "file": path.name,
+        }
+    return last
 
 
 def main() -> None:
@@ -53,6 +64,9 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     log = []
     for ticker, (fields, start) in DAILY_UNIVERSE.items():
+        import time
+
+        time.sleep(0.75)  # politeness: the August mass-failure was throttle
         path = OUT / f"{safe_name(ticker)}.parquet"
         if path.exists() and not refresh:
             print(f"skip   {ticker}")

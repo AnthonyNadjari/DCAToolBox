@@ -394,3 +394,136 @@ decays fast beyond 50%.
 leveraged sleeve to the money market, keep 1/4. Recross → redeploy.**
 Everything else (monthly check on deposit day, 200d window, 70/30 CL2/LQQ,
 execution rules) unchanged.
+
+---
+
+## Addendum 8 — single-agent re-audit + campaigns 5A/5B (2026-09-03)
+
+One analyst (no agent panels), full cache refresh to 2026-09-03, and the
+never-pulled Block B options universe finally on disk (PUT/BXM/BXY/BXD/BXMD/
+CMBO/WPUT/PPUT/CLL from 1986-88 where available, VPD/VPN, SPVXSP/SPVXSTR,
+VIX9D/VIX6M/VXN, UX4, SPX fitted IV surface). Code: `checkday.py`,
+`bootstrap.py`, `vrp.py`, `mixfrontier.py`, `promotion.py`. Results in the
+matching `results_*.json`.
+
+### 8.1 The published gate payout was flattered by the check-day phase
+
+The production gate checks SPX vs 200dma on the FIRST bar of the month.
+That phase was never swept (sma_window.py swept window/frequency/buffer,
+not check-day; it also read Yahoo scratchpad data, since rebuilt on the
+Bloomberg caches). Sweeping the check to the 5th/10th/15th/20th trading day:
+
+- Premium era 2009+: stable (21-27% CAGR for off=25%) — insensitive.
+- Payout era 2002-13: day 0 is an outlier. Published off=25%: 12.5% CAGR /
+  97% win / +3.6% p5. Other phases: 4.9-8.8% CAGR / 54-78% win / -14..-24%
+  p5. Cross-phase average ~7.5% CAGR / 71% win / -12% p5 — about 5pp/yr of
+  the published payout was calendar-phase luck (consistent with the
+  turn-of-month return concentration making day-0 checks unusually
+  well-timed).
+
+What survives on EVERY phase: the gate beats no-gate in the payout era
+(vs 0.4% CAGR / 37% win / -43% p5 ungated), and off=25% beats off=0% in
+the premium era. The insurance thesis stands; its historical magnitude was
+overstated.
+
+### 8.2 Block bootstrap: the insurance is expensive, as insurance should be
+
+Joint daily vectors (r_base, r_lev, r_cash, r_spx, later r_gold) resampled
+in 42/126/252-day blocks, full machine replayed, 200-300 paths per setting.
+The gate's value scales with preserved bear persistence:
+
+| block | P(gate beats 1x) | med excess vs 1x | P(gate beats ungated 2x) | med excess vs ungated | DD saved |
+|---|---|---|---|---|---|
+| 42d | 71.5% | +5.5% | 5.5% | -9.7% | ~10pt |
+| 126d | 79-85% | +7.3% | 9-11% | -8.3% | ~13pt |
+| 252d | 92.5% | +13.4% | 17-19% | -6.1% | ~17pt |
+
+Even granting year-long regime persistence, the gate loses to holding
+ungated 2x in ~81-91% of synthetic histories: it costs ~6-10% of 5y window
+wealth to buy 10-17pt of drawdown. The real sample made it look near-free
+because 2000-09 was one enormous, perfectly gate-shaped bear. Honest
+counter-caveat: independent blocks cannot reproduce a 3-year grind bear,
+so the truth sits between the historical payout and the bootstrap cost.
+The gate remains what addendum 4 said: a pre-registered RISK choice — now
+with its unconditional price tag measured.
+
+### 8.3 Campaign 5A — the options/VRP branch: tested at last, dead
+
+Cboe benchmark sleeves (EUR-converted, 0.5%/yr modeled wrapper cost) on the
+ESE frame, rolling 5y DCA windows vs hold ESE, full sample and post-2009:
+
+- putw100: 8.6% CAGR vs ESE 10.2%; maxDD -37% vs -60%; 5y median 1.25 vs
+  1.37; win 32%. Lower return AND worse savings metrics — the VRP harvest
+  is real but does not beat beta for an accumulating saver.
+- Every single option sleeve (BXM, BXY, WPUT, PPUT, CLL) loses to hold ESE
+  on rolling windows in both eras. WPUT worst (2.4% CAGR).
+- gate_dest_putw (the structural idea: trend gate whose OFF destination is
+  the put-write sleeve instead of cash): 16.4% CAGR / -64% maxDD vs
+  production 17.8% / -50%. Rejected — when the gate is off, put-write
+  re-exposes the pot to the very crash beta the gate exited; the cash
+  destination is what makes the gate work.
+- putw30_gated70: maxDD -41% (best in table) but -8pt of median 5y excess
+  vs production. Frontier point for the extremely drawdown-averse only.
+
+**Block B closed: 0 survivors. The vol premium is not harvestable better
+than the equity premium at this mandate's scale and wrapper.**
+
+### 8.4 Campaign 5B + promotion — the gold-sleeve frontier point
+
+Fixed flow mixes (pre-registered 14-mix menu) on the dispersed universe
+PLUS the leveraged sleeves, rolling 5y windows: every unlevered dispersed
+mix (ew7, spx/EM/gold variants, maxdisp) is mediocre — spx70/ndx30 beats
+them all on median. One genuine frontier point emerged: **gated70_gold30**
+(70% of flow to the production gated sleeve, 30% to gold EUR).
+
+Promotion pipeline (longer 1989+ sample, 0.3%/yr gold-wrapper drag, check-
+day robustness, then bootstrap): the trade is real and phase-robust, not a
+day-0 artifact — across all five check phases, in all eras, the mix improves
+p5 by +0.1 to +0.17 and cuts P(window < contributions) by 3-8pt versus the
+pure gated sleeve, at a cost of ~0.1 of median multiple (~8% of window
+wealth). Bootstrap confirms both sides of the trade: mix loses to pure
+gated in 87-91% of histories (median -5.1% to -6.1% per 5y window) while
+cutting median P<1 from 14.8-20.0% to 10.0-15.3% and raising p5 from
+0.78-0.83 to 0.88-0.92.
+
+**Verdict: another insurance-shaped trade, not a free improvement — and it
+has an implementation blocker: gold has no PEA wrapper.** Adoptable only as
+a deliberate risk choice via a second wrapper (CTO/assurance-vie), not as
+an upgrade to the PEA production rule.
+
+### 8.5 What changed and what did not
+
+Unchanged: deploy everything the day cash arrives; 70/30 CL2/LQQ as the
+leveraged engine; the 200dma/25%-off gate as the long-bear insurance;
+execution rules; never sell. New since this session: (1) the gate's
+historical payout is restated ~5pp/yr lower (check-day honesty); (2) its
+unconditional cost is measured (~6-10% of 5y median vs ungated); (3) the
+options branch is closed with data, not by argument; (4) the only new
+frontier point (gold sleeve) is real but not PEA-implementable. The golden
+PEA strategy remains the standing production rule — the dial that matters
+is still the fee, then the leverage dose, then nothing.
+
+### 8.6 Campaign 5C — the frontier priced on real PEA wrappers (2026-09-03)
+
+Bloomberg's IS_PEA field (API-verified) settled the wrapper question:
+PEA-eligible: ESE 0.14%, PUST/PANX 0.30%, CW8 0.38%, C50 0.09%, ETZ 0.19%,
+PAEEM 0.30%, RS2K 0.35%, CL2 0.50%, LQQ 0.60%. NOT PEA: GDX FP (gold
+miners) and JPN FP — the gold-miners loophole is closed, Japan drops out
+of the PEA frontier. (BQL is not entitled on this terminal; the exhaustive
+screen remains an FSRC <GO> exercise. Broker-shelf availability at
+BoursoBank is not Bloomberg-visible and must be confirmed in the app.)
+
+5B re-priced with true TERs (`peafrontier.py`): no ranking change, every
+mix shifts down ~0.01-0.02 of multiple. Two useful facts:
+
+- **CW8 is dominated**: the one-line world ETF loses to plain ESE on every
+  metric, both eras (-9.3% / -10.8% median 5y excess). "Just buy CW8" is
+  answered with real wrapper costs.
+- **gated70_em15_r2k15 — the PEA-legal cousin of the gold mix**: 70% gated
+  engine + 15% PAEEM + 15% RS2K. Full sample 5y: 1.49 med / 1.00 p5 / 6%
+  P<1 / 94% win — it captures most of the gold mix's tail improvement
+  (p5 1.00 vs 1.03; P<1 6% vs 0-3%) with everything PEA-implementable.
+  Cost vs pure gated: ~0.10 of median multiple. This is a legitimate
+  frontier point for a saver who weights "never below contributions"
+  heavily, not an upgrade — same insurance-shaped trade as gold, slightly
+  less potent, fully legal.

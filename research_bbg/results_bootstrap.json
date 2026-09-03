@@ -1,0 +1,35 @@
+{
+ "paths": 200,
+ "block": 42,
+ "off_keep": 0.25,
+ "gated_vs_1x": {
+  "P(win>50%)": 0.715,
+  "median_win": 0.588,
+  "median_med": 0.0545,
+  "p10_med": -0.0629
+ },
+ "ungated_vs_1x": {
+  "P(win>50%)": 0.94,
+  "median_win": 0.717,
+  "median_med": 0.163,
+  "p10_med": 0.027
+ },
+ "gated_vs_ungated": {
+  "P(win>50%)": 0.055,
+  "median_win": 0.265,
+  "median_med": -0.0973,
+  "p10_med": -0.1529
+ },
+ "maxdd_1x": {
+  "median": -0.453,
+  "p90": -0.358
+ },
+ "maxdd_ungated": {
+  "median": -0.758,
+  "p90": -0.648
+ },
+ "maxdd_gated": {
+  "median": -0.661,
+  "p90": -0.541
+ }
+}

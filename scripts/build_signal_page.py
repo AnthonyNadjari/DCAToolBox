@@ -44,6 +44,21 @@ def main() -> None:
         "gap_pct": round(float(spx.iloc[-1] / sma.iloc[-1] - 1) * 100, 2),
         "state": "ON" if state else "OFF",
         "since": str(since.date()),
+        "days_in_state": int((spx.index[-1] - since).days),
+    }
+
+    # --- quick indicators for the dashboard strip ---
+    vix = load("VIX Index")["PX_LAST"].dropna()
+    ese = load("ESE FP Equity")
+    spread_bp = ((ese["PX_ASK"] - ese["PX_BID"]) / ese["PX_LAST"] * 1e4).dropna()
+    # distance the SPX would have to fall to flip the gate today
+    signal["flip_level"] = round(float(sma.iloc[-1]), 2)
+    indicators = {
+        "vix": round(float(vix.iloc[-1]), 2),
+        "vix_pctl_1y": round(float(vix.tail(252).rank(pct=True).iloc[-1]) * 100, 0),
+        "spread_bp_last": round(float(spread_bp.iloc[-1]), 1),
+        "spread_bp_med_60d": round(float(spread_bp.tail(60).median()), 1),
+        "spx_chg_1m": round(float(spx.iloc[-1] / spx.iloc[-22] - 1) * 100, 2),
     }
 
     # --- 3y daily gate chart series ---
@@ -61,7 +76,9 @@ def main() -> None:
     df["r_ndx"] = r_ndx
     df["r_levndx"] = 2 * r_ndx - df["r_cash"] - 0.006 / 252
     hold = lambda d: pd.Series(1.0, index=d.index)  # noqa: E731
-    trend = lambda d: d["sma200_up"].shift(1)  # noqa: E731
+    # production gate (addendum 7): SPX < 200dma at the monthly check -> keep
+    # 25% of the leveraged sleeve, park the rest; recross -> redeploy.
+    trend = lambda d: 0.25 + 0.75 * d["sma200_up"].shift(1)  # noqa: E731
     P = {
         "ese": (1 + strat_returns(df, hold, "r_base")).cumprod(),
         "ndx": (1 + strat_returns(df, hold, "r_ndx")).cumprod(),
@@ -138,7 +155,7 @@ def main() -> None:
         w = np.asarray(equity[name], dtype=float)
         prev = np.r_[0.0, w[:-1]]
         sleeve_r[name] = [round(float(v), 8) for v in (w / (prev + contrib * (1 - 0.005)) - 1.0)]
-    on_month = up.reindex(eq_idx).ffill().astype(int)
+    on_month = up.reindex(eq_idx, method="ffill").astype(int)
     cash_m = month_ends((1 + df["r_cash"]).cumprod()).reindex(eq_idx).pct_change().fillna(0.0)
     sleeves = {
         "dates": equity["dates"],
@@ -152,6 +169,7 @@ def main() -> None:
     payload = {
         "generated": str(date.today()),
         "signal": signal,
+        "indicators": indicators,
         "gate_series": gate_series,
         "equity": equity,
         "off_periods": offs,

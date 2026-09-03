@@ -1,0 +1,59 @@
+{
+ "paths": 300,
+ "block": 126,
+ "off_keep": 0.25,
+ "gated_vs_1x": {
+  "P(win>50%)": 0.79,
+  "median_win": 0.631,
+  "median_med": 0.0731,
+  "p10_med": -0.0354
+ },
+ "ungated_vs_1x": {
+  "P(win>50%)": 0.947,
+  "median_win": 0.722,
+  "median_med": 0.1598,
+  "p10_med": 0.048
+ },
+ "gated_vs_ungated": {
+  "P(win>50%)": 0.093,
+  "median_win": 0.306,
+  "median_med": -0.0827,
+  "p10_med": -0.1454
+ },
+ "mix_vs_1x": {
+  "P(win>50%)": 0.723,
+  "median_win": 0.597,
+  "median_med": 0.0326,
+  "p10_med": -0.0309
+ },
+ "mix_vs_gated": {
+  "P(win>50%)": 0.133,
+  "median_win": 0.332,
+  "median_med": -0.0514,
+  "p10_med": -0.0975
+ },
+ "wins_gated": {
+  "P(p_below<10%)": 0.18,
+  "median_p_below": 0.2,
+  "median_p5": 0.777,
+  "median_med": 1.422
+ },
+ "wins_mix": {
+  "P(p_below<10%)": 0.28,
+  "median_p_below": 0.153,
+  "median_p5": 0.878,
+  "median_med": 1.349
+ },
+ "maxdd_1x": {
+  "median": -0.461,
+  "p90": -0.379
+ },
+ "maxdd_ungated": {
+  "median": -0.789,
+  "p90": -0.66
+ },
+ "maxdd_gated": {
+  "median": -0.654,
+  "p90": -0.545
+ }
+}
