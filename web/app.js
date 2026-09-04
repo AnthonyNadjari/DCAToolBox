@@ -827,6 +827,18 @@ fetch("data.json")
     D = d;
     R = {};
     for (const k in d.sleeves.r) R[k] = Float64Array.from(d.sleeves.r[k]);
+    // theme toggle (the head inline script already applied the stored theme)
+    const tg = $("theme-toggle");
+    const setTheme = (t) => {
+      document.documentElement.dataset.theme = t;
+      localStorage.setItem("theme", t);
+      tg.textContent = t === "light" ? "☾" : "☀";
+      tg.title = t === "light" ? "passer en mode sombre" : "passer en mode clair";
+    };
+    setTheme(document.documentElement.dataset.theme || "dark");
+    tg.addEventListener("click", () =>
+      setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light"),
+    );
     $("foot").textContent =
       `données Bloomberg au ${d.generated} · ${d.sleeves.dates.length} mois (${d.sleeves.dates[0]} → ${d.sleeves.dates.at(-1)}) · ` +
       `frais ${(d.sleeves.fee * 100).toFixed(2)} % par ordre · tout est recalculé dans le navigateur`;

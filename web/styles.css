@@ -52,6 +52,37 @@ a:hover { color: var(--ink); }
 .brand-sep { color: var(--dim); }
 .brand-page { color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
 .asof { font-size: 12px; color: var(--muted); }
+.mast-right { display: flex; align-items: baseline; gap: 12px; }
+#theme-toggle {
+  font-size: 15px; line-height: 1; color: var(--muted);
+  background: none; border: 1px solid var(--line); border-radius: 7px;
+  padding: 5px 9px; cursor: pointer;
+}
+#theme-toggle:hover { color: var(--ink); }
+
+/* ---------- light theme ---------- */
+[data-theme="light"] {
+  --bg: #f3f5f9;
+  --panel: #ffffff;
+  --panel-2: #edf0f6;
+  --line: #d9dfe9;
+  --ink: #17212f;
+  --muted: #5b6577;
+  --dim: #8b95a7;
+  --on: #1c9959;
+  --on-dim: rgba(28, 153, 89, 0.10);
+  --off: #cf3f3f;
+  --off-dim: rgba(207, 63, 63, 0.08);
+  --s-strategy: #226dbe;
+  --s-ese: #a96f00;
+  --s-invested: #7c8698;
+}
+[data-theme="light"] .flap.on,
+[data-theme="light"] .flap.off,
+[data-theme="light"] .state-on .verdict,
+[data-theme="light"] .state-off .verdict { text-shadow: none; }
+[data-theme="light"] .chart .tip { background: #ffffff; }
+[data-theme="light"] .brush input[type="month"] { color-scheme: light; }
 
 main { max-width: 1060px; margin: 0 auto; padding: 0 24px 40px; }
 
