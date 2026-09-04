@@ -76,11 +76,40 @@
     <div class="ctl wide">
       <label id="era-label">&Eacute;poque test&eacute;e</label>
       <div class="seg" role="group" aria-labelledby="era-label" id="era-seg">
-        <button type="button" data-era="all" class="on">Tout 1989&ndash;2026</button>
+        <button type="button" data-era="10y" class="on">10 derni&egrave;res ann&eacute;es</button>
+        <button type="button" data-era="all">Tout 1989&ndash;2026</button>
         <button type="button" data-era="bear">Avec les krachs longs (d&eacute;buts 1989&ndash;2008)</button>
         <button type="button" data-era="bull">Ère r&eacute;cente (d&eacute;buts 2009&ndash;)</button>
       </div>
     </div>
+  </section>
+
+  <!-- ============ TRAJECTOIRE ============ -->
+  <section class="card">
+    <h2>La trajectoire compl&egrave;te</h2>
+    <p class="dim"><strong>Glisse</strong> sur un graphe pour zoomer sur une p&eacute;riode &middot; <strong>molette</strong> pour
+      zoomer autour du curseur &middot; <strong>double-clic</strong> pour revenir &agrave; toute la p&eacute;riode &middot; ou choisis
+      les dates exactes ci-dessous. Toutes les statistiques, le menu et la distribution suivent la p&eacute;riode.
+      Patrimoine en &eacute;chelle log, puis baisse depuis le plus haut. Zones rouges&nbsp;: le filtre &eacute;tait hors march&eacute;.</p>
+    <div class="brush">
+      <label class="brush-lbl" for="brush-from">début</label>
+      <input type="month" id="brush-from">
+      <label class="brush-lbl" for="brush-to">fin</label>
+      <input type="month" id="brush-to">
+      <button type="button" id="brush-reset">toute la p&eacute;riode</button>
+    </div>
+    <div class="compare">
+      <span class="brush-lbl">comparer</span>
+      <div class="chips" id="compare-chips"></div>
+    </div>
+    <figure class="chart-block">
+      <div class="chart" id="equity-chart" role="img" aria-label="Patrimoine accumulé, échelle logarithmique"></div>
+      <figcaption class="chart-caption mono" id="equity-legend"></figcaption>
+    </figure>
+    <figure class="chart-block">
+      <div class="chart" id="dd-chart" role="img" aria-label="Baisse du portefeuille depuis son plus haut"></div>
+      <figcaption class="chart-caption mono">Baisse depuis le plus haut du portefeuille en cours de constitution</figcaption>
+    </figure>
   </section>
 
   <!-- ============ RÉSULTATS DE LA POLITIQUE CHOISIE ============ -->
@@ -124,30 +153,6 @@
         <tbody></tbody>
       </table>
     </div>
-  </section>
-
-  <!-- ============ TRAJECTOIRE ============ -->
-  <section class="card">
-    <h2>La trajectoire compl&egrave;te</h2>
-    <p class="dim"><strong>Glisse</strong> sur un graphe pour zoomer sur une p&eacute;riode &middot; <strong>molette</strong> pour
-      zoomer autour du curseur &middot; <strong>double-clic</strong> pour revenir &agrave; toute la p&eacute;riode &middot; ou choisis
-      les dates exactes ci-dessous. Toutes les statistiques, le menu et la distribution suivent la p&eacute;riode.
-      Patrimoine en &eacute;chelle log, puis baisse depuis le plus haut. Zones rouges&nbsp;: le filtre &eacute;tait hors march&eacute;.</p>
-    <div class="brush">
-      <label class="brush-lbl" for="brush-from">début</label>
-      <input type="month" id="brush-from">
-      <label class="brush-lbl" for="brush-to">fin</label>
-      <input type="month" id="brush-to">
-      <button type="button" id="brush-reset">toute la p&eacute;riode</button>
-    </div>
-    <figure class="chart-block">
-      <div class="chart" id="equity-chart" role="img" aria-label="Patrimoine accumulé, échelle logarithmique"></div>
-      <figcaption class="chart-caption mono" id="equity-legend"></figcaption>
-    </figure>
-    <figure class="chart-block">
-      <div class="chart" id="dd-chart" role="img" aria-label="Baisse du portefeuille depuis son plus haut"></div>
-      <figcaption class="chart-caption mono">Baisse depuis le plus haut du portefeuille en cours de constitution</figcaption>
-    </figure>
   </section>
 
   <!-- ============ LE SIGNAL LUI-MÊME ============ -->

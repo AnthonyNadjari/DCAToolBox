@@ -11,11 +11,13 @@ const S = {
   lev: 70, // % of the monthly flow going to the leveraged sleeve
   gate: 1, // 1 = leveraged sleeve follows the 200-day filter
   horizon: 3, // years
-  era: "all",
+  era: "10y",
   range: null, // [lo, hi] month indices when the user drags a custom period
+  compare: [], // up to 2 preset indices plotted alongside the policy
 };
 
 const ERAS = {
+  "10y": { label: "10 dernières années" },
   all: { label: "1989–2026", from: null },
   bear: { label: "débuts 1989–2008", from: null, maxStart: "2009-01-01" },
   bull: { label: "débuts 2009–", from: "2009-01-01" },
@@ -25,6 +27,7 @@ const ERAS = {
 function eraRange() {
   const dates = D.sleeves.dates;
   const n = dates.length - 1;
+  if (S.era === "10y") return [Math.max(0, n - 119), n];
   if (S.era === "bull") return [dates.findIndex((d) => d >= ERAS.bull.from), n];
   if (S.era === "bear") return [0, dates.findIndex((d) => d >= ERAS.bear.maxStart) - 1];
   return [0, n];
@@ -486,6 +489,20 @@ function renderPaths() {
     .map(([a, b]) => [new Date(a).getTime(), new Date(b).getTime()])
     .filter(() => S.gate && S.lev > 0);
 
+  // main policy + up to two ticked comparison strategies + 1x reference
+  const plist = presets();
+  const series = [{ label: policyLabel(), color: COL.policy, y: Array.from(pol.path), width: 2.4 }];
+  const finals = [[policyLabel(), COL.policy, pol.final]];
+  S.compare.forEach((pi, k) => {
+    const p = plist[pi];
+    if (!p) return;
+    const r = run(p.weights, from, len, S.budget);
+    series.push({ label: p.label, color: COMP_COLORS[k], y: Array.from(r.path) });
+    finals.push([p.label, COMP_COLORS[k], r.final]);
+  });
+  series.push({ label: "100 % 1× S&P", color: COL.base, y: Array.from(bas.path), width: 1.4 });
+  series.push({ label: "versé", color: COL.contrib, y: contrib, width: 1.5, dash: "4 4" });
+
   chart($("equity-chart"), {
     x: xs,
     height: 300,
@@ -493,20 +510,16 @@ function renderPaths() {
     bands,
     yFmt: eur,
     xFmt: (v) => new Date(v).getFullYear(),
-    series: [
-      { label: policyLabel(), color: COL.policy, y: Array.from(pol.path) },
-      { label: "100 % 1× S&P", color: COL.base, y: Array.from(bas.path) },
-      { label: "versé", color: COL.contrib, y: contrib, width: 1.5, dash: "4 4" },
-    ],
+    series,
     tipX: (v) => new Date(v).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }),
     tipY: (v) => eur(v),
   });
   attachTimeBrush($("equity-chart"), xs[0], xs[len - 1]);
   syncBrushUI();
   $("equity-legend").innerHTML =
-    `<span class="k" style="background:${COL.policy}"></span>${policyLabel()} → <b>${eur(pol.final)}</b> &nbsp; ` +
-    `<span class="k" style="background:${COL.base}"></span>1× S&P → <b>${eur(bas.final)}</b> &nbsp; ` +
-    `<span class="k" style="background:${COL.contrib}"></span>versé → <b>${eur(contrib[len - 1])}</b>`;
+    finals.map(([lb, c, f]) => `<span class="k" style="background:${c}"></span>${lb} → <b>${eur(f)}</b>`).join(" &nbsp; ") +
+    ` &nbsp; <span class="k" style="background:${COL.base}"></span>1× S&P → <b>${eur(bas.final)}</b>` +
+    ` &nbsp; <span class="k" style="background:${COL.contrib}"></span>versé → <b>${eur(contrib[len - 1])}</b>`;
 
   const dd = (p) => {
     let peak = 0;
@@ -699,6 +712,30 @@ async function liveQuote() {
 
 /* ------------------------------------------------------------ controls -- */
 
+const COMP_COLORS = ["#d95926", "#199e70"]; // tick 1, tick 2
+
+/** The comparison chips under the trajectory chart: tick up to 2 strategies. */
+function renderCompare() {
+  const host = $("compare-chips");
+  host.innerHTML = "";
+  presets().forEach((p, i) => {
+    if (p.lev < 0) return; // the 1x reference is always plotted already
+    const k = S.compare.indexOf(i);
+    const b = el("button", "chip" + (k >= 0 ? ` on c${k}` : ""), p.label);
+    b.type = "button";
+    b.addEventListener("click", () => {
+      if (k >= 0) S.compare.splice(k, 1);
+      else {
+        S.compare.push(i);
+        if (S.compare.length > 2) S.compare.shift();
+      }
+      renderCompare();
+      renderPaths();
+    });
+    host.appendChild(b);
+  });
+}
+
 function syncControls() {
   $("budget").value = S.budget;
   $("budget-out").textContent = S.budget.toLocaleString("fr-FR") + " €";
@@ -794,6 +831,7 @@ fetch("data.json")
     renderAll();
     renderPulse();
     renderGate();
+    renderCompare();
     liveQuote().then((q) => {
       if (q) renderPulse(q);
     });

@@ -303,6 +303,18 @@ main { max-width: 1060px; margin: 0 auto; padding: 0 24px 80px; }
   background: var(--on); margin-left: 5px; vertical-align: middle;
 }
 
+.compare { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 10px 0 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font-family: var(--body); font-size: 12.5px; color: var(--muted);
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 7px;
+  padding: 5px 11px; cursor: pointer; transition: border-color .12s, color .12s;
+}
+.chip:hover { color: var(--ink); }
+.chip.on { color: var(--ink); }
+.chip.on.c0 { border-color: #d95926; background: rgba(217, 89, 38, 0.12); }
+.chip.on.c1 { border-color: #199e70; background: rgba(25, 158, 112, 0.12); }
+
 /* ---------- misc ---------- */
 .flap.on { color: var(--on); text-shadow: 0 0 60px rgba(63,181,119,.25); }
 .flap.off { color: var(--off); text-shadow: 0 0 60px rgba(224,82,82,.25); }
