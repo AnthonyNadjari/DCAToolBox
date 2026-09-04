@@ -34,8 +34,6 @@
   <!-- ============ AUJOURD'HUI EN UN COUP D'ŒIL ============ -->
   <section class="card">
     <h2>Aujourd&rsquo;hui en un coup d&rsquo;&oelig;il</h2>
-    <p class="dim">Aucune action ne d&eacute;pend de ces indicateurs entre deux versements &mdash; ils r&eacute;pondent
-      juste &agrave; &laquo;&nbsp;o&ugrave; on en est&nbsp;&raquo;.</p>
     <div class="pulse" id="pulse"></div>
   </section>
 
@@ -87,10 +85,6 @@
   <!-- ============ TRAJECTOIRE ============ -->
   <section class="card">
     <h2>La trajectoire compl&egrave;te</h2>
-    <p class="dim"><strong>Glisse</strong> sur un graphe pour zoomer sur une p&eacute;riode &middot; <strong>molette</strong> pour
-      zoomer autour du curseur &middot; <strong>double-clic</strong> pour revenir &agrave; toute la p&eacute;riode &middot; ou choisis
-      les dates exactes ci-dessous. Toutes les statistiques, le menu et la distribution suivent la p&eacute;riode.
-      Patrimoine en &eacute;chelle log, puis baisse depuis le plus haut. Zones rouges&nbsp;: le filtre &eacute;tait hors march&eacute;.</p>
     <div class="brush">
       <label class="brush-lbl" for="brush-from">début</label>
       <input type="month" id="brush-from">
@@ -125,9 +119,7 @@
   <!-- ============ DISTRIBUTION DES FENÊTRES ============ -->
   <section class="card">
     <h2>Toutes les fen&ecirc;tres possibles, tri&eacute;es de la pire &agrave; la meilleure</h2>
-    <p class="dim">Chaque point = un plan d&eacute;marr&eacute; un mois diff&eacute;rent et tenu sur l&rsquo;horizon choisi.
-      L&rsquo;axe vertical est le <strong>rendement annualis&eacute;</strong> du plan (XIRR des versements). Sous la ligne 0&nbsp;%,
-      le plan a perdu de l&rsquo;argent.</p>
+    <p class="dim">Chaque point = un plan d&eacute;marr&eacute; un mois diff&eacute;rent&nbsp;; axe vertical&nbsp;: rendement annualis&eacute; (XIRR). Sous 0&nbsp;%, le plan a perdu de l&rsquo;argent.</p>
     <figure class="chart-block">
       <div class="chart" id="dist-chart" role="img" aria-label="Distribution triée des résultats de fenêtres glissantes"></div>
       <figcaption class="chart-caption mono" id="dist-legend"></figcaption>
@@ -137,9 +129,7 @@
   <!-- ============ MENU DES POLITIQUES ============ -->
   <section class="card">
     <h2>Le menu, &agrave; cet horizon et sur cette p&eacute;riode</h2>
-    <p class="dim">Rendements annualis&eacute;s (XIRR des versements)&nbsp;: m&eacute;dian, 5<sup>e</sup> centile et pire cas&nbsp;;
-      probabilit&eacute; de finir sous son argent&nbsp;; pire baisse du portefeuille en cours de route.
-      Cliquez une ligne pour la charger dans les contr&ocirc;les.</p>
+    <p class="dim">Cliquez une ligne pour la charger dans les contr&ocirc;les.</p>
     <div class="table-wrap">
       <table class="menu" id="menu">
         <thead><tr>

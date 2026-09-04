@@ -422,7 +422,7 @@ function renderPolicy() {
   const x = sortedP.map((_, i) => (100 * i) / Math.max(1, sortedP.length - 1));
   chart($("dist-chart"), {
     x,
-    height: 280,
+    height: 220,
     yFmt: (v) => Math.round(v * 100) + " %",
     xFmt: (v) => Math.round(v) + " %",
     hline: 0,
@@ -505,7 +505,7 @@ function renderPaths() {
 
   chart($("equity-chart"), {
     x: xs,
-    height: 300,
+    height: 250,
     log: true,
     bands,
     yFmt: eur,
@@ -530,7 +530,7 @@ function renderPaths() {
   };
   chart($("dd-chart"), {
     x: xs,
-    height: 190,
+    height: 140,
     bands,
     yFmt: (v) => Math.round(v * 100) + " %",
     xFmt: (v) => new Date(v).getFullYear(),
@@ -550,7 +550,7 @@ function renderGate() {
   const xs = g.dates.map((d) => new Date(d).getTime());
   chart($("gate-chart"), {
     x: xs,
-    height: 220,
+    height: 170,
     bands: (D.off_periods || []).map(([a, b]) => [new Date(a).getTime(), new Date(b).getTime()]),
     yFmt: (v) => Math.round(v).toLocaleString("fr-FR"),
     xFmt: (v) => new Date(v).toLocaleDateString("fr-FR", { month: "short", year: "2-digit" }),
