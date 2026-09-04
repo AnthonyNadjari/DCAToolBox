@@ -14,6 +14,8 @@ const S = {
   era: "10y",
   range: null, // [lo, hi] month indices when the user drags a custom period
   compare: [], // up to 2 preset indices plotted alongside the policy
+  sortCol: "median", // menu sort key
+  sortDir: -1, // -1 = best first
 };
 
 const ERAS = {
@@ -120,11 +122,24 @@ function score(weights) {
     mults[j] = r.final / r.contributed;
     mdds[j] = r.mdd;
   }
+  let sMult = 0,
+    sIrr = 0,
+    nIrr = 0;
+  for (const m of mults) {
+    sMult += m;
+    const v = irr(m, S.horizon);
+    if (Number.isFinite(v)) {
+      sIrr += v;
+      nIrr++;
+    }
+  }
   return {
     n: idx.length,
     mults,
     mdds,
     median: median(mults),
+    mean: mults.length ? sMult / mults.length : NaN,
+    meanIrr: nIrr ? sIrr / nIrr : NaN,
     p5: quantile(mults, 0.05),
     worst: mults.length ? Math.min(...mults) : NaN,
     best: mults.length ? Math.max(...mults) : NaN,
@@ -392,10 +407,10 @@ function renderPolicy() {
 
   const cells = [
     ["Rendement annuel médian", ann(sc.median), `1× : ${ann(base.median)}`, sc.median >= base.median ? "good" : "bad"],
+    ["Rendement annuel moyen", pct(sc.meanIrr, 1), `1× : ${pct(base.meanIrr, 1)}`, sc.meanIrr >= base.meanIrr ? "good" : "bad"],
     ["Rendement annuel défavorable (p5)", ann(sc.p5), `1× : ${ann(base.p5)}`, sc.p5 >= base.p5 ? "good" : "bad"],
     ["Pire rendement annuel", ann(sc.worst), `1× : ${ann(base.worst)}`, sc.worst >= base.worst ? "good" : "bad"],
     ["Finir sous son argent", pct(sc.pLoss), `1× : ${pct(base.pLoss)}`, sc.pLoss <= base.pLoss ? "good" : "bad"],
-    ["Baisse médiane subie", pct(sc.medMdd), `1× : ${pct(base.medMdd)}`, sc.medMdd >= base.medMdd ? "good" : "bad"],
     ["Pire baisse subie", pct(sc.worstMdd), `1× : ${pct(base.worstMdd)}`, sc.worstMdd >= base.worstMdd ? "good" : "bad"],
   ];
   const host = $("stats");
@@ -447,18 +462,32 @@ function renderMenu() {
     ? list
     : [{ label: "votre réglage — " + policyLabel(), weights: currentWeights(), lev: S.lev, gate: S.gate }, ...list];
 
+  const scored = rows.map((p) => ({ p, s: score(p.weights) }));
+  scored.sort((a, b) => {
+    if (a.s.n === 0) return 1;
+    if (b.s.n === 0) return -1;
+    if (S.sortCol === "label") return S.sortDir * a.p.label.localeCompare(b.p.label);
+    return S.sortDir * (a.s[S.sortCol] - b.s[S.sortCol]);
+  });
+
+  document.querySelectorAll("#menu th").forEach((th) => {
+    const c = th.dataset.col;
+    th.classList.toggle("sorted", c === S.sortCol);
+    th.textContent = (th.dataset.label || th.textContent) + (c === S.sortCol ? (S.sortDir < 0 ? " ▼" : " ▲") : "");
+  });
+
   const tb = $("menu").querySelector("tbody");
   tb.innerHTML = "";
-  rows.forEach((p) => {
-    const s = score(p.weights);
+  scored.forEach(({ p, s }) => {
     const tr = el("tr");
     if (p.lev === S.lev && (S.lev === 0 ? p.lev === 0 : p.gate === S.gate)) tr.className = "cur";
     tr.innerHTML =
       `<td>${p.label}</td>` +
       (s.n === 0
-        ? '<td colspan="5" class="mono">période trop courte</td>'
-        : `<td class="mono">${ann(s.median)}</td><td class="mono">${ann(s.p5)}</td>` +
-          `<td class="mono">${ann(s.worst)}</td><td class="mono">${pct(s.pLoss)}</td><td class="mono">${pct(s.worstMdd)}</td>`);
+        ? '<td colspan="6" class="mono">période trop courte</td>'
+        : `<td class="mono">${ann(s.median)}</td><td class="mono">${pct(s.meanIrr, 1)}</td>` +
+          `<td class="mono">${ann(s.p5)}</td><td class="mono">${ann(s.worst)}</td>` +
+          `<td class="mono">${pct(s.pLoss)}</td><td class="mono">${pct(s.worstMdd)}</td>`);
     tr.tabIndex = 0;
     const load = () => {
       if (p.lev < 0) return; // the 1x reference row is not a selectable setting
@@ -814,6 +843,19 @@ function wire() {
     S.range = null;
     syncControls();
     renderAll();
+  });
+
+  // sortable menu columns
+  document.querySelectorAll("#menu th").forEach((th) => {
+    th.dataset.label = th.textContent;
+    th.addEventListener("click", () => {
+      if (S.sortCol === th.dataset.col) S.sortDir *= -1;
+      else {
+        S.sortCol = th.dataset.col;
+        S.sortDir = th.dataset.col === "label" || th.dataset.col === "pLoss" ? 1 : -1;
+      }
+      renderMenu();
+    });
   });
 
   addEventListener("resize", () => debounce(renderAll));

@@ -273,7 +273,10 @@ main { max-width: 1060px; margin: 0 auto; padding: 0 24px 40px; }
   font-family: var(--mono); font-size: 11px; font-weight: 500; text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--dim); text-align: right;
   padding: 8px 14px 8px 0; border-bottom: 1px solid var(--line);
+  cursor: pointer; user-select: none;
 }
+.menu th:hover { color: var(--ink); }
+.menu th.sorted { color: var(--s-strategy); }
 .menu th:first-child { text-align: left; }
 .menu td { padding: 6px 14px 6px 0; border-bottom: 1px solid var(--line); text-align: right; font-size: 13px; }
 .menu td:first-child { text-align: left; font-family: var(--body); font-size: 14px; }
