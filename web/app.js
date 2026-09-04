@@ -489,18 +489,23 @@ function renderPaths() {
     .map(([a, b]) => [new Date(a).getTime(), new Date(b).getTime()])
     .filter(() => S.gate && S.lev > 0);
 
-  // main policy + up to two ticked comparison strategies + 1x reference
+  // main policy + 1x reference by default; ONLY the ticked ones when comparing
   const plist = presets();
-  const series = [{ label: policyLabel(), color: COL.policy, y: Array.from(pol.path), width: 2.4 }];
-  const finals = [[policyLabel(), COL.policy, pol.final]];
-  S.compare.forEach((pi, k) => {
-    const p = plist[pi];
-    if (!p) return;
-    const r = run(p.weights, from, len, S.budget);
-    series.push({ label: p.label, color: COMP_COLORS[k], y: Array.from(r.path) });
-    finals.push([p.label, COMP_COLORS[k], r.final]);
-  });
-  series.push({ label: "100 % 1× S&P", color: COL.base, y: Array.from(bas.path), width: 1.4 });
+  const series = [];
+  const finals = [];
+  if (S.compare.length) {
+    S.compare.forEach((pi, k) => {
+      const p = plist[pi];
+      if (!p) return;
+      const r = run(p.weights, from, len, S.budget);
+      series.push({ label: p.label, color: COMP_COLORS[k], y: Array.from(r.path), width: 2.4 });
+      finals.push([p.label, COMP_COLORS[k], r.final]);
+    });
+  } else {
+    series.push({ label: policyLabel(), color: COL.policy, y: Array.from(pol.path), width: 2.4 });
+    series.push({ label: "100 % 1× S&P", color: COL.base, y: Array.from(bas.path), width: 1.4 });
+    finals.push([policyLabel(), COL.policy, pol.final], ["100 % 1× S&P", COL.base, bas.final]);
+  }
   series.push({ label: "versé", color: COL.contrib, y: contrib, width: 1.5, dash: "4 4" });
 
   chart($("equity-chart"), {
@@ -518,7 +523,6 @@ function renderPaths() {
   syncBrushUI();
   $("equity-legend").innerHTML =
     finals.map(([lb, c, f]) => `<span class="k" style="background:${c}"></span>${lb} → <b>${eur(f)}</b>`).join(" &nbsp; ") +
-    ` &nbsp; <span class="k" style="background:${COL.base}"></span>1× S&P → <b>${eur(bas.final)}</b>` +
     ` &nbsp; <span class="k" style="background:${COL.contrib}"></span>versé → <b>${eur(contrib[len - 1])}</b>`;
 
   const dd = (p) => {
