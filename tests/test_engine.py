@@ -15,6 +15,29 @@ def test_periods_per_year_mapping() -> None:
     assert periods_per_year(Frequency.DAILY) == 252
 
 
+def test_intraday_deposits_once_per_month() -> None:
+    """On hourly data, the budget must be deposited/swept once per month, not per bar."""
+    from datetime import date
+
+    from dcatoolbox.config.enums import ProviderType
+    from dcatoolbox.config.settings import BacktestConfig, DataConfig, StrategyConfig
+
+    cfg = BacktestConfig(
+        data=DataConfig(
+            provider=ProviderType.SYNTHETIC,
+            tickers=["SPY"],
+            start=date(2023, 1, 1),
+            end=date(2023, 12, 31),
+            frequency=Frequency.HOURLY,
+        ),
+        strategy=StrategyConfig(name="monthly_dca"),
+    )
+    result = run_backtest(cfg, with_benchmark=False)
+    # 12 calendar months in 2023 -> exactly 12 deposits and 12 scheduled buys.
+    assert result.strategy.history["invested_capital"].iloc[-1] == 12 * 1000
+    assert result.strategy_metrics.n_orders == 12
+
+
 def test_run_produces_history_and_trades(base_config, synthetic_market) -> None:
     result = BacktestEngine(base_config).run(
         build_strategy(base_config.strategy),

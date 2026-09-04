@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="DCAToolBox">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1e3a8a"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#g)"/>
+  <!-- ascending DCA bars -->
+  <g fill="#ffffff" opacity="0.30">
+    <rect x="14" y="38" width="7" height="12" rx="2"/>
+    <rect x="28" y="31" width="7" height="19" rx="2"/>
+    <rect x="42" y="22" width="7" height="28" rx="2"/>
+  </g>
+  <!-- up-trend line -->
+  <polyline points="12,44 24,36 34,40 46,24 54,16" fill="none" stroke="#ffffff"
+            stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- arrow head -->
+  <path d="M46 16 L56 13 L53 23 Z" fill="#ffffff"/>
+</svg>

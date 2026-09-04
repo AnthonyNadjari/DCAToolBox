@@ -79,10 +79,15 @@ def xirr(amounts: list[float], dates: list[pd.Timestamp], *, guess: float = 0.1)
     def npv(rate: float) -> float:
         return float(np.sum(cash / (1.0 + rate) ** years))
 
+    # Prefer a deterministic bracketed solve so the result is independent of the
+    # initial guess (and matches the JS engine's solver bit-for-bit).
+    low, high = -0.9999, 10.0
+    try:
+        if npv(low) * npv(high) < 0:
+            return float(optimize.brentq(npv, low, high, maxiter=200))
+    except (ValueError, RuntimeError):  # pragma: no cover - solver fallback
+        pass
     try:
         return float(optimize.newton(npv, guess, maxiter=100))
-    except (RuntimeError, OverflowError, FloatingPointError):
-        try:
-            return float(optimize.brentq(npv, -0.9999, 10.0, maxiter=200))
-        except (ValueError, RuntimeError):
-            return float("nan")
+    except (RuntimeError, OverflowError, FloatingPointError):  # pragma: no cover
+        return float("nan")

@@ -1,0 +1,177 @@
+[
+ {
+  "off_lev": 0.0,
+  "premium": {
+   "cagr": 0.2187,
+   "maxdd": -0.424,
+   "roll5y": {
+    "windows": 146,
+    "win_rate": 0.911,
+    "median": 0.1757,
+    "p5": -0.0231,
+    "p95": 0.4745
+   }
+  },
+  "payout": {
+   "cagr": 0.1501,
+   "maxdd": -0.382,
+   "roll5y": {
+    "windows": 76,
+    "win_rate": 0.974,
+    "median": 0.2572,
+    "p5": 0.0698,
+    "p95": 0.7221
+   }
+  }
+ },
+ {
+  "off_lev": 0.25,
+  "premium": {
+   "cagr": 0.2427,
+   "maxdd": -0.407,
+   "roll5y": {
+    "windows": 146,
+    "win_rate": 0.993,
+    "median": 0.2274,
+    "p5": 0.042,
+    "p95": 0.5432
+   }
+  },
+  "payout": {
+   "cagr": 0.1251,
+   "maxdd": -0.411,
+   "roll5y": {
+    "windows": 76,
+    "win_rate": 0.974,
+    "median": 0.2316,
+    "p5": 0.0364,
+    "p95": 0.5251
+   }
+  }
+ },
+ {
+  "off_lev": 0.4,
+  "premium": {
+   "cagr": 0.256,
+   "maxdd": -0.421,
+   "roll5y": {
+    "windows": 146,
+    "win_rate": 1.0,
+    "median": 0.2621,
+    "p5": 0.0818,
+    "p95": 0.5811
+   }
+  },
+  "payout": {
+   "cagr": 0.1064,
+   "maxdd": -0.521,
+   "roll5y": {
+    "windows": 76,
+    "win_rate": 0.908,
+    "median": 0.1942,
+    "p5": -0.0098,
+    "p95": 0.4
+   }
+  }
+ },
+ {
+  "off_lev": 0.5,
+  "premium": {
+   "cagr": 0.2643,
+   "maxdd": -0.449,
+   "roll5y": {
+    "windows": 146,
+    "win_rate": 1.0,
+    "median": 0.2818,
+    "p5": 0.1052,
+    "p95": 0.6036
+   }
+  },
+  "payout": {
+   "cagr": 0.0925,
+   "maxdd": -0.586,
+   "roll5y": {
+    "windows": 76,
+    "win_rate": 0.737,
+    "median": 0.1564,
+    "p5": -0.0441,
+    "p95": 0.3384
+   }
+  }
+ },
+ {
+  "off_lev": 0.6,
+  "premium": {
+   "cagr": 0.2722,
+   "maxdd": -0.476,
+   "roll5y": {
+    "windows": 146,
+    "win_rate": 1.0,
+    "median": 0.3101,
+    "p5": 0.1198,
+    "p95": 0.6237
+   }
+  },
+  "payout": {
+   "cagr": 0.0775,
+   "maxdd": -0.646,
+   "roll5y": {
+    "windows": 76,
+    "win_rate": 0.671,
+    "median": 0.1285,
+    "p5": -0.1317,
+    "p95": 0.3334
+   }
+  }
+ },
+ {
+  "off_lev": 0.75,
+  "premium": {
+   "cagr": 0.2834,
+   "maxdd": -0.514,
+   "roll5y": {
+    "windows": 146,
+    "win_rate": 1.0,
+    "median": 0.3459,
+    "p5": 0.1368,
+    "p95": 0.6491
+   }
+  },
+  "payout": {
+   "cagr": 0.0529,
+   "maxdd": -0.723,
+   "roll5y": {
+    "windows": 76,
+    "win_rate": 0.632,
+    "median": 0.0398,
+    "p5": -0.2552,
+    "p95": 0.3574
+   }
+  }
+ },
+ {
+  "off_lev": 1.0,
+  "premium": {
+   "cagr": 0.2997,
+   "maxdd": -0.575,
+   "roll5y": {
+    "windows": 146,
+    "win_rate": 1.0,
+    "median": 0.4015,
+    "p5": 0.1455,
+    "p95": 0.6778
+   }
+  },
+  "payout": {
+   "cagr": 0.0072,
+   "maxdd": -0.823,
+   "roll5y": {
+    "windows": 76,
+    "win_rate": 0.368,
+    "median": -0.0493,
+    "p5": -0.4351,
+    "p95": 0.3952
+   }
+  }
+ }
+]

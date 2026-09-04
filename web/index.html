@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Signal — DCAToolBox</title>
+<meta name="description" content="Tableau de bord d'un plan d'épargne mensuel sur ETF PEA : l'instruction du mois, et le backtest complet recalculé dans le navigateur — horizon, dose de levier, filtre de tendance, époque.">
+<link rel="icon" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;800;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script>document.documentElement.dataset.theme = localStorage.getItem("theme") || "dark";</script>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">DCAToolBox</span>
+    <span class="brand-sep">/</span>
+    <span class="brand-page">Le Signal</span>
+  </div>
+  <div class="mast-right">
+    <div class="asof mono" id="asof">as of —</div>
+    <button type="button" id="theme-toggle" title="passer en mode clair">&#9788;</button>
+  </div>
+</header>
+
+<main>
+  <!-- ============ INSTRUCTION DU MOIS ============ -->
+  <section class="hero" id="hero" aria-live="polite">
+    <p class="eyebrow mono">Le Signal &mdash; S&amp;P 500 vs moyenne 200 jours</p>
+    <h1 class="verdict" id="verdict"><span class="flap">&mdash;&mdash;</span></h1>
+    <p class="verdict-sub mono" id="verdict-sub">chargement des donn&eacute;es&hellip;</p>
+  </section>
+
+  <!-- ============ AUJOURD'HUI EN UN COUP D'ŒIL ============ -->
+  <section class="card">
+    <h2>Aujourd&rsquo;hui en un coup d&rsquo;&oelig;il</h2>
+    <div class="pulse" id="pulse"></div>
+  </section>
+
+  <!-- ============ CONTRÔLES ============ -->
+  <section class="controls" id="controls" aria-label="Paramètres du backtest">
+    <div class="ctl">
+      <label for="budget">Budget mensuel</label>
+      <div class="ctl-row">
+        <input type="range" id="budget" min="100" max="5000" step="100" value="1000">
+        <output class="mono" id="budget-out">1 000 &euro;</output>
+      </div>
+    </div>
+    <div class="ctl">
+      <label for="lev">Part du flux en 2&times;</label>
+      <div class="ctl-row">
+        <input type="range" id="lev" min="0" max="100" step="5" value="70">
+        <output class="mono" id="lev-out">70 %</output>
+      </div>
+    </div>
+    <div class="ctl">
+      <label id="gate-label">Filtre de tendance</label>
+      <div class="seg" role="group" aria-labelledby="gate-label" id="gate-seg">
+        <button type="button" data-gate="1" class="on">Actif</button>
+        <button type="button" data-gate="0">Sans</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <label id="hz-label">Horizon</label>
+      <div class="seg" role="group" aria-labelledby="hz-label" id="hz-seg">
+        <button type="button" data-h="1">1 an</button>
+        <button type="button" data-h="2">2</button>
+        <button type="button" data-h="3" class="on">3</button>
+        <button type="button" data-h="5">5</button>
+        <button type="button" data-h="7">7</button>
+        <button type="button" data-h="10">10</button>
+      </div>
+    </div>
+    <div class="ctl wide">
+      <label id="era-label">&Eacute;poque test&eacute;e</label>
+      <div class="seg" role="group" aria-labelledby="era-label" id="era-seg">
+        <button type="button" data-era="10y" class="on">10 derni&egrave;res ann&eacute;es</button>
+        <button type="button" data-era="all">Tout 1989&ndash;2026</button>
+        <button type="button" data-era="bear">Avec les krachs longs (d&eacute;buts 1989&ndash;2008)</button>
+        <button type="button" data-era="bull">Ère r&eacute;cente (d&eacute;buts 2009&ndash;)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TRAJECTOIRE ============ -->
+  <section class="card">
+    <h2>La trajectoire compl&egrave;te</h2>
+    <div class="brush">
+      <label class="brush-lbl" for="brush-from">début</label>
+      <input type="month" id="brush-from">
+      <label class="brush-lbl" for="brush-to">fin</label>
+      <input type="month" id="brush-to">
+      <button type="button" id="brush-reset">toute la p&eacute;riode</button>
+    </div>
+    <div class="compare">
+      <span class="brush-lbl">comparer</span>
+      <div class="chips" id="compare-chips"></div>
+    </div>
+    <figure class="chart-block">
+      <div class="chart" id="equity-chart" role="img" aria-label="Patrimoine accumulé, échelle logarithmique"></div>
+      <figcaption class="chart-caption mono" id="equity-legend"></figcaption>
+    </figure>
+    <figure class="chart-block">
+      <div class="chart" id="dd-chart" role="img" aria-label="Baisse du portefeuille depuis son plus haut"></div>
+      <figcaption class="chart-caption mono">Baisse depuis le plus haut du portefeuille en cours de constitution</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============ RÉSULTATS DE LA POLITIQUE CHOISIE ============ -->
+  <section class="card">
+    <div class="card-head">
+      <h2 id="policy-name">&mdash;</h2>
+      <p class="dim" id="policy-sub">&mdash;</p>
+    </div>
+    <div class="stats" id="stats"></div>
+    <p class="verdict-warning" id="downside">&mdash;</p>
+  </section>
+
+  <!-- ============ DISTRIBUTION DES FENÊTRES ============ -->
+  <section class="card">
+    <h2>Toutes les fen&ecirc;tres possibles, tri&eacute;es de la pire &agrave; la meilleure</h2>
+    <p class="dim">Chaque point = un plan d&eacute;marr&eacute; un mois diff&eacute;rent&nbsp;; axe vertical&nbsp;: rendement annualis&eacute; (XIRR). Sous 0&nbsp;%, le plan a perdu de l&rsquo;argent.</p>
+    <figure class="chart-block">
+      <div class="chart" id="dist-chart" role="img" aria-label="Distribution triée des résultats de fenêtres glissantes"></div>
+      <figcaption class="chart-caption mono" id="dist-legend"></figcaption>
+    </figure>
+  </section>
+
+  <!-- ============ MENU DES POLITIQUES ============ -->
+  <section class="card">
+    <h2>Le menu, &agrave; cet horizon et sur cette p&eacute;riode</h2>
+    <p class="dim">Cliquez une ligne pour la charger dans les contr&ocirc;les.</p>
+    <div class="table-wrap">
+      <table class="menu" id="menu">
+        <thead><tr>
+          <th scope="col" data-col="label">Politique</th>
+          <th scope="col" data-col="median">Rend./an m&eacute;dian</th>
+          <th scope="col" data-col="meanIrr">Rend./an moyen</th>
+          <th scope="col" data-col="p5">p5 /an</th>
+          <th scope="col" data-col="worst">Pire /an</th>
+          <th scope="col" data-col="pLoss">P(perte)</th>
+          <th scope="col" data-col="worstMdd">Pire baisse</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ LE SIGNAL LUI-MÊME ============ -->
+  <section class="card">
+    <h2>Le signal, ces trois derni&egrave;res ann&eacute;es</h2>
+    <figure class="chart-block">
+      <div class="chart" id="gate-chart" role="img" aria-label="S&P 500 face à sa moyenne 200 jours sur trois ans"></div>
+      <figcaption class="chart-caption mono">SPX <span class="k k-spx"></span> vs 200&nbsp;jours <span class="k k-sma"></span> &middot; zones rouges = hors march&eacute;</figcaption>
+    </figure>
+  </section>
+
+</main>
+
+<footer>
+  <p class="mono dim" id="foot">&mdash;</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

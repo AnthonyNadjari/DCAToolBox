@@ -1,0 +1,119 @@
+[
+{
+"name": "mmf_surge_13w",
+"is": {
+"final": 781426.0,
+"orders": 172,
+"vs_now": 0.00035
+},
+"oos": {
+"final": 434365.0,
+"orders": 79,
+"vs_now": -0.00681
+}
+},
+{
+"name": "mmf_surge_4w",
+"is": {
+"final": 778499.0,
+"orders": 165,
+"vs_now": -0.00339
+},
+"oos": {
+"final": 434129.0,
+"orders": 72,
+"vs_now": -0.00735
+}
+},
+{
+"name": "mmf_spx_high_z",
+"is": {
+"final": 766859.0,
+"orders": 140,
+"vs_now": -0.01829
+},
+"oos": {
+"final": 431201.0,
+"orders": 60,
+"vs_now": -0.01405
+}
+},
+{
+"name": "mmf_spx_extreme",
+"is": {
+"final": 769174.0,
+"orders": 118,
+"vs_now": -0.01533
+},
+"oos": {
+"final": 430091.0,
+"orders": 52,
+"vs_now": -0.01658
+}
+},
+{
+"name": "mmf_spx_pctl_high",
+"is": {
+"final": 772903.0,
+"orders": 129,
+"vs_now": -0.01056
+},
+"oos": {
+"final": 429958.0,
+"orders": 51,
+"vs_now": -0.01689
+}
+},
+{
+"name": "mmf_surge_dip",
+"is": {
+"final": 777295.0,
+"orders": 164,
+"vs_now": -0.00493
+},
+"oos": {
+"final": 431837.0,
+"orders": 75,
+"vs_now": -0.01259
+}
+},
+{
+"name": "mmf_surge_cap21",
+"is": {
+"final": 781218.0,
+"orders": 248,
+"vs_now": 9e-05
+},
+"oos": {
+"final": 434978.0,
+"orders": 132,
+"vs_now": -0.00541
+}
+},
+{
+"name": "mmf_z_cap21",
+"is": {
+"final": 776289.0,
+"orders": 233,
+"vs_now": -0.00622
+},
+"oos": {
+"final": 433698.0,
+"orders": 124,
+"vs_now": -0.00834
+}
+},
+{
+"name": "mmf_peak_rollover",
+"is": {
+"final": 767153.0,
+"orders": 110,
+"vs_now": -0.01792
+},
+"oos": {
+"final": 428996.0,
+"orders": 51,
+"vs_now": -0.01909
+}
+}
+]

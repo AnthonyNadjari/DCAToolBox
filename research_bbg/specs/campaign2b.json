@@ -1,0 +1,150 @@
+[
+ {
+  "name": "vrp_wait_pos_cap10",
+  "conds": [
+   {
+    "feature": "vrp",
+    "op": ">",
+    "thr": 0.0
+   }
+  ],
+  "max_hold": 10,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "vrp_wait_pos_cap21",
+  "conds": [
+   {
+    "feature": "vrp",
+    "op": ">",
+    "thr": 0.0
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "vrp_top_quartile",
+  "conds": [
+   {
+    "feature": "vrp_q_3y",
+    "op": ">",
+    "thr": 0.75
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "vrp_top_quartile_cap10",
+  "conds": [
+   {
+    "feature": "vrp_q_3y",
+    "op": ">",
+    "thr": 0.75
+   }
+  ],
+  "max_hold": 10,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "vrp_pos_after_spike",
+  "conds": [
+   {
+    "feature": "vrp",
+    "op": ">",
+    "thr": 0.0
+   },
+   {
+    "feature": "vix_peak_63",
+    "op": ">",
+    "thr": 30
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "movevix_calm_cap10",
+  "conds": [
+   {
+    "feature": "move_vix_div",
+    "op": "<",
+    "thr": 0.5
+   }
+  ],
+  "max_hold": 10,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "movevix_calm_cap21",
+  "conds": [
+   {
+    "feature": "move_vix_div",
+    "op": "<",
+    "thr": 0.5
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "movevix_extreme_wait",
+  "conds": [
+   {
+    "feature": "move_vix_div",
+    "op": "<",
+    "thr": 1.5
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "specsent_low_cap21",
+  "conds": [
+   {
+    "feature": "spec_sent",
+    "op": "<",
+    "thr": 0.0
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "specsent_capitulation",
+  "conds": [
+   {
+    "feature": "spec_sent",
+    "op": "<",
+    "thr": -1.0
+   }
+  ],
+  "max_hold": 63,
+  "base_deploy": 0.0,
+  "fill": "open"
+ },
+ {
+  "name": "specsent_not_high",
+  "conds": [
+   {
+    "feature": "spec_sent",
+    "op": "<",
+    "thr": 1.0
+   }
+  ],
+  "max_hold": 21,
+  "base_deploy": 0.0,
+  "fill": "open"
+ }
+]

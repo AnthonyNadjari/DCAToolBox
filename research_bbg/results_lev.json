@@ -1,0 +1,145 @@
+[
+ {
+  "name": "FIX_0",
+  "is": {
+   "final": 779177,
+   "avg_share": 0.0,
+   "maxdd": -0.543
+  },
+  "oos": {
+   "final": 437255,
+   "avg_share": 0.0,
+   "maxdd": -0.331
+  }
+ },
+ {
+  "name": "FIX_25",
+  "is": {
+   "final": 789155,
+   "avg_share": 0.25,
+   "maxdd": -0.743
+  },
+  "oos": {
+   "final": 582642,
+   "avg_share": 0.25,
+   "maxdd": -0.416
+  }
+ },
+ {
+  "name": "FIX_50",
+  "is": {
+   "final": 799133,
+   "avg_share": 0.5,
+   "maxdd": -0.839
+  },
+  "oos": {
+   "final": 728029,
+   "avg_share": 0.5,
+   "maxdd": -0.48
+  }
+ },
+ {
+  "name": "FIX_75",
+  "is": {
+   "final": 809111,
+   "avg_share": 0.75,
+   "maxdd": -0.895
+  },
+  "oos": {
+   "final": 873417,
+   "avg_share": 0.75,
+   "maxdd": -0.53
+  }
+ },
+ {
+  "name": "FIX_100",
+  "is": {
+   "final": 819090,
+   "avg_share": 1.0,
+   "maxdd": -0.932
+  },
+  "oos": {
+   "final": 1018804,
+   "avg_share": 1.0,
+   "maxdd": -0.57
+  }
+ },
+ {
+  "name": "voltarget_20",
+  "is": {
+   "final": 788695,
+   "avg_share": 0.3,
+   "maxdd": -0.771
+  },
+  "oos": {
+   "final": 755365,
+   "avg_share": 0.508,
+   "maxdd": -0.494
+  }
+ },
+ {
+  "name": "voltarget_25",
+  "is": {
+   "final": 801550,
+   "avg_share": 0.514,
+   "maxdd": -0.855
+  },
+  "oos": {
+   "final": 859524,
+   "avg_share": 0.706,
+   "maxdd": -0.529
+  }
+ },
+ {
+  "name": "dd_scaled",
+  "is": {
+   "final": 822089,
+   "avg_share": 0.522,
+   "maxdd": -0.756
+  },
+  "oos": {
+   "final": 497356,
+   "avg_share": 0.106,
+   "maxdd": -0.365
+  }
+ },
+ {
+  "name": "dd20_all_in",
+  "is": {
+   "final": 824271,
+   "avg_share": 0.505,
+   "maxdd": -0.704
+  },
+  "oos": {
+   "final": 441224,
+   "avg_share": 0.006,
+   "maxdd": -0.331
+  }
+ },
+ {
+  "name": "trend_gate",
+  "is": {
+   "final": 765085,
+   "avg_share": 0.647,
+   "maxdd": -0.854
+  },
+  "oos": {
+   "final": 934618,
+   "avg_share": 0.821,
+   "maxdd": -0.55
+  }
+ },
+ {
+  "name": "lowvol_gate",
+  "is": {
+   "final": 790253,
+   "avg_share": 0.533,
+   "maxdd": -0.839
+  },
+  "oos": {
+   "final": 773508,
+   "avg_share": 0.551,
+   "maxdd": -0.497
+  }
+ }
+]

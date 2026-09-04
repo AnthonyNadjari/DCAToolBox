@@ -118,7 +118,7 @@ class BacktestEngine:
         strategy.reset()
 
         for i, timestamp in enumerate(calendar):
-            if timestamp.normalize() in deposit_days:
+            if timestamp in deposit_days:
                 portfolio.deposit(self.config.monthly_budget, timestamp)
             context = MarketContext(
                 timestamp=timestamp,
@@ -127,7 +127,7 @@ class BacktestEngine:
                 calendar=calendar,
                 monthly_budget=self.config.monthly_budget,
                 day_of_month=self.config.day_of_month,
-                is_scheduled_day=timestamp.normalize() in due_days,
+                is_scheduled_day=timestamp in due_days,
                 primary_ticker=primary,
             )
             self._execute_orders(strategy.on_bar(context), aligned, i, timestamp, portfolio, broker)
@@ -153,6 +153,8 @@ class BacktestEngine:
         """Execute every order for the current bar against current-bar prices."""
         for order in orders:
             reference = float(aligned[order.ticker][order.price_field].iloc[i])
+            if not (reference > 0.0):  # skips NaN and non-positive prices alike
+                continue
             capped = self._cap_to_cash(order, portfolio.cash)
             if capped is None:
                 continue

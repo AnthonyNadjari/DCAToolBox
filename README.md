@@ -14,6 +14,12 @@ maintained for years.
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen.svg)](tests/)
 
+🌐 **Live interactive backtester:** https://anthonynadjari.github.io/DCAToolBox/ — change any
+parameter (asset, dates, budget, threshold, allocation, signal, budget policy, fees…) and the
+backtest **recomputes instantly in your browser** on real market data. Auto-deployed from `main`.
+
+🌌 Part of [**Gaia — Astral Hub**](https://anthonynadjari.github.io/Gaia/).
+
 ---
 
 ## Table of contents
@@ -71,6 +77,12 @@ Core design principles:
 - 📈 **Interactive Plotly charts** and **Markdown / HTML / PDF reports**.
 - 🖥️ **Typer CLI** and a **Streamlit web UI** usable with zero programming
   knowledge.
+- 🌐 **In-browser live backtester** (GitHub Pages): a dependency-free JavaScript
+  engine that is **parity-tested against the Python framework** (`web/engine.test.mjs`,
+  daily *and* intraday), so what you tweak in the browser matches the real engine
+  to the last decimal.
+- ⏱️ **Daily & intraday (hourly)** granularity: act when a signal fires *during the
+  day*, not only at the daily open/close (intraday history is vendor-limited to ~2y).
 - 🧪 **Deterministic synthetic provider** so everything runs and tests offline.
 
 ## Architecture
@@ -135,12 +147,13 @@ from dcatoolbox.config.enums import ProviderType
 from dcatoolbox.config.settings import BacktestConfig, DataConfig, StrategyConfig
 
 config = BacktestConfig(
-    data=DataConfig(provider=ProviderType.YAHOO, tickers=["SPY"],
-                    start=date(2010, 1, 1), end=date(2026, 1, 1)),
-    strategy=StrategyConfig(name="dip_buying",
-                            params={"threshold": 0.02, "allocation": 0.25}),
+    data=DataConfig(
+        provider=ProviderType.YAHOO, tickers=["SPY"], start=date(2010, 1, 1), end=date(2026, 1, 1)
+    ),
+    strategy=StrategyConfig(name="dip_buying", params={"threshold": 0.02, "allocation": 0.25}),
     benchmark=StrategyConfig(name="monthly_dca"),
-    monthly_budget=1000.0, day_of_month=26,
+    monthly_budget=1000.0,
+    day_of_month=26,
 )
 
 result = run_backtest(config)
@@ -189,6 +202,7 @@ Everything is a validated Pydantic model and can be saved/loaded as YAML or JSON
 
 ```python
 from dcatoolbox.config.io import load_config, save_config
+
 config = load_config("examples/example_config.yaml")
 save_config(config, "my_run.yaml")
 ```
@@ -214,10 +228,30 @@ save_config(config, "my_run.yaml")
 | `dip_buying` | Deploys a fraction of the remaining budget on each detected dip; sweeps the rest on the scheduled day. |
 | `rsi` | Buys into oversold conditions (RSI below a threshold). |
 | `moving_average` | Buys when price trades below its moving average by a margin. |
+| `trend_filter` | Invests only while price is above its moving average (regime filter). |
+| `absolute_momentum` | Invests only when trailing return is positive (bear-market filter). |
+| `momentum_rotation` | Multi-asset: each month invests in the basket's strongest instrument (dual momentum). Robustly beats single-asset DCA in backtests. |
 
 **Dip-detection signals** (interchangeable via `signal_method`): `open_vs_open`,
 `close_vs_close`, `open_vs_close`, `close_vs_open`, `drawdown_n_days`,
 `cumulative_return`.
+
+**Budget policy** (`budget_policy`, for the deploying strategies):
+
+- `reset` (default) — any cash left on the scheduled day is fully invested, so
+  each month's budget is always deployed (matches the original DCA mandate).
+- `accumulate` — unspent cash carries over to hunt for larger, rarer dips (a true
+  "buy the dip" mandate). This is what makes a dip strategy meaningfully diverge
+  from the benchmark instead of just front-running the monthly purchase.
+
+### Live in-browser backtester
+
+`web/` contains a self-contained JavaScript port of the engine (`web/engine.js`)
+plus an interactive UI (`web/index.html`, `web/app.js`). `scripts/build_site.py`
+bundles real market data to JSON (`scripts/bundle_data.py`) and assembles the
+static site that GitHub Pages serves. Numerical fidelity is enforced by a parity
+test (`scripts/gen_golden.py` → `web/engine.test.mjs`) that runs in CI: the JS
+engine must match the Python engine on every metric across many configurations.
 
 ## Adding a new strategy
 
@@ -226,6 +260,7 @@ Drop one self-contained file and decorate the class — **no engine changes**:
 ```python
 from dcatoolbox.strategies.budget_deployment import BudgetDeploymentStrategy, Signal
 from dcatoolbox.strategies.registry import register_strategy
+
 
 @register_strategy
 class MyStrategy(BudgetDeploymentStrategy):
@@ -236,7 +271,7 @@ class MyStrategy(BudgetDeploymentStrategy):
 
     def _signal(self, context) -> Signal:
         history = context.history
-        fired = history["close"].iloc[-1] < history["close"].iloc[-self.lookback:].mean()
+        fired = history["close"].iloc[-1] < history["close"].iloc[-self.lookback :].mean()
         return (fired, "close")
 ```
 
@@ -262,9 +297,10 @@ python main.py optimize --ticker SPY --start 2000-01-01 --end 2026-01-01 --split
 
 ```python
 from dcatoolbox.optimization import GridSearchOptimizer, default_split
+
 opt = GridSearchOptimizer(config)
 evaluation = opt.evaluate_splits(market, default_split(2000, 2026))
-print(evaluation.per_window)   # one row per train / validation / test
+print(evaluation.per_window)  # one row per train / validation / test
 ```
 
 ## Results

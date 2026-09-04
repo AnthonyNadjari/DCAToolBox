@@ -1,0 +1,86 @@
+[
+ {
+  "name": "ridge_pos",
+  "oos_r2": -2.23439,
+  "backfill_era": {
+   "final": 771765.0,
+   "orders": 170,
+   "vs_now": -0.01201
+  },
+  "real_fund_era": {
+   "final": 435679.0,
+   "orders": 131,
+   "vs_now": -0.00381
+  }
+ },
+ {
+  "name": "ridge_topq_cap21",
+  "oos_r2": -2.23439,
+  "backfill_era": {
+   "final": 777110.0,
+   "orders": 235,
+   "vs_now": -0.00517
+  },
+  "real_fund_era": {
+   "final": 435190.0,
+   "orders": 137,
+   "vs_now": -0.00493
+  }
+ },
+ {
+  "name": "gbm_pos",
+  "oos_r2": -0.54667,
+  "backfill_era": {
+   "final": 770354.0,
+   "orders": 191,
+   "vs_now": -0.01382
+  },
+  "real_fund_era": {
+   "final": 436428.0,
+   "orders": 146,
+   "vs_now": -0.00209
+  }
+ },
+ {
+  "name": "gbm_topq_cap21",
+  "oos_r2": -0.54667,
+  "backfill_era": {
+   "final": 777755.0,
+   "orders": 236,
+   "vs_now": -0.00434
+  },
+  "real_fund_era": {
+   "final": 435055.0,
+   "orders": 139,
+   "vs_now": -0.00523
+  }
+ },
+ {
+  "name": "logit_pos",
+  "oos_r2": null,
+  "backfill_era": {
+   "final": 772110.0,
+   "orders": 173,
+   "vs_now": -0.01157
+  },
+  "real_fund_era": {
+   "final": 436434.0,
+   "orders": 140,
+   "vs_now": -0.00208
+  }
+ },
+ {
+  "name": "logit_topq_cap21",
+  "oos_r2": null,
+  "backfill_era": {
+   "final": 777019.0,
+   "orders": 236,
+   "vs_now": -0.00529
+  },
+  "real_fund_era": {
+   "final": 434356.0,
+   "orders": 141,
+   "vs_now": -0.00683
+  }
+ }
+]
