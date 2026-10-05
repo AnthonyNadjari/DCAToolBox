@@ -295,7 +295,9 @@ main { max-width: 1060px; margin: 0 auto; padding: 0 24px 40px; }
 .chart .tip span { display: block; color: var(--muted); }
 .chart .tip b { color: var(--ink); font-weight: 500; }
 .chart .tip i { display: inline-block; width: 8px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
-.chart text.ax { fill: var(--dim); font-family: var(--mono); font-size: 10px; }
+.chart text.ax { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+.chart svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.chart .tip { max-width: calc(100% - 8px); white-space: normal; }
 
 /* ---------- pulse strip ---------- */
 .pulse {
@@ -363,4 +365,53 @@ footer p { font-size: 11.5px; color: var(--dim); }
   .controls { padding: 18px 16px; gap: 16px; }
   .stat-v { font-size: 20px; }
   .verdict { font-size: clamp(34px, 11vw, 56px); }
+}
+
+/* ---------- phone: readable text, thumb-sized controls, no sideways scroll ---------- */
+@media (max-width: 640px) {
+  main { padding: 0 16px 60px; }
+  .masthead { padding: 16px 16px 0; }
+  footer { padding: 0 16px 30px; }
+  .card { padding: 18px 14px; }
+  .card h2 { font-size: 21px; }
+  .card > .dim, .card-head p { font-size: 13px; }
+
+  /* controls sized for a thumb, not a cursor */
+  .controls { padding: 16px 14px; gap: 14px; }
+  .seg { gap: 8px; }
+  .seg button { min-height: 40px; padding: 9px 14px; font-size: 14px; flex: 1 1 auto; }
+  .ctl input[type="range"] { height: 6px; }
+  .ctl input[type="range"]::-webkit-slider-thumb { width: 26px; height: 26px; }
+  .ctl input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; }
+  .ctl-row output { font-size: 15px; min-width: 84px; }
+
+  /* the menu keeps its sortable headers but drops to four columns so a row
+     fits the screen — comparison across policies is the whole point of it */
+  .table-wrap { overflow: visible; }
+  .menu { min-width: 0; font-size: 13px; table-layout: fixed; }
+  .menu th { font-size: 10px; padding: 8px 6px 8px 0; letter-spacing: 0.04em; }
+  .menu td { padding: 9px 6px 9px 0; font-size: 13px; }
+  .menu td.mono, .menu th:not(:first-child) { white-space: nowrap; }
+  .menu td:first-child, .menu th:first-child { white-space: normal; line-height: 1.25; width: 38%; }
+  .menu th[data-col="meanIrr"], .menu td:nth-child(3),
+  .menu th[data-col="worst"], .menu td:nth-child(5) { display: none; }
+
+  .stat { padding: 10px 10px; }
+  .stat-k { font-size: 11px; }
+  .stat-s { font-size: 10px; }
+  .chart .tip { font-size: 11px; padding: 6px 8px; }
+}
+
+/* masthead and period brush: stop them colliding on a phone */
+@media (max-width: 640px) {
+  .masthead { align-items: center; gap: 10px; }
+  .brand { font-size: 12px; white-space: nowrap; }
+  .brand-page, .brand-sep, .asof-long { display: none; }
+  .mast-right { display: flex; align-items: center; gap: 10px; }
+  .asof { font-size: 11px; white-space: nowrap; }
+
+  /* label then field on one line, the reset button spanning underneath */
+  .brush { display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; align-items: center; }
+  .brush input[type="month"] { width: 100%; min-height: 40px; font-size: 14px; }
+  .brush #brush-reset { grid-column: 1 / -1; min-height: 38px; }
 }

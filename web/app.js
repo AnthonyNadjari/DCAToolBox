@@ -196,15 +196,15 @@ const ann = (m, dp = 1) => {
 /* -------------------------------------------------------------- charts -- */
 
 function chart(host, opts) {
-  const W = 960,
-    H = opts.height || 260;
-  const M = { t: 12, r: 14, b: 26, l: opts.left || 54 };
-  const iw = W - M.l - M.r,
-    ih = H - M.t - M.b;
-  const xs = opts.x;
-  const x0 = xs[0],
-    x1 = xs[xs.length - 1];
-  const X = (v) => M.l + ((v - x0) / (x1 - x0 || 1)) * iw;
+  // Render in real CSS pixels: the viewBox matches the measured width, so a
+  // 11px label is 11px on a phone as well as on a desktop. (A fixed 960-wide
+  // viewBox stretched to fit squashed every glyph on narrow screens.)
+  const W = Math.max(240, Math.round(host.clientWidth || host.parentElement.clientWidth || 960));
+  const narrow = W < 560;
+  const base = opts.height || 260;
+  // keep roughly the aspect the heights were drawn for instead of flattening
+  // the curves as the window widens
+  const H = Math.round(narrow ? Math.max(190, base * 0.86) : Math.min(base * 1.25, Math.max(base, W / 4)));
 
   const vals = opts.series.flatMap((s) => s.y).filter((v) => Number.isFinite(v) && (!opts.log || v > 0));
   let lo = Math.min(...vals),
@@ -215,9 +215,31 @@ function chart(host, opts) {
   const yl = t(lo),
     yh = t(hi),
     pad = (yh - yl) * 0.06 || 0.1;
+
+  const ticks = opts.log
+    ? Array.from({ length: Math.ceil(yh) - Math.floor(yl) + 1 }, (_, i) =>
+        Math.pow(10, Math.floor(yl) + i),
+      ).filter((v) => v >= lo / 2 && v <= hi * 1.5)
+    : Array.from({ length: 5 }, (_, i) => lo + ((hi - lo) * i) / 4);
+
+  // Size the left gutter to the labels it has to hold: a fixed margin either
+  // clipped them on a phone or wasted a third of the plot on a desktop.
+  const labelPx = Math.max(...ticks.map((v) => String(opts.yFmt(v)).length)) * 6.7;
+  const M = {
+    t: 12,
+    r: narrow ? 12 : 16,
+    b: narrow ? 24 : 26,
+    l: Math.round(Math.min(Math.max(labelPx + 12, 34), W * 0.32)),
+  };
+  const iw = W - M.l - M.r,
+    ih = H - M.t - M.b;
+  const xs = opts.x;
+  const x0 = xs[0],
+    x1 = xs[xs.length - 1];
+  const X = (v) => M.l + ((v - x0) / (x1 - x0 || 1)) * iw;
   const Y = (v) => M.t + ih - ((t(v) - yl + pad) / (yh - yl + 2 * pad)) * ih;
 
-  const g = [`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`];
+  const g = [`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="presentation">`];
 
   (opts.bands || []).forEach(([a, b]) => {
     const ta = Math.max(a, x0),
@@ -228,11 +250,6 @@ function chart(host, opts) {
     );
   });
 
-  const ticks = opts.log
-    ? Array.from({ length: Math.ceil(yh) - Math.floor(yl) + 1 }, (_, i) => Math.pow(10, Math.floor(yl) + i)).filter(
-        (v) => v >= lo / 2 && v <= hi * 1.5,
-      )
-    : Array.from({ length: 5 }, (_, i) => lo + ((hi - lo) * i) / 4);
   ticks.forEach((v) => {
     const y = Y(v).toFixed(1);
     g.push(`<line x1="${M.l}" x2="${W - M.r}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width="1"/>`);
@@ -243,36 +260,55 @@ function chart(host, opts) {
     g.push(`<line x1="${M.l}" x2="${W - M.r}" y1="${y}" y2="${y}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>`);
   }
 
-  const nx = Math.min(6, xs.length);
+  const nx = Math.max(2, Math.min(narrow ? 4 : 6, xs.length));
   for (let i = 0; i < nx; i++) {
     const v = xs[Math.round((i * (xs.length - 1)) / (nx - 1))];
-    g.push(`<text class="ax" x="${X(v).toFixed(1)}" y="${H - 8}" text-anchor="middle">${opts.xFmt(v)}</text>`);
+    const anchor = i === 0 ? "start" : i === nx - 1 ? "end" : "middle";
+    const x = Math.min(Math.max(X(v), M.l), W - M.r);
+    g.push(`<text class="ax" x="${x.toFixed(1)}" y="${H - 7}" text-anchor="${anchor}">${opts.xFmt(v)}</text>`);
   }
 
   opts.series.forEach((s) => {
     let d = "";
+    let last = null;
     for (let i = 0; i < s.y.length; i++) {
       const v = s.y[i];
       if (!Number.isFinite(v) || (opts.log && v <= 0)) continue;
-      d += (d ? "L" : "M") + X(xs[i]).toFixed(1) + " " + Y(v).toFixed(1);
+      const px = X(xs[i]),
+        py = Y(v);
+      d += (d ? "L" : "M") + px.toFixed(1) + " " + py.toFixed(1);
+      last = [px, py];
     }
+    if (!d) return;
     g.push(
       `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.width || 2}" stroke-linejoin="round" stroke-linecap="round"${s.dash ? ` stroke-dasharray="${s.dash}"` : ""}/>`,
     );
+    if (last && !s.dash) {
+      g.push(
+        `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.5" fill="${s.color}" stroke="var(--panel-2)" stroke-width="2"/>`,
+      );
+    }
   });
 
-  g.push(`<line id="cx" x1="0" x2="0" y1="${M.t}" y2="${M.t + ih}" stroke="var(--muted)" stroke-width="1" opacity="0"/>`);
+  g.push(
+    `<line class="cx" x1="0" x2="0" y1="${M.t}" y2="${M.t + ih}" stroke="var(--muted)" stroke-width="1" opacity="0"/>`,
+  );
+  opts.series.forEach((s) => {
+    g.push(`<circle class="cd" r="4" fill="${s.color}" stroke="var(--panel-2)" stroke-width="2" opacity="0"/>`);
+  });
   g.push("</svg>");
   host.innerHTML = g.join("") + `<div class="tip" hidden></div>`;
 
-  // crosshair
+  // crosshair — one pointer path for mouse and touch, now that 1 unit = 1 px
   const svg = host.querySelector("svg"),
-    line = host.querySelector("#cx"),
+    line = host.querySelector(".cx"),
+    dots = [...host.querySelectorAll(".cd")],
     tip = host.querySelector(".tip");
   const move = (ev) => {
-    const box = host.getBoundingClientRect();
-    const px = ((ev.touches ? ev.touches[0].clientX : ev.clientX) - box.left) / box.width;
-    const vx = x0 + px * (x1 - x0);
+    const box = svg.getBoundingClientRect();
+    const scale = box.width / W || 1;
+    const px = ((ev.touches ? ev.touches[0].clientX : ev.clientX) - box.left) / scale;
+    const vx = x0 + ((px - M.l) / (iw || 1)) * (x1 - x0);
     let k = 0,
       best = Infinity;
     for (let i = 0; i < xs.length; i++) {
@@ -283,21 +319,34 @@ function chart(host, opts) {
     line.setAttribute("x1", sx);
     line.setAttribute("x2", sx);
     line.setAttribute("opacity", "1");
+    opts.series.forEach((s, i) => {
+      const v = s.y[k];
+      const ok = Number.isFinite(v) && (!opts.log || v > 0);
+      dots[i].setAttribute("opacity", ok ? "1" : "0");
+      if (ok) {
+        dots[i].setAttribute("cx", sx.toFixed(1));
+        dots[i].setAttribute("cy", Y(v).toFixed(1));
+      }
+    });
     tip.hidden = false;
     tip.innerHTML =
       `<b>${opts.tipX(xs[k], k)}</b>` +
-      opts.series.map((s) => `<span><i style="background:${s.color}"></i>${s.label} <b>${opts.tipY(s.y[k])}</b></span>`).join("");
-    const left = Math.min(Math.max((sx / W) * box.width - 70, 4), box.width - 150);
-    tip.style.left = left + "px";
+      opts.series
+        .map((s) => `<span><i style="background:${s.color}"></i>${s.label} <b>${opts.tipY(s.y[k])}</b></span>`)
+        .join("");
+    const tw = tip.offsetWidth || 150;
+    tip.style.left = Math.min(Math.max(sx * scale - tw / 2, 4), box.width - tw - 4) + "px";
   };
   const leave = () => {
     line.setAttribute("opacity", "0");
+    dots.forEach((d) => d.setAttribute("opacity", "0"));
     tip.hidden = true;
   };
   svg.addEventListener("mousemove", move);
+  svg.addEventListener("touchstart", move, { passive: true });
   svg.addEventListener("touchmove", move, { passive: true });
   svg.addEventListener("mouseleave", leave);
-  svg.addEventListener("touchend", leave);
+  svg.addEventListener("touchend", () => setTimeout(leave, 1800));
 }
 
 /* -------------------------------------------------------------- render -- */
@@ -315,7 +364,7 @@ function renderHero() {
   const on = sig.state === "ON";
   document.body.classList.toggle("state-on", on);
   document.body.classList.toggle("state-off", !on);
-  $("asof").textContent = "données Bloomberg au " + sig.asof;
+  $("asof").innerHTML = '<span class="asof-long">données Bloomberg </span>au ' + sig.asof;
   $("verdict").innerHTML = `<span class="flap ${on ? "on" : "off"}">${on ? "Tout investir" : "Défense"}</span>`;
   $("verdict-sub").textContent =
     `SPX ${sig.spx.toLocaleString("fr-FR")} · moyenne 200 j ${sig.sma200.toLocaleString("fr-FR")} · ` +
@@ -485,9 +534,12 @@ function renderMenu() {
       `<td>${p.label}</td>` +
       (s.n === 0
         ? '<td colspan="6" class="mono">période trop courte</td>'
-        : `<td class="mono">${ann(s.median)}</td><td class="mono">${pct(s.meanIrr, 1)}</td>` +
-          `<td class="mono">${ann(s.p5)}</td><td class="mono">${ann(s.worst)}</td>` +
-          `<td class="mono">${pct(s.pLoss)}</td><td class="mono">${pct(s.worstMdd)}</td>`);
+        : `<td class="mono" data-k="médian">${ann(s.median)}</td>` +
+          `<td class="mono" data-k="moyen">${pct(s.meanIrr, 1)}</td>` +
+          `<td class="mono" data-k="p5">${ann(s.p5)}</td>` +
+          `<td class="mono" data-k="pire">${ann(s.worst)}</td>` +
+          `<td class="mono" data-k="P(perte)">${pct(s.pLoss)}</td>` +
+          `<td class="mono" data-k="baisse">${pct(s.worstMdd)}</td>`);
     tr.tabIndex = 0;
     const load = () => {
       if (p.lev < 0) return; // the 1x reference row is not a selectable setting
