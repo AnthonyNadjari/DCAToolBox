@@ -778,6 +778,19 @@ function syncBrushUI() {
   if (document.activeElement !== bf) bf.value = dates[r0].slice(0, 7);
   if (document.activeElement !== bt) bt.value = dates[r1].slice(0, 7);
   $("brush-reset").style.visibility = S.range ? "visible" : "hidden";
+
+  // Light the quick range that matches what is actually shown, and grey out
+  // the ones too short to hold a single window of the chosen horizon.
+  const spanY = Math.round((r1 - r0) / 12);
+  const chips = [...document.querySelectorAll("#quick-range button")];
+  const exact = chips.some((b) => +b.dataset.y === spanY && +b.dataset.y !== 0);
+  chips.forEach((b) => {
+    const y = +b.dataset.y;
+    b.classList.toggle("on", exact ? y === spanY : y === 0);
+    const tooShort = y !== 0 && y < S.horizon;
+    b.disabled = tooShort;
+    b.title = tooShort ? `trop court pour un horizon de ${S.horizon} ans` : "";
+  });
 }
 
 /* ------------------------------------------------------------ live quote -- */
@@ -859,6 +872,9 @@ function wire() {
   $("hz-seg").addEventListener("click", (e) => {
     if (!e.target.dataset.h) return;
     S.horizon = +e.target.dataset.h;
+    // a custom period that no longer holds one window of the new horizon would
+    // leave the page on "période trop courte": widen back to the era instead
+    if (S.range && S.range[1] - S.range[0] < S.horizon * 12) S.range = null;
     syncControls();
     renderAll();
   });
@@ -891,6 +907,22 @@ function wire() {
   };
   $("brush-from").addEventListener("change", brushInput);
   $("brush-to").addEventListener("change", brushInput);
+
+  // quick ranges: one tap beats two spins of an iOS month picker
+  $("quick-range").addEventListener("click", (e) => {
+    const y = e.target.dataset.y;
+    if (y === undefined) return;
+    const [elo, ehi] = eraRange();
+    if (+y === 0) {
+      S.range = null;
+    } else {
+      const span = Math.max(+y * 12, Math.min(S.horizon * 12, ehi - elo));
+      const lo = Math.max(elo, ehi - span);
+      S.range = lo === elo ? null : [lo, ehi];
+    }
+    syncControls();
+    renderAll();
+  });
   $("brush-reset").addEventListener("click", () => {
     S.range = null;
     syncControls();

@@ -36,6 +36,15 @@
   </section>
 
   <!-- ============ AUJOURD'HUI EN UN COUP D'ŒIL ============ -->
+  <!-- ============ LE SIGNAL LUI-MÊME ============ -->
+  <section class="card">
+    <h2>Le signal, ces trois derni&egrave;res ann&eacute;es</h2>
+    <figure class="chart-block">
+      <div class="chart" id="gate-chart" role="img" aria-label="S&P 500 face à sa moyenne 200 jours sur trois ans"></div>
+      <figcaption class="chart-caption mono">SPX <span class="k k-spx"></span> vs 200&nbsp;jours <span class="k k-sma"></span> &middot; zones rouges = hors march&eacute;</figcaption>
+    </figure>
+  </section>
+
   <section class="card">
     <h2>Aujourd&rsquo;hui en un coup d&rsquo;&oelig;il</h2>
     <div class="pulse" id="pulse"></div>
@@ -90,11 +99,23 @@
   <section class="card">
     <h2>La trajectoire compl&egrave;te</h2>
     <div class="brush">
-      <label class="brush-lbl" for="brush-from">début</label>
-      <input type="month" id="brush-from">
-      <label class="brush-lbl" for="brush-to">fin</label>
-      <input type="month" id="brush-to">
-      <button type="button" id="brush-reset">toute la p&eacute;riode</button>
+      <div class="seg quick" id="quick-range" role="group" aria-label="Période affichée">
+        <button type="button" data-y="1">1 an</button>
+        <button type="button" data-y="3">3 ans</button>
+        <button type="button" data-y="5">5 ans</button>
+        <button type="button" data-y="10">10 ans</button>
+        <button type="button" data-y="0">tout</button>
+      </div>
+      <details class="exact">
+        <summary>dates pr&eacute;cises</summary>
+        <div class="brush-fields">
+          <label class="brush-lbl" for="brush-from">début</label>
+          <input type="month" id="brush-from">
+          <label class="brush-lbl" for="brush-to">fin</label>
+          <input type="month" id="brush-to">
+          <button type="button" id="brush-reset">toute la p&eacute;riode</button>
+        </div>
+      </details>
     </div>
     <div class="compare">
       <span class="brush-lbl">comparer</span>
@@ -148,15 +169,6 @@
         <tbody></tbody>
       </table>
     </div>
-  </section>
-
-  <!-- ============ LE SIGNAL LUI-MÊME ============ -->
-  <section class="card">
-    <h2>Le signal, ces trois derni&egrave;res ann&eacute;es</h2>
-    <figure class="chart-block">
-      <div class="chart" id="gate-chart" role="img" aria-label="S&P 500 face à sa moyenne 200 jours sur trois ans"></div>
-      <figcaption class="chart-caption mono">SPX <span class="k k-spx"></span> vs 200&nbsp;jours <span class="k k-sma"></span> &middot; zones rouges = hors march&eacute;</figcaption>
-    </figure>
   </section>
 
 </main>

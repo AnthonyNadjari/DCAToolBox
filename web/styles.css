@@ -119,8 +119,8 @@ main { max-width: 1060px; margin: 0 auto; padding: 0 24px 40px; }
 .chart-tall { }
 .chart-caption { font-size: 12px; color: var(--muted); margin-top: 5px; }
 .k { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin: 0 3px; }
-.k-spx { background: var(--ink); }
-.k-sma { background: var(--s-ese); }
+.k-spx { background: var(--s-strategy); }
+.k-sma { background: var(--s-mix); }
 
 .tooltip {
   position: absolute; pointer-events: none; z-index: 3;
@@ -296,7 +296,7 @@ main { max-width: 1060px; margin: 0 auto; padding: 0 24px 40px; }
 .chart .tip b { color: var(--ink); font-weight: 500; }
 .chart .tip i { display: inline-block; width: 8px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
 .chart text.ax { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
-.chart svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.chart svg { display: block; width: 100%; height: auto; touch-action: pan-y pinch-zoom; }
 .chart .tip { max-width: calc(100% - 8px); white-space: normal; }
 
 /* ---------- pulse strip ---------- */
@@ -327,7 +327,7 @@ main { max-width: 1060px; margin: 0 auto; padding: 0 24px 40px; }
   padding: 6px 12px; cursor: pointer;
 }
 #brush-reset:hover { color: var(--ink); }
-#equity-chart, #dd-chart, #gate-chart { cursor: crosshair; touch-action: pan-y; }
+#equity-chart, #dd-chart, #gate-chart { cursor: crosshair; touch-action: pan-y pinch-zoom; }
 .chart .sel {
   position: absolute; top: 0; bottom: 0; z-index: 2;
   background: rgba(57, 135, 229, 0.14);
@@ -415,3 +415,30 @@ footer p { font-size: 11.5px; color: var(--dim); }
   .brush input[type="month"] { width: 100%; min-height: 40px; font-size: 14px; }
   .brush #brush-reset { grid-column: 1 / -1; min-height: 38px; }
 }
+
+/* ---------- period: quick ranges first, exact dates folded away ---------- */
+.brush { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin: 8px 0 4px; }
+.brush .quick { flex-wrap: wrap; }
+.brush .exact > summary {
+  cursor: pointer; list-style: none; font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim);
+  padding: 4px 0; min-height: 28px; display: inline-flex; align-items: center;
+}
+.brush .exact > summary::-webkit-details-marker { display: none; }
+.brush .exact > summary::before { content: "▸ "; margin-right: 4px; }
+.brush .exact[open] > summary::before { content: "▾ "; }
+.brush .exact > summary:hover { color: var(--ink); }
+.brush-fields { display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; align-items: center; padding-top: 8px; }
+.brush-fields #brush-reset { grid-column: 1 / -1; justify-self: start; }
+
+@media (max-width: 640px) {
+  .brush { width: 100%; }
+  .brush .quick { width: 100%; }
+  .brush .quick button { flex: 1 1 auto; white-space: nowrap; padding: 9px 10px; }
+  .brush .exact { width: 100%; }
+  .brush-fields { grid-template-columns: auto 1fr; }
+  .brush-fields input[type="month"] { width: 100%; min-height: 40px; font-size: 14px; }
+  .brush-fields #brush-reset { min-height: 38px; }
+}
+.seg button:disabled { opacity: .35; cursor: not-allowed; }
+.seg button:disabled:hover { color: var(--muted); }
