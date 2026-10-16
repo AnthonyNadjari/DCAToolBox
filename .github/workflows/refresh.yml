@@ -6,7 +6,10 @@ name: Refresh Le Signal
 
 on:
   schedule:
-    # 06:20 UTC Tue-Sat: after every US close, before the European morning.
+    # Right after the US close (20:00 UTC in summer, 21:00 in winter), then a
+    # morning catch-up in case Yahoo was late. The signal only moves on closes.
+    - cron: "20 20 * * 1-5"
+    - cron: "20 21 * * 1-5"
     - cron: "20 6 * * 2-6"
   workflow_dispatch:
 

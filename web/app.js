@@ -794,18 +794,106 @@ function syncBrushUI() {
   });
 }
 
-/* ------------------------------------------------------------ live quote -- */
+/* ------------------------------------------------------------ live data -- */
 
-/** Live SPX quote from stooq (free, no key). null on any failure — the page
- *  silently falls back to the last Bloomberg close. */
-async function liveQuote() {
+// Yahoo sends no CORS header, so the browser reads it through a free relay —
+// one request for both symbols, retried, because free relays drop calls. If it
+// still fails the page keeps data.json, which CI rebuilds after every US close.
+const RELAY = "https://api.allorigins.win/raw?url=";
+const SPARK = "https://query1.finance.yahoo.com/v7/finance/spark?symbols=%5EGSPC,%5EVIX&range=5y&interval=1d";
+
+/** One symbol's spark response → settled daily closes + last traded price. */
+function settled(x) {
+  const m = x.meta, off = (m.gmtoffset || 0) * 1000;
+  const day = (t) => new Date(t * 1000 + off).toISOString().slice(0, 10);
+  const seen = new Map();
+  x.timestamp.forEach((t, i) => {
+    const c = x.indicators.quote[0].close[i];
+    if (c != null) seen.set(day(t), c);
+  });
+  // a bar dated today is live until this symbol's own session has closed
+  const end = m.currentTradingPeriod?.regular?.end;
+  const dates = [...seen.keys()];
+  if (end && dates.at(-1) === day(end) && Date.now() < end * 1000) seen.delete(dates.pop());
+  return { dates, closes: dates.map((d) => seen.get(d)), price: m.regularMarketPrice };
+}
+
+async function fetchLive() {
+  let err;
+  for (const wait of [0, 1500, 3500]) {
+    await new Promise((r) => setTimeout(r, wait));
+    try {
+      const r = await fetch(RELAY + encodeURIComponent(SPARK), { cache: "no-store", signal: AbortSignal.timeout(10000) });
+      if (!r.ok) throw new Error("relais " + r.status);
+      const out = {};
+      for (const res of (await r.json()).spark.result) out[res.symbol] = settled(res.response[0]);
+      return out;
+    } catch (e) {
+      err = e;
+    }
+  }
+  throw err;
+}
+
+const smaAt = (xs, i, n) => (i < n - 1 ? null : xs.slice(i - n + 1, i + 1).reduce((a, b) => a + b, 0) / n);
+
+/** Rebuild signal / indicators / gate chart from live closes — same rules as the CI build. */
+async function refreshLive() {
+  const live = await fetchLive();
+  const spx = live["^GSPC"], vix = live["^VIX"];
+  const { dates, closes } = spx, n = closes.length, N = 200;
+  if (n < N + 756) throw new Error("historique SPX trop court");
+  const sma = closes.map((_, i) => smaAt(closes, i, N));
+  const up = closes.map((c, i) => (sma[i] == null ? null : c > sma[i]));
+  let since = dates[N];
+  for (let i = N; i < n; i++) if (up[i - 1] != null && up[i] !== up[i - 1]) since = dates[i];
+  const lvl = sma[n - 1], last = closes[n - 1];
+  D.signal = {
+    asof: dates[n - 1], spx: +last.toFixed(2), sma200: +lvl.toFixed(2),
+    gap_pct: +((last / lvl - 1) * 100).toFixed(2), state: last > lvl ? "ON" : "OFF",
+    since, days_in_state: Math.round((new Date(dates[n - 1]) - new Date(since)) / 864e5),
+    flip_level: +lvl.toFixed(2),
+  };
+  // VIX read on SPX sessions only (Yahoo prints VIX on some US holidays)
+  const vmap = new Map(vix.dates.map((d, i) => [d, vix.closes[i]]));
+  let lastV = null;
+  const v = dates.slice(-252).map((d) => (lastV = vmap.has(d) ? vmap.get(d) : lastV));
+  const vNow = v.at(-1), below = v.filter((x) => x < vNow).length, ties = v.filter((x) => x === vNow).length;
+  Object.assign(D.indicators, {
+    vix: +vNow.toFixed(2),
+    vix_pctl_1y: Math.round(((below + (ties + 1) / 2) / v.length) * 100),
+    spx_chg_1m: +((last / closes[n - 22] - 1) * 100).toFixed(2),
+  });
+  D.gate_series = {
+    dates: dates.slice(-756), spx: closes.slice(-756), sma: sma.slice(-756),
+  };
+  return spx.price;
+}
+
+/** Load-time and ↻ refresh. Falls back silently to data.json on any failure. */
+async function goLive() {
+  const btn = $("refresh");
+  btn.classList.add("spin");
+  btn.disabled = true;
   try {
-    const r = await fetch("https://stooq.com/q/l/?s=%5Espx&f=sd2t2c&h&e=csv", { cache: "no-store" });
-    const rows = (await r.text()).trim().split("\n");
-    const close = parseFloat(rows[1].split(",")[3]);
-    return Number.isFinite(close) && close > 1000 ? close : null;
-  } catch {
-    return null;
+    // pick up the latest CI build first, so a relay failure still lands on fresh data
+    const d = await (await fetch("data.json?t=" + Date.now(), { cache: "no-store" })).json();
+    Object.assign(D, { signal: d.signal, indicators: d.indicators, gate_series: d.gate_series, off_periods: d.off_periods });
+    renderHero();
+    renderPulse();
+    renderGate();
+  } catch {}
+  try {
+    const price = await refreshLive();
+    renderHero();
+    renderPulse(price);
+    renderGate();
+    btn.title = "à jour " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  } catch (e) {
+    btn.title = "source live indisponible — données du " + D.signal.asof;
+  } finally {
+    btn.classList.remove("spin");
+    btn.disabled = false;
   }
 }
 
@@ -981,9 +1069,8 @@ fetch("data.json")
     renderPulse();
     renderGate();
     renderCompare();
-    liveQuote().then((q) => {
-      if (q) renderPulse(q);
-    });
+    $("refresh").addEventListener("click", goLive);
+    goLive();
   })
   .catch((e) => {
     $("verdict-sub").textContent = "données indisponibles : " + e.message;
