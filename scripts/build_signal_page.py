@@ -59,6 +59,9 @@ def main() -> None:
         "spread_bp_last": round(float(spread_bp.iloc[-1]), 1),
         "spread_bp_med_60d": round(float(spread_bp.tail(60).median()), 1),
         "spx_chg_1m": round(float(spx.iloc[-1] / spx.iloc[-22] - 1) * 100, 2),
+        # The bid/ask tile needs a terminal, so scripts/refresh_public.py carries
+        # it over untouched between rebuilds; dating it keeps the page honest.
+        "spread_asof": str(spx.index[-1].date()),
     }
 
     # --- 3y daily gate chart series ---
@@ -175,6 +178,14 @@ def main() -> None:
         "off_periods": offs,
         "rolling": rolling,
         "sleeves": sleeves,
+        # Both halves come from the terminal here. scripts/refresh_public.py
+        # later advances only the live half and rewrites this block to say so.
+        "sources": {
+            "live": "Bloomberg",
+            "live_asof": signal["asof"],
+            "history": "Bloomberg",
+            "history_asof": signal["asof"],
+        },
     }
     OUT.write_text(json.dumps(payload), encoding="utf-8")
     print(

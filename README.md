@@ -253,6 +253,28 @@ static site that GitHub Pages serves. Numerical fidelity is enforced by a parity
 test (`scripts/gen_golden.py` → `web/engine.test.mjs`) that runs in CI: the JS
 engine must match the Python engine on every metric across many configurations.
 
+#### Two refresh cadences
+
+`web/data.json` is written by two scripts that own different halves of it, so the
+page can be current without waiting on a terminal:
+
+| | writer | needs | cadence | covers |
+|---|---|---|---|---|
+| History | `scripts/build_signal_page.py` | Bloomberg caches (`update_site.bat`) | monthly, by hand | `equity`, `sleeves`, `rolling` — the 37-year backtest |
+| Live | `scripts/refresh_public.py` | nothing (stdlib + Yahoo) | nightly, `.github/workflows/refresh.yml` | `signal`, `indicators`, `gate_series`, `off_periods` |
+
+The live script never splices public data into a Bloomberg-sourced series — mixing
+vendors inside one backtested curve is how silent seams get in. It rewrites whole
+blocks, stamps `sources.live_asof` and `sources.history_asof` so the footer can
+state both dates, and refuses to write at all unless it can first replay the frozen
+Bloomberg numbers (`sources.baseline`) from public data: the 200-day average on the
+day of the last terminal build, and every gate-off span inside the public window.
+
+```bash
+python scripts/refresh_public.py --check   # report staleness, write nothing
+python scripts/refresh_public.py           # rewrite the live blocks
+```
+
 ## Adding a new strategy
 
 Drop one self-contained file and decorate the class — **no engine changes**:

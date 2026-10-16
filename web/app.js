@@ -364,7 +364,7 @@ function renderHero() {
   const on = sig.state === "ON";
   document.body.classList.toggle("state-on", on);
   document.body.classList.toggle("state-off", !on);
-  $("asof").innerHTML = '<span class="asof-long">données Bloomberg </span>au ' + sig.asof;
+  $("asof").innerHTML = '<span class="asof-long">signal </span>au ' + sig.asof;
   $("verdict").innerHTML = `<span class="flap ${on ? "on" : "off"}">${on ? "Tout investir" : "Défense"}</span>`;
   $("verdict-sub").textContent =
     `SPX ${sig.spx.toLocaleString("fr-FR")} · moyenne 200 j ${sig.sma200.toLocaleString("fr-FR")} · ` +
@@ -402,7 +402,8 @@ function renderPulse(live) {
       tone: ind.vix_pctl_1y > 75 ? "bad" : "",
     },
     {
-      k: "Spread ESE (hier, clôture)",
+      // Bid/ask needs a terminal, so this tile only moves on a Bloomberg rebuild.
+      k: ind.spread_asof ? `Spread ESE (clôture du ${ind.spread_asof})` : "Spread ESE (hier, clôture)",
       v: fr(ind.spread_bp_last, 1) + " pb",
       s: spreadBad
         ? "au-dessus de la garde 25 pb : on remet l'achat à demain"
@@ -965,8 +966,14 @@ fetch("data.json")
     tg.addEventListener("click", () =>
       setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light"),
     );
+    // Two cadences: the gate refreshes daily from public closes, the 37-year
+    // backtest only on a Bloomberg rebuild. Name both rather than imply one.
+    const src = d.sources || {};
+    const vendor = (src.live || "").split(" ")[0];
     $("foot").textContent =
-      `données Bloomberg au ${d.generated} · ${d.sleeves.dates.length} mois (${d.sleeves.dates[0]} → ${d.sleeves.dates.at(-1)}) · ` +
+      `signal au ${src.live_asof || d.generated}${vendor ? ` (${vendor})` : ""} · ` +
+      `backtest Bloomberg au ${src.history_asof || d.generated} · ` +
+      `${d.sleeves.dates.length} mois (${d.sleeves.dates[0]} → ${d.sleeves.dates.at(-1)}) · ` +
       `frais ${(d.sleeves.fee * 100).toFixed(2)} % par ordre · tout est recalculé dans le navigateur`;
     syncControls();
     wire();
